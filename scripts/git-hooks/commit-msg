@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/bin/sh
+#ddev-generated
 
 # Regex pattern for the commit message
 PATTERN="^T-[0-9]*"
@@ -8,7 +9,7 @@ commit_message=$(cat "$1")
 
 # Check if the commit message matches the pattern
 if [[ ! $commit_message =~ $PATTERN ]]; then
-  echo "Error: Commit message must start with the pattern 'T-00000000'."
+  echo "Error: Commit message must start with the pattern 'T-00000000'. Please get the ticket ID from Teamwork URL."
   exit 1
 fi
 

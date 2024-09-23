@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/bin/sh
+#ddev-generated
 
 ## Description: Launch a browser and login to the current Drupal project.
 ## Usage: login [--name=USER]

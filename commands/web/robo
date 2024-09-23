@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/bin/sh
+#ddev-generated
 ## Description: Run robo inside the web container
 ## Usage: robo [flags] [args]
 ## Example: "ddev robo init"
