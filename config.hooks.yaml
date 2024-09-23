@@ -1,0 +1,13 @@
+#ddev-generated
+hooks:
+  pre-start:
+    - exec-host: "cp .ddev/settings.ddev.annertech.php web/sites/default/settings.local.php"
+    - exec-host: "cp .ddev/scripts/git-hooks/commit-msg .git/hooks/commit-msg"
+    - exec-host: "chmod +x .git/hooks/commit-msg"
+  post-start:
+    - exec-host: "ddev auth ssh"
+  post-import-db:
+    - exec: "drush cr"
+    - exec: "drush sql:sanitize -y"
+    - exec: "drush en stage_file_proxy -y"
+    - exec: "drush uli"

@@ -1,0 +1,7 @@
+#!/bin/bash
+## Description: Run behat inside the web container
+## Usage: behat [flags] [args]
+## Example: "ddev behat --tags ~wip"
+
+cd tests/behat
+bin/behat "$@"

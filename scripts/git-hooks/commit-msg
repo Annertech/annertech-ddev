@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Regex pattern for the commit message
+PATTERN="^T-[0-9]*"
+
+# Read the commit message
+commit_message=$(cat "$1")
+
+# Check if the commit message matches the pattern
+if [[ ! $commit_message =~ $PATTERN ]]; then
+  echo "Error: Commit message must start with the pattern 'T-00000000'."
+  exit 1
+fi
+
+# If the pattern matches, allow the commit
+exit 0
+

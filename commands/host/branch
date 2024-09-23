@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+
+## Description: Create a git branch from a trello url
+## Usage: branch
+## Example: ddev branch
+
+# Given a Trello url, and optional name, creates a new branch
+#
+# Prompts for a Trello url, and then for an optional branch name. Given the
+# following url and string:
+#
+# - https://trello.com/c/xxK4l2eP/31-region-footer
+# - qa_rework
+#
+# the script will create a git branch with the following name:
+#
+# 2019_w37_31_region_footer_xxK4l2eP__qa_rework
+#
+# Where:
+#
+# - 2019 is the year
+# - w37 is the current week
+# - 31_region_footer_xxK4l2eP is the Trello card identifier
+# - qa_rework is the branch name provided
+#
+
+import datetime, re, subprocess, sys, getopt
+
+
+def main(argv):
+    trello = ''
+    name = ''
+
+    if len(argv) == 0:
+        trello = input("Please enter the Trello url: ")
+        name = input("Please enter a branch name (optional): ")
+        suffix = ""
+    elif len(argv) == 1 and ('trello' in argv[0]):
+        trello = argv[0]
+    else:
+        try:
+            opts, args = getopt.getopt(argv, "u:b:", ['url=', 'branch='])
+        except getopt.GetoptError as err:
+            print(err)
+            print("fin branch -u TRELLO_URL [-b BRANCH_NAME]")
+            sys.exit(2)
+        for opt, arg in opts:
+            if opt in ("-u", "--url"):
+                trello = arg
+            elif opt in ("-b", "--branch"):
+                name = arg
+    try:
+        """ Make sure this looks like part of a Trello path. """
+        path = trelloPath(trello)
+
+        """ If we got a name, ensure it's composed of acceptable characters. """
+        if name != None:
+            suffix = re.fullmatch(r'[a-zA-Z0-9_-]+', name)
+
+        """ Proceed if we we got a match. """
+        if path != None:
+            parts = path.group(1).split("/")
+            today = datetime.date.today()
+            name = re.sub(r'-', '_', parts[1])
+            hash = parts[0]
+            branch = "{}_w{}_{}_{}".format(
+                today.year, today.isocalendar()[1], name, hash)
+
+            """ If we were able to match a suffix, append it now. """
+            if suffix != None:
+                branch = "{}__{}".format(branch, suffix.group(0))
+
+            """ Check out a branch with the new name. """
+            subprocess.run(["git", "checkout", "-b", branch])
+        else:
+            raise ValueError
+
+    except ValueError:
+        print("The argument did not match the expected pattern.")
+
+def trelloPath(test_url):
+  return re.fullmatch(r'https:\/\/trello.com\/[a-zA-Z]{1}\/([0-9A-Za-z-]+\/[0-9A-Za-z-]+)', test_url)
+
+main(sys.argv[1:])
