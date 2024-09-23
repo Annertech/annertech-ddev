@@ -16,11 +16,11 @@ $settings['simple_environment_indicator'] = 'darkgreen LOCAL';
 $config['stage_file_proxy.settings']['origin'] = getenv('STAGE_FILE_PROXY_URL');
 
 // Override SOLR configuration for DDEV.
-$config['search_api.server.pantheon_solr8']['backend_config']['connector_config']['scheme'] = 'http';
-$config['search_api.server.pantheon_solr8']['backend_config']['connector_config']['host'] = 'solr';
-$config['search_api.server.pantheon_solr8']['backend_config']['connector_config']['port'] = '8983';
-$config['search_api.server.pantheon_solr8']['backend_config']['connector_config']['path'] = '/';
-$config['search_api.server.pantheon_solr8']['backend_config']['connector_config']['core'] = 'dev';
+$config['search_api.server.solr']['backend_config']['connector_config']['scheme'] = 'http';
+$config['search_api.server.solr']['backend_config']['connector_config']['host'] = 'solr';
+$config['search_api.server.solr']['backend_config']['connector_config']['port'] = '8983';
+$config['search_api.server.solr']['backend_config']['connector_config']['path'] = '/';
+$config['search_api.server.solr']['backend_config']['connector_config']['core'] = 'dev';
 
 // Set $settings['file_private_path'] if not set in settings.php.
 if (empty($settings['file_private_path'])) {
