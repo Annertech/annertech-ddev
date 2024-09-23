@@ -15,7 +15,7 @@
 #
 # the script will create a git branch with the following name:
 #
-# 17360561_2024_w37__qa_rework
+# 2024/09/T-17360561__new_branching_patterns
 #
 # Where:
 #
@@ -42,7 +42,7 @@ current_month = datetime.datetime.now().month
 # Main script
 def main():
     url = input("Enter the URL: ").strip()
-    custom_text = input("Enter custom text: ").strip()
+    custom_text = input("Enter task description: ").strip()
 
     # Replace spaces with hyphens and make it Git-friendly
     custom_text = custom_text.replace(" ", "_")

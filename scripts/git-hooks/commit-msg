@@ -1,18 +1,28 @@
-#!/bin/sh
+#!/bin/bash
 #ddev-generated
 
-# Regex pattern for the commit message
-PATTERN="^T-[0-9]*"
+# Regex patterns
+COMMIT_PATTERN="^T-[0-9]*"
+BRANCH_PATTERN="[0-9]{4}/[0-9]{2}/(T-[0-9]{8})"
 
 # Read the commit message
 commit_message=$(cat "$1")
 
-# Check if the commit message matches the pattern
-if [[ ! $commit_message =~ $PATTERN ]]; then
-  echo "Error: Commit message must start with the pattern 'T-00000000'. Please get the ticket ID from Teamwork URL."
-  exit 1
+# Check if the commit message starts with the desired pattern
+if [[ $commit_message =~ $COMMIT_PATTERN ]]; then
+  exit 0
 fi
 
-# If the pattern matches, allow the commit
-exit 0
+# Get the current branch name
+branch_name=$(git rev-parse --abbrev-ref HEAD)
 
+# Try to extract the pattern from the branch name
+if [[ $branch_name =~ $BRANCH_PATTERN ]]; then
+  ticket_id="${BASH_REMATCH[1]}"
+  # Prepend the ticket ID to the commit message
+  echo "$ticket_id: $commit_message" > "$1"
+  exit 0
+else
+  echo "Error: Commit message must start with the pattern 'T-0000000' or the branch name must follow 'YYYY/MM/T-XXXXXXXX__description'."
+  exit 1
+fi
