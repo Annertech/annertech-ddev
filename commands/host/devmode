@@ -1,0 +1,18 @@
+#!/bin/sh
+#ddev-generated
+## Description: Easily change between devevelopment mode and live mode (aggregation, caching etc). Default setting is `off` at the start of every project.
+## Usage: devmode [off|on]
+## Example: "ddev devmode on"
+
+case $@ in
+  on)
+    echo "Configuring settings.local.php for caching and performance"
+    cp .ddev/settings.local.devmodeON.php web/sites/default/settings.local.php
+    ;;
+  off)
+    echo "Configuring settings.local.php for development"
+    cp .ddev/settings.local.devmodeOFF.php web/sites/default/settings.local.php
+    ;;
+  *)
+    echo "Please set mode (eg: 'ddev devmode on')"
+esac

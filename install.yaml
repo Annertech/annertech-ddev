@@ -60,7 +60,8 @@ pre_install_actions:
 # by this add-on, or removal could remove things that are not owned by it
 project_files:
   - config.hooks.yaml
-  - settings.ddev.annertech.php
+  - settings.local.devmodeOFF.php
+  - settings.local.devmodeON.php
   - scripts
   - commands
   # - some-directory/file1.txt
@@ -99,7 +100,8 @@ removal_actions:
   - rm ~/.ddev/commands/web/behat
   - rm ~/.ddev/commands/web/robo
   - rm ~/.ddev/commands/host/login
-  - rm ~/.ddev/settings.ddev.annertech.php
+  - rm ~/.ddev/settings.local.devmodeON.php
+  - rm ~/.ddev/settings.local.devmodeOFF.php
   - |
     if [ -f ${DDEV_APPROOT}/.ddev/config.hooks.yaml then
       if grep -q '#ddev-generated' ${DDEV_APPROOT}/.ddev/config.hooks.yaml; then
