@@ -97,11 +97,11 @@ post_install_actions:
 # Files listed in project_files section will be automatically removed here if they contain #ddev-generated line.
 # removal_actions are executed in the context of the target project's .ddev directory.
 removal_actions:
-  - rm ~/.ddev/commands/web/behat
-  - rm ~/.ddev/commands/web/robo
-  - rm ~/.ddev/commands/host/login
-  - rm ~/.ddev/settings.local.devmodeON.php
-  - rm ~/.ddev/settings.local.devmodeOFF.php
+  - rm commands/web/behat
+  - rm commands/web/robo
+  - rm commands/host/login
+  - rm settings.local.devmodeON.php
+  - rm settings.local.devmodeOFF.php
   - |
     if [ -f ${DDEV_APPROOT}/.ddev/config.hooks.yaml then
       if grep -q '#ddev-generated' ${DDEV_APPROOT}/.ddev/config.hooks.yaml; then
