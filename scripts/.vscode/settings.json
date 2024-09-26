@@ -1,0 +1,42 @@
+/* #ddev-generated */
+{
+    "breadcrumbs.enabled": true,
+    "css.validate": true,
+    "diffEditor.ignoreTrimWhitespace": false,
+    "editor.tabSize": 2,
+    "editor.autoIndent": "full",
+    "editor.insertSpaces": true,
+    "editor.formatOnPaste": true,
+    "editor.formatOnSave": false,
+    "editor.renderWhitespace": "boundary",
+    "editor.wordWrapColumn": 80,
+    "editor.wordWrap": "off",
+    "editor.detectIndentation": true,
+    "editor.rulers": [
+      80
+    ],
+    "files.associations": {
+      "*.inc": "php",
+      "*.module": "php",
+      "*.install": "php",
+      "*.theme": "php",
+      "*.profile": "php",
+      "*.tpl.php": "php",
+      "*.test": "php",
+      "*.php": "php",
+      "*.info": "ini"
+    },
+    "files.trimTrailingWhitespace": true,
+    "files.restoreUndoStack": false,
+    "files.insertFinalNewline": true,
+    "html.format.enable": true,
+    "html.format.wrapLineLength": 80,
+    "telemetry.telemetryLevel": "off",
+  
+    /* PHP Intelephense (bmewburn.vscode-intelephense-client) */
+    "intelephense.environment.includePaths": [
+      "web/core/",
+      "web/core/includes",
+      "vendor/"
+    ],
+  }

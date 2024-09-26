@@ -92,6 +92,7 @@ post_install_actions:
   # - chmod +x ~/.ddev/commands/web/somecommand
   # - touch ${DDEV_APPROOT}/somefile.${GOOS}.${DDEV_WEBSERVER}
   # - perl -pi -e 's/oldstring/newstring/g' ${DDEV_APPROOT}/.ddev/docker-compose.addon-template.yaml
+  - cp -r ${DDEV_APPROOT}/.ddev/scripts/.vscode ${DDEV_APPROOT}/
 
 # Shell actions that can be done during removal of the add-on.
 # Files listed in project_files section will be automatically removed here if they contain #ddev-generated line.
@@ -102,6 +103,7 @@ removal_actions:
   - rm commands/host/login
   - rm settings.local.devmodeON.php
   - rm settings.local.devmodeOFF.php
+  - rm -rf scripts
   - |
     if [ -f ${DDEV_APPROOT}/.ddev/config.hooks.yaml then
       if grep -q '#ddev-generated' ${DDEV_APPROOT}/.ddev/config.hooks.yaml; then
