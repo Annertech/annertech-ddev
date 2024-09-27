@@ -28,7 +28,7 @@ rm -rf .ddev/commnads/web/behat
 
 Then get the addon:
 ```
-ddev get bserem/annertech-ddev
+ddev get annertech/annertech-ddev
 ```
 
 ## Automated Testing commands provided
