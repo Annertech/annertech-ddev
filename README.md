@@ -33,8 +33,6 @@ ddev get annertech/annertech-ddev
 
 Ideally, add addon files to git:
 ```
-git add .ddev/commands/branch
-git add .ddev/commands/host/
 git add .ddev/commands/host/branch -f
 git add .ddev/commands/host/login -f
 git add .ddev/commands/host/devmode -f
@@ -46,6 +44,8 @@ git add .ddev/scripts/ -f
 
 git add .ddev/config.hooks.yaml -f
 git add .ddev/settings.local.devmodeO* -f
+
+git add .ddev/addon-metadata/
 
 git add .vscode
 ```
