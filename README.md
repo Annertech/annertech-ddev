@@ -6,13 +6,13 @@ Highly opinionated set of configs and commands used by Annertech in our DDEV wor
 
 - Provides commands:
 - - `branch`: Creates an opinionated git branch name from a Teamwork ticket ID
-- - `robo`: Runs robo
-- - `behat`: Runs behat
+- - `behat`: Runs behat inside the web container
+- - `devmode [on|off]`: Adds custom settings.local.php file and allows easy toggle between production and development mode
 - - `login`: Opens a browser and logs you in to Drupal (works on local environments only)
-- - `devmode [on|off]`: Toggles between production and development settings
-- Adds actions on DDEV hooks
+- - `robo`: Runs robo inside the web container
+- Uses DDEV Hooks to properly instatiate project for development (see `config.hooks.yaml`)
 - Adds git hook to enforce proper commit messages
-- Adds custom settings.local.php file on project start and allows easy toggle between production and development mode
+- Sets to development mode on project start
 
 ## Install
 
@@ -22,8 +22,8 @@ rm -rf .ddev/settings.ddev.annertech.yaml
 rm -rf .ddev/config.hooks.yaml
 rm -rf .ddev/commands/host/branch
 rm -rf .ddev/commands/host/login
-rm -rf .ddev/commnads/web/robo
-rm -rf .ddev/commnads/web/behat
+rm -rf .ddev/commands/web/robo
+rm -rf .ddev/commands/web/behat
 ```
 
 Then get the addon:
