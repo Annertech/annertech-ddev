@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 #ddev-generated
 
-## Description: Create a git branch from a Teamwork url
+## Description: Create a git branch from a Teamwork url/id
 ## Usage: branch
 ## Example: ddev branch
 
-# Given a Teamwork url, and optional name, creates a new branch
+# Given a Teamwork url or ID, and optional name, creates a new branch
 #
-# Prompts for a Teamwork url, and then for an optional branch name. Given the
-# following url and string:
+# Prompts for a Teamwork url/id if none provided, and then for an optional branch name.
+#
+# Given the following url and string:
 #
 # - https://projects.YOURCOMPANY.com/app/tasks/17360561
 # - qa_rework
@@ -24,16 +25,27 @@
 # - w37 is the current week
 # - qa_rework is the branch name provided
 #
+# Can be called like:
+#
+# ddev branch
+# ddev branch https://projects.YOURCOMPANY.com/app/tasks/17360561 "example task"
+# ddev branch https://projects.YOURCOMPANY.com/app/tasks/17360561
+# ddev branch 17360561
+# ddev branch 17360561 example_task
 
+
+import sys
 from urllib.parse import urlparse
 import datetime
 import subprocess
 
-# Function to extract the ID from the URL
-def extract_last_part(url):
-    path = urlparse(url).path
-    last_part = path.split('/')[-1]
-    return last_part
+# Function to extract the ID from the URL or use the provided ID directly
+def extract_id(input_value):
+    if input_value.isdigit():
+        return input_value  # If it's purely numeric, treat it as the ID directly
+    else:
+        path = urlparse(input_value).path
+        return path.split('/')[-1]
 
 # Get current year and month
 current_year = datetime.datetime.now().year
@@ -41,17 +53,22 @@ current_month = datetime.datetime.now().month
 
 # Main script
 def main():
-    url = input("Enter the URL: ").strip()
-    custom_text = input("Enter task description: ").strip()
+    # Check if the URL/ID and custom text are provided as command-line arguments
+    if len(sys.argv) > 1:
+        input_value = sys.argv[1]
+        custom_text = sys.argv[2] if len(sys.argv) > 2 else input("Enter custom text: ").strip()
+    else:
+        input_value = input("Enter the URL or ID: ").strip()
+        custom_text = input("Enter task description: ").strip()
 
     # Replace spaces with hyphens and make it Git-friendly
-    custom_text = custom_text.replace(" ", "_")
+    custom_text = custom_text.replace(" ", "-")
 
-    # Extract the last part (ID) from the URL
-    last_part = extract_last_part(url)
+    # Extract the ID from the URL or use it directly if it's an ID
+    task_id = extract_id(input_value)
 
     # Create the branch name in the format YEAR/MONTH/ID-description
-    branch_name = f"{current_year}/{current_month:02}/T-{last_part}__{custom_text}"
+    branch_name = f"{current_year}/{current_month:02}/{task_id}-{custom_text}"
 
     # Ensure only valid characters are in the branch name
     branch_name = "".join(c for c in branch_name if c.isalnum() or c in ['-', '_', '.', '/'])
