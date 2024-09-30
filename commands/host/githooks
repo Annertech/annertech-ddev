@@ -1,0 +1,9 @@
+#!/bin/sh
+#ddev-generated
+## Description: Install git hooks to your project
+## Usage: githooks
+## Example: "ddev githooks"
+
+echo "Installing git hooks"
+cp .ddev/scripts/git-hooks/* .git/hooks
+chmod +x .git/hooks/commit-msg

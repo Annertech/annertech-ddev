@@ -18,7 +18,7 @@ Highly opinionated set of configs and commands used by Annertech in our DDEV wor
 
 First clean-up previous variations of these files from before they were grouped in an addon.
 ```
-rm -rf .ddev/settings.ddev.annertech.yaml
+rm -rf .ddev/settings.ddev.annertech.php
 rm -rf .ddev/config.hooks.yaml
 rm -rf .ddev/commands/host/branch
 rm -rf .ddev/commands/host/login
