@@ -108,10 +108,10 @@ removal_actions:
   - rm settings.local.devmodeOFF.php
   - rm -rf scripts
   - |
-    if [ -f ${DDEV_APPROOT}/.ddev/config.hooks.yaml then
-      if grep -q '#ddev-generated' ${DDEV_APPROOT}/.ddev/config.hooks.yaml; then
-        rm -f ${DDEV_APPROOT}/.ddev/config.hooks.yaml
-        echo "Unwilling to remove '${DDEV_APPROOT}/.ddev/config.hooks.yaml' because it does not have #ddev-generated in it; you can manually delete it if it is safe to delete."
+    if [ -f ${DDEV_APPROOT}/config.hooks.yaml ]; then
+      if grep -q '#ddev-generated' ${DDEV_APPROOT}/config.hooks.yaml; then
+        rm -f ${DDEV_APPROOT}/config.hooks.yaml
+        echo "Unwilling to remove '${DDEV_APPROOT}/config.hooks.yaml' because it does not have #ddev-generated in it; you can manually delete it if it is safe to delete."
       fi
     fi
 
