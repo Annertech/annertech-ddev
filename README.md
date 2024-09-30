@@ -59,3 +59,21 @@ git add .vscode
 ### BackstopJS
 
 We rely on https://github.com/mmunz/ddev-backstopjs to get BackstopJS commands in DDEV. Go look there.
+
+## Tricks
+
+Handy shell aliases to add to your **host** machine:
+```
+# DDEV
+alias composer='ddev composer'
+alias drush='ddev drush'
+alias robo='ddev robo'
+alias behat='ddev behat'
+
+alias xe='ddev xdebug enable'
+alias xd='ddev xdebug disable'
+alias xt='status=$(ddev xdebug status) &&  if [ "$status" == "xdebug enabled" ]; then ddev xdebug off; else ddev xdebug on; fi' 
+
+# If you don't want to have platform cli installed on your host you can rely to the one in DDEV
+alias platform='ddev exec platform'
+```
