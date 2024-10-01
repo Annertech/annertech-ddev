@@ -45,7 +45,7 @@ def extract_id(input_value):
         return input_value  # If it's purely numeric, treat it as the ID directly
     else:
         path = urlparse(input_value).path
-        return path.split('/')[-1]
+        return path.split('/')[-1] if path.split('/')[-1].isdigit() else None
 
 # Get current year and month
 current_year = datetime.datetime.now().year
@@ -53,22 +53,35 @@ current_month = datetime.datetime.now().month
 
 # Main script
 def main():
-    # Check if the URL/ID and custom text are provided as command-line arguments
+    # Check if the URL/ID is provided as a command-line argument
     if len(sys.argv) > 1:
         input_value = sys.argv[1]
-        custom_text = sys.argv[2] if len(sys.argv) > 2 else input("Enter custom text: ").strip()
     else:
+        # Ask for the URL/ID if not provided
         input_value = input("Enter the URL or ID: ").strip()
-        custom_text = input("Enter task description: ").strip()
 
-    # Replace spaces with hyphens and make it Git-friendly
-    custom_text = custom_text.replace(" ", "-")
-
-    # Extract the ID from the URL or use it directly if it's an ID
+    # Validate the ID from the URL or use it directly if it's an ID
     task_id = extract_id(input_value)
 
-    # Create the branch name in the format YEAR/MONTH/ID-description
-    branch_name = f"{current_year}/{current_month:02}/{task_id}-{custom_text}"
+    if not task_id:
+        print("Error: No valid URL or ID provided.")
+        sys.exit(1)
+
+    # Check if the custom text is provided as a command-line argument
+    if len(sys.argv) > 2:
+        custom_text = sys.argv[2]
+    else:
+        # Prompt for custom text if not provided
+        custom_text = input("Enter task description: ").strip()
+
+    # Replace spaces with hyphens and make the text Git-friendly
+    custom_text = custom_text.replace(" ", "-")
+
+    # Create the branch name in the format YEAR/MONTH/ID-description (without the extra dash if no description)
+    if custom_text:
+        branch_name = f"{current_year}/{current_month:02}/{task_id}__{custom_text}"
+    else:
+        branch_name = f"{current_year}/{current_month:02}/{task_id}"
 
     # Ensure only valid characters are in the branch name
     branch_name = "".join(c for c in branch_name if c.isalnum() or c in ['-', '_', '.', '/'])
