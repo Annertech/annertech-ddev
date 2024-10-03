@@ -79,9 +79,9 @@ def main():
 
     # Create the branch name in the format YEAR/MONTH/ID-description (without the extra dash if no description)
     if custom_text:
-        branch_name = f"{current_year}/{current_month:02}/{task_id}__{custom_text}"
+        branch_name = f"{current_year}/{current_month:02}/T-{task_id}__{custom_text}"
     else:
-        branch_name = f"{current_year}/{current_month:02}/{task_id}"
+        branch_name = f"{current_year}/{current_month:02}/T-{task_id}"
 
     # Ensure only valid characters are in the branch name
     branch_name = "".join(c for c in branch_name if c.isalnum() or c in ['-', '_', '.', '/'])
