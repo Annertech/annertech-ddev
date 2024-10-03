@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+## Description: Export config from the current Drupal project.
+## Usage: cex
+## Example: "ddev cex"
+
+ddev drush cex -y
