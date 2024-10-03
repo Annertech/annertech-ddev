@@ -43,7 +43,7 @@ git add .ddev/commands/web/robo -f
 git add .ddev/scripts/ -f
 
 git add .ddev/config.hooks.yaml -f
-git add .ddev/settings.local.devmodeO* -f
+git add .ddev/settings.local.*mode.php -f
 
 git add .ddev/addon-metadata/
 
