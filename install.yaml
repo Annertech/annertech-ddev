@@ -64,6 +64,7 @@ project_files:
   - settings.local.devmodeON.php
   - scripts
   - commands
+  - nginx
   # - some-directory/file1.txt
   # - some-directory/file2.txt
   # - extra_files_dir_created_by_this_template/
@@ -104,6 +105,7 @@ removal_actions:
   - rm commands/host/login
   - rm commands/web/behat
   - rm commands/web/robo
+  - rm nginx/libraries.conf
   - rm settings.local.devmodeON.php
   - rm settings.local.devmodeOFF.php
   - rm -rf scripts
