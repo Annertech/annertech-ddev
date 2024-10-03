@@ -7,11 +7,11 @@
 case $@ in
   on)
     echo "Configuring settings.local.php for caching and performance"
-    cp .ddev/settings.local.devmodeON.php web/sites/default/settings.local.php
+    cp .ddev/settings.local.perfmode.php "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
     ;;
   off)
     echo "Configuring settings.local.php for development"
-    cp .ddev/settings.local.devmodeOFF.php web/sites/default/settings.local.php
+    cp .ddev/settings.local.devmode.php "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
     ;;
   *)
     echo "Please set mode (eg: 'ddev devmode on')"

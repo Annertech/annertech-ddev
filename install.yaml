@@ -60,8 +60,8 @@ pre_install_actions:
 # by this add-on, or removal could remove things that are not owned by it
 project_files:
   - config.hooks.yaml
-  - settings.local.devmodeOFF.php
-  - settings.local.devmodeON.php
+  - settings.local.devmode.php
+  - settings.local.perfmode.php
   - scripts
   - commands
   - nginx
@@ -106,8 +106,8 @@ removal_actions:
   - rm commands/web/behat
   - rm commands/web/robo
   - rm nginx/libraries.conf
-  - rm settings.local.devmodeON.php
-  - rm settings.local.devmodeOFF.php
+  - rm settings.local.perfmode.php
+  - rm settings.local.devmode.php
   - rm -rf scripts
   - |
     if [ -f ${DDEV_APPROOT}/config.hooks.yaml ]; then
