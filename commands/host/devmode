@@ -5,12 +5,12 @@
 ## Example: "ddev devmode on"
 
 case $@ in
-  on)
-    echo "Configuring settings.local.php for caching and performance"
+  off)
+    echo "Configuring settings.local.php for \e[1;0;41m caching and performance \e[0m"
     cp .ddev/settings.local.perfmode.php "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
     ;;
-  off)
-    echo "Configuring settings.local.php for development"
+  on)
+    echo "Configuring settings.local.php for \e[1;0;42m development \e[0m"
     cp .ddev/settings.local.devmode.php "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
     ;;
   *)
