@@ -77,3 +77,15 @@ alias xt='status=$(ddev xdebug status) &&  if [ "$status" == "xdebug enabled" ];
 # If you don't want to have platform cli installed on your host you can rely to the one in DDEV
 alias platform='ddev exec platform'
 ```
+
+## Common problem fixes
+
+### commit-msg hook not working
+
+If the `.git/hooks/commit-msg` is the same file as `.ddev/scripts/git-hooks/commit-msg` than it might be that `core.hooksPath` is being set to another path other than `$GIT_DIR/hooks`, making your hooks in that folder ignored.  
+
+Check `git config -l` for the value of `core.hooksPath` and can change it to the local path with
+
+```
+git config --local core.hooksPath .git/hooks
+```
