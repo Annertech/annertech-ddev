@@ -4,5 +4,14 @@
 ## Usage: behat [flags] [args]
 ## Example: "ddev behat --tags ~wip"
 
+# Navigate to the behat directory
 cd tests/behat
+
+# Check if the behat binary exists
+if [ ! -f "bin/behat" ]; then
+    echo "Behat binary not found. Running 'composer install'..."
+    composer install
+fi
+
+# Run behat with the provided flags/arguments
 bin/behat "$@"
