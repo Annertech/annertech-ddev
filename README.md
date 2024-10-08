@@ -13,10 +13,22 @@ Highly opinionated set of configs and commands used by Annertech in our DDEV wor
 - Uses DDEV Hooks to properly instatiate project for development (see `config.hooks.yaml`)
 - Adds git hook to enforce proper commit messages
 - Sets to development mode on project start
+- Customizes NGINX configuration
 
 ## Install
 
+### 1. Cleanup First
+
 First clean-up previous variations of these files from before they were grouped in an addon.
+
+It is a good idea to update `anrt-tools/docksal-configuration` first:
+```
+composer update anrt-tools/docksal-configuration
+```
+This way composer will not overwrite DDEV files that used to live alongside Docksal files (long story).
+
+and then:
+
 ```
 rm -rf .ddev/settings.ddev.annertech.php
 rm -rf .ddev/config.hooks.yaml
@@ -26,10 +38,14 @@ rm -rf .ddev/commands/web/robo
 rm -rf .ddev/commands/web/behat
 ```
 
+### 2. Get the new addon
+
 Then get the addon:
 ```
 ddev get annertech/annertech-ddev
 ```
+
+### 3. Commit to project repo
 
 Ideally, add addon files to git:
 ```
@@ -83,11 +99,9 @@ alias xt='status=$(ddev xdebug status) &&  if [ "$status" == "xdebug enabled" ];
 alias platform='ddev exec platform'
 ```
 
-## Common problem fixes
+## Common Problems and How-To Fix Them
 
-### commit-msg hook not working
-
-If the `.git/hooks/commit-msg` is the same file as `.ddev/scripts/git-hooks/commit-msg` than it might be that `core.hooksPath` is being set to another path other than `$GIT_DIR/hooks`, making your hooks in that folder ignored.  
+### commit-msg hook is ignored
 
 Check `git config -l` for the value of `core.hooksPath` and can change it to the local path with
 
