@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #ddev-generated
 
 ## Description: Launch a browser and login to the current Drupal project.
