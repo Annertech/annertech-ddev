@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#ddev-generated
 
 ## Description: Import config for the current Drupal project.
 ## Usage: cim

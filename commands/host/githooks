@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #ddev-generated
 ## Description: Install git hooks to your project
 ## Usage: githooks

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#ddev-generated
 
 ## Description: Export config from the current Drupal project.
 ## Usage: cex

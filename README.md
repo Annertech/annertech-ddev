@@ -34,20 +34,25 @@ ddev get annertech/annertech-ddev
 Ideally, add addon files to git:
 ```
 git add .ddev/commands/host/branch -f
-git add .ddev/commands/host/login -f
+git add .ddev/commands/host/cex -f
+git add .ddev/commands/host/cim -f
+git add .ddev/commands/host/cr -f
 git add .ddev/commands/host/devmode -f
 git add .ddev/commands/host/githooks -f
+git add .ddev/commands/host/login -f
+git add .ddev/commands/host/remote-db -f
 git add .ddev/commands/web/behat -f
 git add .ddev/commands/web/robo -f
 
+git add .ddev/nginx/ -f
 git add .ddev/scripts/ -f
 
 git add .ddev/config.hooks.yaml -f
 git add .ddev/settings.local.*mode.php -f
 
-git add .ddev/addon-metadata/
+git add .ddev/addon-metadata/ -f
 
-git add .vscode
+git add .vscode -f
 ```
 
 ## Automated Testing commands provided

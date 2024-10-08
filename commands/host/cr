@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#ddev-generated
 
 ## Description: Rebuild caches for the current Drupal project.
 ## Usage: cr

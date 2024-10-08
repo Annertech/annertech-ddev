@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#ddev-generated
 
 ## Description: Grab a remote DB and import it to the current Drupal project.
 ## Usage: remote-db
