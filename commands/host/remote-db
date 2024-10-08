@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+## Description: Grab a remote DB and import it to the current Drupal project.
+## Usage: remote-db
+## Example: "ddev remote-db"
+
+echo "================================"
+echo "=     I can't do that, Dave.   ="
+echo "================================"
+echo "= Since moving from Docksal to ="
+echo "= DDEV, we have removed this   ="
+echo "= custom command in favour of  ="
+echo "= the built-in 'ddev pull' one ="
+echo "=                              ="
+echo "= You should be able to type   ="
+echo "= 'ddev pull platform' to get  ="
+echo "= both files and DB for the    ="
+echo "= current project. More detail ="
+echo "= on the knowledge.            ="
+echo "= https://bit.ly/ddev-db       ="
+echo "================================"

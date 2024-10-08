@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+## Description: Rebuild caches for the current Drupal project.
+## Usage: cr
+## Example: "ddev cr"
+
+ddev drush cr
