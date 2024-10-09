@@ -7,6 +7,7 @@ Highly opinionated set of configs and commands used by Annertech in our DDEV wor
 - Provides commands:
 - - `branch`: Creates an opinionated git branch name from a Teamwork ticket ID
 - - `behat`: Runs behat inside the web container
+- - `cloudflare`: Shares the project with the outside world over a Cloudflare tunnel
 - - `devmode [on|off]`: Adds custom settings.local.php file and allows easy toggle between production and development mode
 - - `login`: Opens a browser and logs you in to Drupal (works on local environments only)
 - - `robo`: Runs robo inside the web container
