@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+## Description: Share your project through Cloudflare Tunnel
+## Usage: cloudflare
+## Example: "ddev cloudflare"
+
+## Source: https://leolutz.dev/blog/ddev-and-cloudflare-tunnel/
+## Instructions: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/create-local-tunnel/
+
+printf "\n\nPlease install 'cloudflared' first and login with 'cloudflared tunner login'\n\n"
+cloudflared tunnel --url "https://127.0.0.1/$DDEV_HOST_HTTPS_PORT" --http-host-header "$DDEV_SITENAME.$DDEV_TLD"
