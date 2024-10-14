@@ -5,9 +5,9 @@ hooks:
     - exec-host: "cp .ddev/scripts/git-hooks/commit-msg .git/hooks/commit-msg"
     - exec-host: "chmod +x .git/hooks/commit-msg"
   post-start:
-    - exec-host: "ddev auth ssh"
+    - exec-host: "if [ ! $ANNERTECH_LOCAL_DEV ]; then ddev auth ssh; fi"
   post-import-db:
     - exec: "drush cr"
     - exec: "drush sql:sanitize -y"
-    - exec: "drush en stage_file_proxy -y"
+    - exec: "if [ $(grep 'stage_file_proxy' composer.json) ]; then drush en stage_file_proxy -y; fi"
     - exec: "drush uli"
