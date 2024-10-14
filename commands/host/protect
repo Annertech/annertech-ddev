@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+#ddev-generated
+## Description: Enable or disable basic auth on a nixsal hosted dev project
+## Usage: protect [off|on|reset]
+## Example: "ddev protect on"
+
+# Vars
+PROTECT_FILE=${DDEV_APPROOT}/.ddev/passwd
+PROTECT_USER=$(whoami)
+
+if [ ! $ANNERTECH_LOCAL_DEV ]; then
+  echo "========================================="
+  echo "= No changes have been made because     ="
+  echo "= this command requires a nixOS server. ="
+  echo "========================================="
+  exit 0
+fi
+
+case $@ in
+  off)
+    check_protect_file
+    # Comment-out the protect.conf lines starting with 'auth'
+    sed -i '/auth/s/^/#/g' $PROTECT_FILE
+    echo "Restarting ddev..."
+    ddev restart
+    ;;
+  on)
+    check_protect_file
+    # Uncomment lines starting with 'auth'
+    sed -i '/auth/s/^#//g' $PROTECT_FILE
+    echo "Restarting ddev..."
+    ddev restart
+    ;;
+  reset)
+    check_protect_file
+    echo "Restarting ddev..."
+    ddev restart
+    ;;
+  *)
+    echo "Please enter an action when running this command: e.g. on, off or reset"
+esac
+
+function check_protect_file() {
+  ## Check if there's a passwd file
+  if [ ! -f $PROTECT_FILE ]; then
+    ## No file. Let's create one
+    echo "In order to use this script we need a passwd file."
+    if read -t 10 -sp "Press enter to create one or wait 10 seconds to exit..." CREATE; then
+      nix-shell -p apacheHttpd --run "htpasswd -c $PROTECT_FILE $PROTECT_USER"
+    else
+      echo ""
+      echo "==================="
+      echo "= No file created ="
+      echo "==================="
+      echo ""
+      exit 0
+    fi
+  else
+    nix-shell -p apacheHttpd --run "htpasswd $PROTECT_FILE $PROTECT_USER"
+  fi
+}
