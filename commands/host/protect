@@ -4,58 +4,72 @@
 ## Usage: protect [off|on|reset]
 ## Example: "ddev protect on"
 
+# Helpers ====================================
+red='\033[0;31m'
+green='\033[0;32m'
+yellow='\033[1;33m'
+NC='\033[0m'
+
+echo-red () { echo -e "${red}$1${NC}"; }
+echo-green () { echo -e "${green}$1${NC}"; }
+echo-yellow () { echo -e "${yellow}$1${NC}"; }
+# End Helpers ====================================
+
 # Vars
-PROTECT_FILE=${DDEV_APPROOT}/.ddev/passwd
+PROTECT_CONFIG=${DDEV_APPROOT}/.ddev/nginx/protect.conf
+PROTECT_FILE=${DDEV_APPROOT}/.ddev/.passwd
 PROTECT_USER=$(whoami)
 
 if [ ! $ANNERTECH_LOCAL_DEV ]; then
-  echo "========================================="
-  echo "= No changes have been made because     ="
-  echo "= this command requires a nixOS server. ="
-  echo "========================================="
+  echo-yellow "========================================="
+  echo-yellow "= No changes have been made because     ="
+  echo-yellow "= this command requires a nixOS server. ="
+  echo-yellow "========================================="
   exit 0
 fi
-
-case $@ in
-  off)
-    check_protect_file
-    # Comment-out the protect.conf lines starting with 'auth'
-    sed -i '/auth/s/^/#/g' $PROTECT_FILE
-    echo "Restarting ddev..."
-    ddev restart
-    ;;
-  on)
-    check_protect_file
-    # Uncomment lines starting with 'auth'
-    sed -i '/auth/s/^#//g' $PROTECT_FILE
-    echo "Restarting ddev..."
-    ddev restart
-    ;;
-  reset)
-    check_protect_file
-    echo "Restarting ddev..."
-    ddev restart
-    ;;
-  *)
-    echo "Please enter an action when running this command: e.g. on, off or reset"
-esac
 
 function check_protect_file() {
   ## Check if there's a passwd file
   if [ ! -f $PROTECT_FILE ]; then
     ## No file. Let's create one
-    echo "In order to use this script we need a passwd file."
-    if read -t 10 -sp "Press enter to create one or wait 10 seconds to exit..." CREATE; then
+    echo "In order to use this script we need to generate a password file."
+    if read -t 10 -n 1 -sp "Press enter to create one or wait 10 seconds to exit...\n" CREATE; then
       nix-shell -p apacheHttpd --run "htpasswd -c $PROTECT_FILE $PROTECT_USER"
     else
-      echo ""
-      echo "==================="
-      echo "= No file created ="
-      echo "==================="
-      echo ""
+      echo-yellow "\n\n No file created"
       exit 0
     fi
-  else
-    nix-shell -p apacheHttpd --run "htpasswd $PROTECT_FILE $PROTECT_USER"
   fi
 }
+
+# Command logic
+case $@ in
+  off)
+    check_protect_file
+    # Comment-out the protect.conf lines starting with 'auth'
+    echo-yellow "Disabling basic auth protection"
+    sed -i '/auth/s/^/#/g' $PROTECT_CONFIG
+    echo-green "Restarting ddev..."
+    ddev restart
+    ;;
+  on)
+    check_protect_file
+    # Uncomment lines starting with 'auth'
+    echo-yellow "Enabling basic auth protection"
+    sed -i '/auth/s/^#//g' $PROTECT_CONFIG
+    echo-green "Restarting ddev..."
+    ddev restart
+    ;;
+  reset)
+    echo-yellow "Reseting basic auth password"
+    if [ -f $PROTECT_FILE ]; then
+      nix-shell -p apacheHttpd --run "htpasswd $PROTECT_FILE $PROTECT_USER"
+    else
+      check_protect_file
+    fi
+    echo-green "Restarting ddev..."
+    ddev restart
+    ;;
+  *)
+    echo "Please enter an action when running this command: e.g. on, off or reset"
+esac
