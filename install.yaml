@@ -72,6 +72,8 @@ project_files:
   - commands/host/githooks
   - commands/host/login
   - commands/host/remote-db
+  - commands/web/behat
+  - commands/web/robo
   - nginx
   # - some-directory/file1.txt
   # - some-directory/file2.txt
