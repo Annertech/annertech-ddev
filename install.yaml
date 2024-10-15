@@ -64,6 +64,7 @@ project_files:
   - settings.local.perfmode.php
   - scripts
   - commands
+  - commands/host/protect
   - nginx
   # - some-directory/file1.txt
   # - some-directory/file2.txt
