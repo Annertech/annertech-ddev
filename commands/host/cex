@@ -4,5 +4,6 @@
 ## Description: Export config from the current Drupal project.
 ## Usage: cex
 ## Example: "ddev cex"
+## ProjectTypes: drupal,drupal10
 
 ddev drush cex -y

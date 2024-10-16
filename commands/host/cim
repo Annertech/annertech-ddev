@@ -4,5 +4,6 @@
 ## Description: Import config for the current Drupal project.
 ## Usage: cim
 ## Example: "ddev cim"
+## ProjectTypes: drupal,drupal10
 
 ddev drush cim -y
