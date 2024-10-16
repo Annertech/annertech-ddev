@@ -8,6 +8,10 @@ name: annertech-ddev
 # DDEV environment variables can be interpolated into these actions
 # pre_install_actions are executed in the context of the target project's root directory.
 pre_install_actions:
+  - |
+    echo "Please read:"
+    echo "https://github.com/Annertech/annertech-ddev/blob/main/README.md"
+    echo "for instructions on how to properly install the addon!"
   # - |
   #   #ddev-description:check project type
   #   if [ "${DDEV_PROJECT_TYPE}" != "drupal*" ]; then
