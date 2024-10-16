@@ -9,6 +9,12 @@ name: annertech-ddev
 # pre_install_actions are executed in the context of the target project's root directory.
 pre_install_actions:
   # - |
+  #   #ddev-description:check project type
+  #   if [ "${DDEV_PROJECT_TYPE}" != "drupal*" ]; then
+  #     echo "This addon is designed for Drupal only projects, versions 10+";
+  #     exit 1;
+  #   fi
+  # - |
   #   #ddev-description:Check architecture type for incompatible arm64 type
   #   if [ "$(uname -m)" = "arm64" -o "$(uname -m)" = "aarch64" ]; then
   #     echo "This package does not work on arm64 (Apple Silicon) machines";
