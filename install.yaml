@@ -73,6 +73,7 @@ project_files:
   - settings.local.devmode.php
   - settings.local.perfmode.php
   - scripts
+  - commands/host/protect
   - commands/host/branch
   - commands/host/cex
   - commands/host/cim
