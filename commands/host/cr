@@ -4,5 +4,6 @@
 ## Description: Rebuild caches for the current Drupal project.
 ## Usage: cr
 ## Example: "ddev cr"
+## ProjectTypes: drupal,drupal10
 
 ddev drush cr

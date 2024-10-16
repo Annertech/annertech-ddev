@@ -63,8 +63,18 @@ project_files:
   - settings.local.devmode.php
   - settings.local.perfmode.php
   - scripts
-  - commands
   - commands/host/protect
+  - commands/host/branch
+  - commands/host/cex
+  - commands/host/cim
+  - commands/host/cloudflare
+  - commands/host/cr
+  - commands/host/devmode
+  - commands/host/githooks
+  - commands/host/login
+  - commands/host/remote-db
+  - commands/web/behat
+  - commands/web/robo
   - nginx
   # - some-directory/file1.txt
   # - some-directory/file2.txt
