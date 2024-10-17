@@ -2,7 +2,7 @@
 
 Highly opinionated set of configs and commands used by Annertech in our DDEV workflow.
 
-## What it does:
+## Features
 
 - Provides commands:
 - - `branch`: Creates an opinionated git branch name from a Teamwork ticket ID
@@ -11,10 +11,19 @@ Highly opinionated set of configs and commands used by Annertech in our DDEV wor
 - - `devmode [on|off]`: Adds custom settings.local.php file and allows easy toggle between production and development mode
 - - `login`: Opens a browser and logs you in to Drupal (works on local environments only)
 - - `robo`: Runs robo inside the web container
-- Uses DDEV Hooks to properly instatiate project for development (see `config.hooks.yaml`)
+- Uses DDEV Hooks to properly instantiate project for development (see `config.hooks.yaml`)
 - Adds git hook to enforce proper commit messages
 - Sets to development mode on project start
 - Customizes NGINX configuration
+- Fixes search_api_solr to communicate with local [SOLR](ddev/ddev-drupal-solr) by default (overrides might be needed for Pantheon sites)
+- Automatically ignores configuration for development modules
+
+### Automatically disabled
+
+- TFA
+- Fastly
+
+are automatically disabled in local environment to facilitate development.
 
 ## Install
 
