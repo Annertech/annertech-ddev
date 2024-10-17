@@ -31,6 +31,11 @@ if (empty($settings['file_private_path'])) {
  * Developer settings, adapt to will.
  * @see ../example.settings.local.php for more
  */
+
+// Disable Fastly on non-production environments.
+$config['fastly.settings']['api_key'] = '';
+$config['fastly.settings']['site_id'] = '';
+
 // Disable advagg.
 $config['advagg.settings']['enabled'] = FALSE;
 

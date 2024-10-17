@@ -32,6 +32,10 @@ if (empty($settings['file_private_path'])) {
  * @see ../example.settings.local.php for more
  */
 
+// Disable Fastly on non-production environments.
+$config['fastly.settings']['api_key'] = '';
+$config['fastly.settings']['site_id'] = '';
+
 /**
  * Enable CSS and JS aggregation.
  */
