@@ -5,12 +5,13 @@ Highly opinionated set of configs and commands used by Annertech in our DDEV wor
 ## Features
 
 - Provides commands:
-- - `branch`: Creates an opinionated git branch name from a Teamwork ticket ID
-- - `behat`: Runs behat inside the web container
-- - `cloudflare`: Shares the project with the outside world over a Cloudflare tunnel
-- - `devmode [on|off]`: Adds custom settings.local.php file and allows easy toggle between production and development mode
-- - `login`: Opens a browser and logs you in to Drupal (works on local environments only)
-- - `robo`: Runs robo inside the web container
+- - `branch`: Creates an opinionated git branch name from a Teamwork ticket ID - [see file](commands/host/branch)
+- - `behat`: Runs behat inside the web container - [see file](commands/web/behat)
+- - `cloudflare`: Shares the project with the outside world over a Cloudflare tunnel - [see file](commands/host/cloudflare)
+- - `devmode [on|off]`: Adds custom settings.local.php file and allows easy toggle between production and development mode - [see file](commands/host/devmode)
+- - `login`: Opens a browser and logs you in to Drupal (works on local environments only) - [see file](commands/host/login)
+- - `robo`: Runs robo inside the web container - [see file](commands/web/robo)
+- - `solr:update-config`: Updates SOLR config.zip - [see file](commands/web/solr-update-config)
 - Uses DDEV Hooks to properly instantiate project for development (see `config.hooks.yaml`)
 - Adds git hook to enforce proper commit messages
 - Sets to development mode on project start
