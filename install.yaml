@@ -120,6 +120,10 @@ post_install_actions:
 # removal_actions are executed in the context of the target project's .ddev directory.
 removal_actions:
   - rm commands/host/branch
+  - commands/host/cex
+  - commands/host/cim
+  - commands/host/cloudflare
+  - commands/host/cr
   - rm commands/host/devmode
   - rm commands/host/githooks
   - rm commands/host/login
