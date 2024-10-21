@@ -69,6 +69,7 @@ git add .ddev/commands/host/login -f
 git add .ddev/commands/host/remote-db -f
 git add .ddev/commands/web/behat -f
 git add .ddev/commands/web/robo -f
+git add .ddev/commands/web/solr-update-config -f
 
 git add .ddev/nginx/ -f
 git add .ddev/scripts/ -f

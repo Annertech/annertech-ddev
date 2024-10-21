@@ -84,6 +84,7 @@ project_files:
   - commands/host/remote-db
   - commands/web/behat
   - commands/web/robo
+  - commands/web/solr-update-config
   - nginx
   # - some-directory/file1.txt
   # - some-directory/file2.txt
@@ -129,6 +130,7 @@ removal_actions:
   - rm commands/host/login
   - rm commands/web/behat
   - rm commands/web/robo
+  - rm commands/web/solr-update-config
   - rm nginx/libraries.conf
   - rm settings.local.perfmode.php
   - rm settings.local.devmode.php
