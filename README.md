@@ -64,6 +64,7 @@ git add .ddev/commands/host/branch -f
 git add .ddev/commands/host/cex -f
 git add .ddev/commands/host/cim -f
 git add .ddev/commands/host/cr -f
+git add .ddev/commands/host/cloudflare -f
 git add .ddev/commands/host/devmode -f
 git add .ddev/commands/host/githooks -f
 git add .ddev/commands/host/login -f
