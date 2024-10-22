@@ -60,6 +60,7 @@ ddev add-on get annertech/annertech-ddev
 
 Ideally, add addon files to git:
 ```
+git add .ddev/settings.ddev.annertech.php
 git add .ddev/commands/host/branch -f
 git add .ddev/commands/host/cex -f
 git add .ddev/commands/host/cim -f
@@ -82,6 +83,10 @@ git add .ddev/settings.local.*mode.php -f
 git add .ddev/addon-metadata/ -f
 
 git add .vscode -f
+```
+
+```
+git commit -m 'Add annertech/annertech-ddev addon' --no-verify'
 ```
 
 ## Automated Testing commands provided
