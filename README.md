@@ -53,7 +53,7 @@ rm -rf .ddev/commands/web/behat
 
 Then get the addon:
 ```
-ddev get annertech/annertech-ddev
+ddev add-on get annertech/annertech-ddev
 ```
 
 ### 3. Commit to project repo
