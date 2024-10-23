@@ -8,6 +8,16 @@ name: annertech-ddev
 # DDEV environment variables can be interpolated into these actions
 # pre_install_actions are executed in the context of the target project's root directory.
 pre_install_actions:
+  - |
+    echo "Please read:"
+    echo "https://github.com/Annertech/annertech-ddev/blob/main/README.md"
+    echo "for instructions on how to properly install the addon!"
+  # - |
+  #   #ddev-description:check project type
+  #   if [ "${DDEV_PROJECT_TYPE}" != "drupal*" ]; then
+  #     echo "This addon is designed for Drupal only projects, versions 10+";
+  #     exit 1;
+  #   fi
   # - |
   #   #ddev-description:Check architecture type for incompatible arm64 type
   #   if [ "$(uname -m)" = "arm64" -o "$(uname -m)" = "aarch64" ]; then
@@ -75,6 +85,7 @@ project_files:
   - commands/host/remote-db
   - commands/web/behat
   - commands/web/robo
+  - commands/web/solr-update-config
   - nginx
   # - some-directory/file1.txt
   # - some-directory/file2.txt
@@ -111,11 +122,16 @@ post_install_actions:
 # removal_actions are executed in the context of the target project's .ddev directory.
 removal_actions:
   - rm commands/host/branch
+  - commands/host/cex
+  - commands/host/cim
+  - commands/host/cloudflare
+  - commands/host/cr
   - rm commands/host/devmode
   - rm commands/host/githooks
   - rm commands/host/login
   - rm commands/web/behat
   - rm commands/web/robo
+  - rm commands/web/solr-update-config
   - rm nginx/libraries.conf
   - rm settings.local.perfmode.php
   - rm settings.local.devmode.php

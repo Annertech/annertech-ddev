@@ -1,0 +1,45 @@
+#!/bin/sh
+#ddev-generated
+## Description: Update SOLR config (config.zip), looks into Robo first to see if a project has a custom described action set for this.
+## Usage: solr:update-config
+## Example: "ddev solr:update-config"
+## ProjectTypes: drupal,drupal10
+
+if ./vendor/bin/robo | grep -q 'solr:update-conf'; then
+  echo "Running via Robo (configuration found in project level)"
+  ./vendor/bin/robo solr:update-conf
+else
+  echo "Running via DDEV addon (no configuration found in project level)."
+
+  drush search-api-solr:get-server-config solr ../config.zip # Hardcode SOLR version? (8.11)
+
+  # DDEV
+  rm .ddev/solr/conf/*
+  unzip config.zip -d .ddev/solr/conf/
+  # @note: This was needed at some point, keep for reference:
+  # sed -i "/solr\.install\.dir/d" .ddev/solr/conf/*
+
+  # PSH
+  rm .platform/solr-conf/8.x/*
+  unzip config.zip -d .platform/solr-conf/8.x/
+
+  rm config.zip
+fi
+
+#########################################################################################
+#                    Sample configuration for RoboFile.php                              #
+#########################################################################################
+#  /**
+#   * Get config.zip for SOLR and extract to PSH and DDEV.
+#   */
+#  public function solrUpdateConf() {
+#    $this->taskExec('drush search-api-solr:get-server-config solr ../config.zip 8.11')
+#      ->run();
+#    // DDEV
+#    $this->taskExec('rm .ddev/solr/conf/*')->run();
+#    $this->taskExec('unzip config.zip -d .ddev/solr/conf/')->run();
+#    // PSH
+#    $this->taskExec('rm .platform/solr-conf/8.x/*')->run();
+#    $this->taskExec('unzip config.zip -d .platform/solr-conf/8.x/')->run();
+#    $this->taskExec('rm config.zip')->run();
+#  }

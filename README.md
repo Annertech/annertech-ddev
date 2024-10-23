@@ -2,7 +2,7 @@
 
 Highly opinionated set of configs and commands used by Annertech in our DDEV workflow.
 
-## What it does:
+## Features
 
 - Provides commands:
 - - `branch`: Creates an opinionated git branch name from a Teamwork ticket ID
@@ -11,11 +11,20 @@ Highly opinionated set of configs and commands used by Annertech in our DDEV wor
 - - `devmode [on|off]`: Adds custom settings.local.php file and allows easy toggle between production and development mode
 - - `login`: Opens a browser and logs you in to Drupal (works on local environments only)
 - - `protect [on|off|reset]`: Enable or disable basic auth on a nixsal hosted dev project
-- - `robo`: Runs robo inside the web container
-- Uses DDEV Hooks to properly instatiate project for development (see `config.hooks.yaml`)
+- - `solr:update-config`: Updates SOLR config.zip - [see file](commands/web/solr-update-config)
+- Uses DDEV Hooks to properly instantiate project for development (see `config.hooks.yaml`)
 - Adds git hook to enforce proper commit messages
 - Sets to development mode on project start
 - Customizes NGINX configuration
+- Fixes search_api_solr to communicate with local [SOLR](ddev/ddev-drupal-solr) by default (overrides might be needed for Pantheon sites)
+- Automatically ignores configuration for development modules
+
+### Automatically disabled
+
+- TFA
+- Fastly
+
+are automatically disabled in local environment to facilitate development.
 
 ## Install
 
@@ -44,17 +53,19 @@ rm -rf .ddev/commands/web/behat
 
 Then get the addon:
 ```
-ddev get annertech/annertech-ddev
+ddev add-on get annertech/annertech-ddev
 ```
 
 ### 3. Commit to project repo
 
 Ideally, add addon files to git:
 ```
+git add .ddev/settings.ddev.annertech.php
 git add .ddev/commands/host/branch -f
 git add .ddev/commands/host/cex -f
 git add .ddev/commands/host/cim -f
 git add .ddev/commands/host/cr -f
+git add .ddev/commands/host/cloudflare -f
 git add .ddev/commands/host/devmode -f
 git add .ddev/commands/host/githooks -f
 git add .ddev/commands/host/login -f
@@ -62,6 +73,7 @@ git add .ddev/commands/host/protect -f
 git add .ddev/commands/host/remote-db -f
 git add .ddev/commands/web/behat -f
 git add .ddev/commands/web/robo -f
+git add .ddev/commands/web/solr-update-config -f
 
 git add .ddev/nginx/ -f
 git add .ddev/scripts/ -f
@@ -72,6 +84,10 @@ git add .ddev/settings.local.*mode.php -f
 git add .ddev/addon-metadata/ -f
 
 git add .vscode -f
+```
+
+```
+git commit -m 'Add annertech/annertech-ddev addon' --no-verify'
 ```
 
 ## Automated Testing commands provided
