@@ -10,7 +10,7 @@ Highly opinionated set of configs and commands used by Annertech in our DDEV wor
 - - `cloudflare`: Shares the project with the outside world over a Cloudflare tunnel
 - - `devmode [on|off]`: Adds custom settings.local.php file and allows easy toggle between production and development mode
 - - `login`: Opens a browser and logs you in to Drupal (works on local environments only)
-- - `protect`: Enable or disable basic auth on a nixsal hosted dev project
+- - `protect [on|off|reset]`: Enable or disable basic auth on a nixsal hosted dev project
 - - `robo`: Runs robo inside the web container
 - Uses DDEV Hooks to properly instatiate project for development (see `config.hooks.yaml`)
 - Adds git hook to enforce proper commit messages
