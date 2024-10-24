@@ -19,12 +19,12 @@ Highly opinionated set of configs and commands used by Annertech in our DDEV wor
 - [Customizes NGINX configuration](nginx)
 - Fixes search_api_solr to communicate with local [SOLR](ddev/ddev-drupal-solr) by [default](settings.local.devmode.php#L21) (special overrides might be needed for Pantheon sites)
 - [Automatically ignores configuration for development modules](settings.local.devmode.php#L170)
-- [Disables IP blocking modules](settings.local.devmode.php#L16)
 
 ### Automatically disabled
 
-- TFA
-- Fastly
+- [Fastly](settings.local.devmode.php#L41)
+- [IP blocking modules](settings.local.devmode.php#L16)
+- [TFA](settings.local.devmode.php#L38)
 
 are automatically disabled in local environment to facilitate development.
 
