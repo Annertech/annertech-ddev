@@ -12,6 +12,9 @@
 // Simplei settings for local environments. Needs to be overwritten on PSH/Acquia config.
 $settings['simple_environment_indicator'] = 'darkgreen LOCAL';
 
+// Disable any IP restrictions.
+$config['restrict_ip.settings']['enable'] = FALSE;
+
 // Stage File Proxy settings.
 $config['stage_file_proxy.settings']['origin'] = getenv('STAGE_FILE_PROXY_URL');
 
