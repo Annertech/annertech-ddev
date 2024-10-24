@@ -13,12 +13,12 @@ Highly opinionated set of configs and commands used by Annertech in our DDEV wor
 - - `protect [on|off|reset]`: Enable or disable basic auth on a nixsal hosted dev project - [see file](commands/host/protect)
 - - `robo`: Runs robo inside the web container - [see file](commands/web/robo)
 - - `solr:update-config`: Updates SOLR config.zip - [see file](commands/web/solr-update-config)
-- Uses DDEV Hooks to properly instantiate project for development (see `config.hooks.yaml`)
-- Adds git hook to enforce proper commit messages
-- Sets to development mode on project start
-- Customizes NGINX configuration
-- Fixes search_api_solr to communicate with local [SOLR](ddev/ddev-drupal-solr) by default (overrides might be needed for Pantheon sites)
-- Automatically ignores configuration for development modules
+- Uses DDEV Hooks to [properly instantiate project for development](config.hooks.yaml)
+- [Adds git hook to enforce proper commit messages](scripts/git-hooks/commit-msg)
+- [Sets to development mode on project start](config.hooks.yaml#L3)
+- [Customizes NGINX configuration](nginx)
+- Fixes search_api_solr to communicate with local [SOLR](ddev/ddev-drupal-solr) by [default](settings.local.devmode.php#L21) (special overrides might be needed for Pantheon sites)
+- [Automatically ignores configuration for development modules](settings.local.devmode.php#L170)
 - [Disables IP blocking modules](settings.local.devmode.php#L16)
 
 ### Automatically disabled
