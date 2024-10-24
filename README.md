@@ -51,8 +51,15 @@ rm -rf .ddev/commands/web/behat
 
 ### 2. Get the new addon
 
-Then get the addon:
+Then get the addon. For DDEV v1.23.5 or above run
+
+```sh
+ddev add-on get annertech/annertech-ddev
 ```
+
+For earlier versions of DDEV run
+
+```sh
 ddev get annertech/annertech-ddev
 ```
 
