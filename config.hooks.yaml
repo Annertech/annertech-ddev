@@ -2,6 +2,7 @@
 hooks:
   pre-start:
     - exec-host: "cp .ddev/settings.local.devmode.php ${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
+    - exec-host: "cp .ddev/development.services.yml ${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/"
     - exec-host: "cp .ddev/scripts/git-hooks/commit-msg .git/hooks/commit-msg"
     - exec-host: "chmod +x .git/hooks/commit-msg"
   post-start:
