@@ -89,7 +89,7 @@ git add .vscode -f
 ```
 
 ```
-git commit -m 'Add annertech/annertech-ddev addon' --no-verify'
+git commit -m 'Add annertech/annertech-ddev addon' --no-verify
 ```
 
 ## Automated Testing commands provided
