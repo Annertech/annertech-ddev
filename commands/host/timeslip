@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+## Description: Generate a timeslip comment for "Free Agent"
+## Usage: timeslip
+## Example: "ddev timeslip"
+
+#!/bin/bash
+
+# Get the name of the active Git branch
+branch_name=$(git rev-parse --abbrev-ref HEAD)
+
+# Extract the task ID using regex
+if [[ $branch_name =~ T-([0-9]+) ]]; then
+    task_id="${BASH_REMATCH[1]}"
+    url="https://projects.annertech.com/app/tasks/$task_id"
+
+    # Prompt the user for a description
+    read -p "Enter a description: " description
+
+    # Construct the final output
+    result="$description ($url)"
+
+    # Copy to clipboard based on OS
+    if command -v xclip &> /dev/null; then
+        echo "$result" | xclip -selection clipboard
+        echo "Copied to clipboard: $result"
+    elif command -v pbcopy &> /dev/null; then
+        echo "$result" | pbcopy
+        echo "Copied to clipboard: $result"
+    else
+        echo "Clipboard command not found. Please install xclip (Linux) or use pbcopy (macOS)."
+        # Display the result for manual copying
+        printf "Copy the following manually and paste to Free Agent:\n\n"
+        printf "$result"
+        printf "\n\n"
+    fi
+
+else
+    echo "No task ID found in the branch name."
+fi
+
