@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #ddev-generated
-## Description: Easily change between devevelopment mode and live mode (aggregation, caching etc). Default setting is `off` at the start of every project.
+## Description: Easily change between development mode and live mode (aggregation, caching etc). Default setting is `off` at the start of every project.
 ## Usage: devmode [off|on]
 ## Example: "ddev devmode on"
 ## ProjectTypes: drupal,drupal10
