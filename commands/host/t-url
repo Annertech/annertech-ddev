@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+## Description: Quickly get the url of a task by the branch name
+## Usage: t-url
+## Example: "ddev t-url"
+
+#!/bin/bash
+
+# Get the name of the active Git branch
+branch_name=$(git rev-parse --abbrev-ref HEAD)
+
+# Extract the task ID using regex
+if [[ $branch_name =~ T-([0-9]+) ]]; then
+    task_id="${BASH_REMATCH[1]}"
+    result="https://projects.annertech.com/app/tasks/$task_id"
+
+    # Copy to clipboard based on OS
+    if command -v xclip &> /dev/null; then
+        echo "$result" | xclip -selection clipboard
+        echo "Copied to clipboard: $result"
+    elif command -v pbcopy &> /dev/null; then
+        echo "$result" | pbcopy
+        echo "Copied to clipboard: $result"
+    else
+        echo "Clipboard command not found. Please install xclip (Linux) or use pbcopy (macOS)."
+        # Display the result for manual copying
+        printf "$result"
+        printf "\n\n"
+    fi
+
+else
+    echo "No task ID found in the branch name."
+fi
+
