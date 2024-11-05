@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+## Description: Configure multisite project for work on nixsal
+## Usage: nixsal
+## Example: "ddev nixsal"
+## ProjectTypes: drupal,drupal10
+
+# Check if $HOST is set and not empty
+if [ -z "$HOST" ]; then
+  read -p "Please enter your subdomain path for nixsal (eg: 'al' for al.anner.ie): " subdomain
+else
+  subdomain=$(echo"$HOST" | awk -F'-''{print $1}')
+fi
+
+
+# Add Drush aliases
+cp drush/sites/self.site.yml drush/sites/nixsal.site.yml
+sed -i "s/ddev\.site/$subdomain\.anner\.ie/g" drush/sites/nixsal.site.yml
+
+# Create nixsal sites file
+echo "<?php" > web/sites/nixsal.sites.php
+echo "\$sites['eurogroup.$subdomain.anner.ie'] = 'eurogroupforanimals';" >> web/sites/nixsal.sites.php
+echo "\$sites['intergroup.$subdomain.anner.ie'] = 'default';" >> web/sites/nixsal.sites.php
