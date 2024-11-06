@@ -73,10 +73,10 @@ git add .ddev/commands/host/githooks -f
 git add .ddev/commands/host/login -f
 git add .ddev/commands/host/protect -f
 git add .ddev/commands/host/remote-db -f
+git add .ddev/commands/host/t-url -f
+git add .ddev/commands/host/timeslip -f
 git add .ddev/commands/web/behat -f
 git add .ddev/commands/web/robo -f
-git add .ddev/commands/web/t-url -f
-git add .ddev/commands/web/timeslip -f
 git add .ddev/commands/web/solr-update-config -f
 
 git add .ddev/nginx/ -f
