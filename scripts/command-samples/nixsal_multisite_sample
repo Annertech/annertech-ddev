@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#ddev-generated
 
 ## Description: Configure multisite project for work on nixsal
 ## Usage: nixsal
