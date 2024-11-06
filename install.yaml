@@ -96,9 +96,17 @@ project_files:
 
 # List of files and directories that are copied into the global .ddev directory
 # DDEV environment variables can be interpolated into these filenames
+# We are copying universal commands in the global folder too, so that users can use them
+# even if a project doesn't have the addon installed yet.
+# Project level commands take priority.
 global_files:
-  # - commands/web/add-on-command
-  # - homeadditions/some-file.txt
+  - commands/host/branch
+  - commands/host/cloudflare
+  - commands/host/login
+  - commands/host/timeslip
+  - commands/host/t-url
+  - commands/web/behat
+  - commands/web/robo
 
 # Version constraint for DDEV that will be validated against the running DDEV executable
 # and prevent add-on from being installed if it doesn't validate.
