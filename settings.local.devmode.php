@@ -12,9 +12,6 @@
 // Simplei settings for local environments.
 $settings['simple_environment_indicator'] = 'darkgreen LOCAL';
 
-// Disable any IP restrictions.
-$config['restrict_ip.settings']['enable'] = FALSE;
-
 // Stage File Proxy settings.
 $config['stage_file_proxy.settings']['origin'] = getenv('STAGE_FILE_PROXY_URL');
 
@@ -35,8 +32,14 @@ if (empty($settings['file_private_path'])) {
  * @see ../example.settings.local.php for more
  */
 
+// Disable Shield.
+$config['shield.settings']['shield_enable'] = false;
+
 // Disable TFA locally.
 $config['tfa.settings']['enabled'] = FALSE;
+
+// Disable any IP restrictions.
+$config['restrict_ip.settings']['enable'] = FALSE;
 
 // Disable Fastly on non-production environments.
 $config['fastly.settings']['api_key'] = '';
