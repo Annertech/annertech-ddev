@@ -73,7 +73,6 @@ project_files:
   - settings.local.devmode.php
   - settings.local.perfmode.php
   - scripts
-  - commands/host/protect
   - commands/host/branch
   - commands/host/cex
   - commands/host/cim
@@ -82,7 +81,10 @@ project_files:
   - commands/host/devmode
   - commands/host/githooks
   - commands/host/login
+  - commands/host/protect
   - commands/host/remote-db
+  - commands/host/timeslip
+  - commands/host/t-url
   - commands/web/behat
   - commands/web/robo
   - commands/web/solr-update-config
@@ -122,17 +124,24 @@ post_install_actions:
 # removal_actions are executed in the context of the target project's .ddev directory.
 removal_actions:
   - rm commands/host/branch
-  - commands/host/cex
-  - commands/host/cim
-  - commands/host/cloudflare
-  - commands/host/cr
+  - rm commands/host/protect
+  - rm commands/host/branch
+  - rm commands/host/cex
+  - rm commands/host/cim
+  - rm commands/host/cloudflare
+  - rm commands/host/cr
   - rm commands/host/devmode
   - rm commands/host/githooks
   - rm commands/host/login
+  - rm commands/host/remote-db
+  - rm commands/host/timeslip
+  - rm commands/host/t-url
   - rm commands/web/behat
   - rm commands/web/robo
   - rm commands/web/solr-update-config
   - rm nginx/libraries.conf
+  - rm nginx/protect.conf
+  - rm nginx/redirect.conf
   - rm settings.local.perfmode.php
   - rm settings.local.devmode.php
   - rm -rf scripts
