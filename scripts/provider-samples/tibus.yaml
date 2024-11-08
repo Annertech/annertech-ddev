@@ -1,0 +1,22 @@
+# Example rsync provider configuration with ssh tunnels.
+# Based on rsync provider.
+#ddev-generated
+
+# Note that while this is done in the web container (because rsync will always be there)
+# it could also be done on the host, and then you wouldn't need the
+# `ddev auth ssh`
+
+environment_variables:
+  dburl: project.live:/path/to/db/dump/live.gz
+
+auth_command:
+  command: |
+    set -eu -o pipefail
+    ssh-add -l >/dev/null || ( echo "Please 'ddev auth ssh' before running this command." && exit 1 )
+
+db_pull_command:
+  command: |
+    # set -x   # You can enable bash debugging output by uncommenting
+    set -eu -o pipefail
+    rsync -az -vvv -e "ssh -J ${AEGIR_USERNAME}@anrt.vpn" "${dburl}" /var/www/html/.ddev/.downloads/db.sql.gz
+  service: web
