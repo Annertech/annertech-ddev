@@ -33,7 +33,7 @@ if (empty($settings['file_private_path'])) {
  */
 
 // Disable Shield.
-$config['shield.settings']['shield_enable'] = false;
+$config['shield.settings']['shield_enable'] = FALSE;
 
 // Disable TFA locally.
 $config['tfa.settings']['enabled'] = FALSE;
