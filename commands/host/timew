@@ -17,8 +17,9 @@ if [[ $branch_name =~ T-([0-9]+) ]]; then
 
     # Copy to clipboard based on OS
     if command -v timew &> /dev/null; then
-	      timew tag $result $basename
-	  else
+        basename=$(basename "$PWD")
+        timew tag $result $basename
+    else
 	      echo "timewarrior (timew) is not installed"
     fi
 

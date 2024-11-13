@@ -46,7 +46,10 @@ git add .ddev/commands/host/devmode -f
 git add .ddev/commands/host/githooks -f
 git add .ddev/commands/host/login -f
 git add .ddev/commands/host/protect -f
+git add .ddev/commands/host/open-issue -f
 git add .ddev/commands/host/remote-db -f
+git add .ddev/commands/host/timeslip -f
+git add .ddev/commands/host/timew -f
 git add .ddev/commands/web/behat -f
 git add .ddev/commands/web/robo -f
 git add .ddev/commands/web/platform -f
@@ -75,7 +78,7 @@ git commit -m 'Add annertech/annertech-ddev addon' --no-verify
 - - [`login`](commands/host/login): Opens a browser and logs you in to Drupal (works on local environments only)
 - - [`open-issue`](commands/host/open-issue): Opens teamwork issue for current branch
 - - [`timeslip`](commands/host/timeslip): Generates a timeslip message for FreeAgent. If `timewarrior` is installed it will also show the sum of time spent today
-- - [`timew`](commands/host/timew): Starts time tracking with `timewarrior` if it is installed
+- - [`timew`](commands/host/timew): Tags current timewarrior tracking with Teamwork link and project name
 - Provides **host** commands:
 - - [`branch`](commands/host/branch): Creates an opinionated git branch name from a Teamwork ticket ID
 - - [`cloudflare`](commands/host/cloudflare): Shares the project with the outside world over a Cloudflare tunnel
@@ -85,7 +88,7 @@ git commit -m 'Add annertech/annertech-ddev addon' --no-verify
 - - [`open-issue`](commands/host/open-issue): Opens teamwork issue for current branch
 - - [`protect [on|off|reset]`](commands/host/protect): Enable or disable basic auth on a nixsal hosted dev project - [see file](commands/host/protect)
 - - [`timeslip`](commands/host/timeslip): Generates a timeslip message for FreeAgent. If `timewarrior` is installed it will also show the sum of time spent today
-- - [`timew`](commands/host/timew): Starts time tracking with `timewarrior` if it is installed
+- - [`timew`](commands/host/timew): Tags current timewarrior tracking with Teamwork link and project name
 - Provides **web container** commands:
 - - [`behat`](commands/web/behat): Runs behat
 - - [`platform`](commands/web/platform): Runs `platform cli`
