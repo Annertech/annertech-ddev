@@ -16,14 +16,14 @@
 #
 # the script will create a git branch with the following name:
 #
-# 2024/09/T-17360561__new_branching_patterns
+# 202409_T-17360561__new_branching_patterns
 #
 # Where:
 #
 # - 17360561 is the Teamwork card identifier
 # - 2024 is the year
-# - w37 is the current week
-# - qa_rework is the branch name provided
+# - 09 is the current month
+# - new_branching_patterns is the description provided
 #
 # Can be called like:
 #
@@ -79,12 +79,12 @@ def main():
 
     # Create the branch name in the format YEAR/MONTH/ID-description (without the extra dash if no description)
     if custom_text:
-        branch_name = f"{current_year}/{current_month:02}/T-{task_id}__{custom_text}"
+        branch_name = f"{current_year}{current_month:02}_T-{task_id}__{custom_text}"
     else:
-        branch_name = f"{current_year}/{current_month:02}/T-{task_id}"
+        branch_name = f"{current_year}{current_month:02}_T-{task_id}"
 
     # Ensure only valid characters are in the branch name
-    branch_name = "".join(c for c in branch_name if c.isalnum() or c in ['-', '_', '.', '/'])
+    branch_name = "".join(c for c in branch_name if c.isalnum() or c in ['-', '_', '.'])
 
     # Print the branch name
     print(f"Creating new Git branch: {branch_name}")
