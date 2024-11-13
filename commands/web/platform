@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+## Description: Run platform cli inside the web container
+## Usage: platform [args]
+## Example: "ddev platform drush uli"
+
+platform "$@"

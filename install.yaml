@@ -86,6 +86,7 @@ project_files:
   - commands/host/timeslip
   - commands/host/t-url
   - commands/web/behat
+  - commands/web/platform
   - commands/web/robo
   - commands/web/solr-update-config
   - nginx
@@ -106,6 +107,7 @@ global_files:
   - commands/host/timeslip
   - commands/host/t-url
   - commands/web/behat
+  - commands/web/platform
   - commands/web/robo
 
 # Version constraint for DDEV that will be validated against the running DDEV executable
@@ -145,6 +147,7 @@ removal_actions:
   - rm commands/host/timeslip
   - rm commands/host/t-url
   - rm commands/web/behat
+  - rm commands/web/platform
   - rm commands/web/robo
   - rm commands/web/solr-update-config
   - rm nginx/libraries.conf
