@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+## Description: Tag current timewarrior activity
+## Usage: timew
+## Example: "ddev timew"
+
+#!/bin/bash
+
+# Get the name of the active Git branch
+branch_name=$(git rev-parse --abbrev-ref HEAD)
+
+# Extract the task ID using regex
+if [[ $branch_name =~ T-([0-9]+) ]]; then
+    task_id="${BASH_REMATCH[1]}"
+    result="https://projects.annertech.com/app/tasks/$task_id"
+
+    # Copy to clipboard based on OS
+    if command -v timew &> /dev/null; then
+	      timew tag $result $basename
+    fi
+
+else
+    echo "No task ID found in the branch name."
+fi
+

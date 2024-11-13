@@ -83,8 +83,9 @@ project_files:
   - commands/host/login
   - commands/host/protect
   - commands/host/remote-db
-  - commands/host/timeslip
   - commands/host/t-url
+  - commands/host/timeslip
+  - commands/host/timew
   - commands/web/behat
   - commands/web/platform
   - commands/web/robo
@@ -104,8 +105,9 @@ global_files:
   - commands/host/branch
   - commands/host/cloudflare
   - commands/host/login
-  - commands/host/timeslip
   - commands/host/t-url
+  - commands/host/timeslip
+  - commands/host/timew
   - commands/web/behat
   - commands/web/platform
   - commands/web/robo
@@ -144,8 +146,9 @@ removal_actions:
   - rm commands/host/githooks
   - rm commands/host/login
   - rm commands/host/remote-db
-  - rm commands/host/timeslip
   - rm commands/host/t-url
+  - rm commands/host/timeslip
+  - rm commands/host/timew
   - rm commands/web/behat
   - rm commands/web/platform
   - rm commands/web/robo
