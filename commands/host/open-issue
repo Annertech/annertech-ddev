@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #ddev-generated
 
-## Description: Quickly get the url of a task by the branch name
-## Usage: t-url
-## Example: "ddev t-url"
+## Description: Quickly open the current issue you are working on
+## Usage: open-issue
+## Example: "ddev open-issue"
 
 #!/bin/bash
 
@@ -28,6 +28,17 @@ if [[ $branch_name =~ T-([0-9]+) ]]; then
         printf "$result"
         printf "\n\n"
     fi
+    case $OSTYPE in
+      linux-gnu)
+        xdg-open ${result}
+        ;;
+      "darwin"*)
+        open ${result}
+        ;;
+      "win*"* | "msys"*)
+        start ${result}
+        ;;
+    esac
 
 else
     echo "No task ID found in the branch name."
