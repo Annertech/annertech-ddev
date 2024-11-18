@@ -81,11 +81,9 @@ project_files:
   - commands/host/devmode
   - commands/host/githooks
   - commands/host/login
-  - commands/host/open-issue
   - commands/host/protect
   - commands/host/remote-db
   - commands/host/timeslip
-  - commands/host/timew
   - commands/web/behat
   - commands/web/platform
   - commands/web/robo
@@ -102,19 +100,19 @@ project_files:
 # even if a project doesn't have the addon installed yet.
 # Project level commands take priority.
 global_files:
+  - commands/global/open-issue
+  - commands/global/timew
   - commands/host/branch
   - commands/host/cloudflare
   - commands/host/login
-  - commands/host/open-issue
   - commands/host/timeslip
-  - commands/host/timew
 
 # Version constraint for DDEV that will be validated against the running DDEV executable
 # and prevent add-on from being installed if it doesn't validate.
 # See https://github.com/Masterminds/semver#checking-version-constraints for constraint rules.
 # Available with DDEV v1.23.4+, and works only for DDEV v1.23.4+ binaries
 # example: ddev_version_constraint: '>= v1.23.4'
-ddev_version_constraint: ''
+ddev_version_constraint: '>= v1.23.4'
 
 # List of add-on names that this add-on depends on
 dependencies:
@@ -123,10 +121,9 @@ dependencies:
 # DDEV environment variables can be interpolated into these actions.
 # post_install_actions are executed in the context of the target project's .ddev directory.
 post_install_actions:
-  # - chmod +x ~/.ddev/commands/web/somecommand
-  # - touch ${DDEV_APPROOT}/somefile.${GOOS}.${DDEV_WEBSERVER}
-  # - perl -pi -e 's/oldstring/newstring/g' ${DDEV_APPROOT}/.ddev/docker-compose.addon-template.yaml
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/.vscode ${DDEV_APPROOT}/
+  - cp -r ${DDEV_APPROOT}/.ddev/scripts/git-hooks/commit-msg ${DDEV_APPROOT}/.git/hooks/commit-msg
+  - chmod +x ${DDEV_APPROOT}/.git/hooks/commit-msg
 
 # Shell actions that can be done during removal of the add-on.
 # Files listed in project_files section will be automatically removed here if they contain #ddev-generated line.
