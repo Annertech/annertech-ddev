@@ -46,10 +46,8 @@ git add .ddev/commands/host/devmode -f
 git add .ddev/commands/host/githooks -f
 git add .ddev/commands/host/login -f
 git add .ddev/commands/host/protect -f
-git add .ddev/commands/host/open-issue -f
 git add .ddev/commands/host/remote-db -f
 git add .ddev/commands/host/timeslip -f
-git add .ddev/commands/host/timew -f
 git add .ddev/commands/web/behat -f
 git add .ddev/commands/web/robo -f
 git add .ddev/commands/web/platform -f
@@ -60,6 +58,8 @@ git add .ddev/scripts/ -f
 
 git add .ddev/config.hooks.yaml -f
 git add .ddev/settings.local.*mode.php -f
+
+git add .ddev/.env -f
 
 git add .ddev/addon-metadata/ -f
 

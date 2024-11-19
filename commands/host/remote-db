@@ -5,9 +5,9 @@
 ## Usage: remote-db
 ## Example: "ddev remote-db"
 
-if [ -f "${DDEV_APPROOT}/.env" ]; then
+if [ -f "${DDEV_APPROOT}/.ddev/.env" ]; then
     set -a
-    source "${DDEV_APPROOT}/.env"
+    source "${DDEV_APPROOT}/.ddev/.env"
     set +a
     if [[ $DDEV_UPSTREAM_PROVIDER ]]; then
         ddev pull $DDEV_UPSTREAM_PROVIDER --skip-files -y

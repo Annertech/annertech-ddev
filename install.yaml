@@ -124,6 +124,11 @@ post_install_actions:
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/.vscode ${DDEV_APPROOT}/
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/git-hooks/commit-msg ${DDEV_APPROOT}/.git/hooks/commit-msg
   - chmod +x ${DDEV_APPROOT}/.git/hooks/commit-msg
+  - |
+    if [ ! -f ${DDEV_APPROOT}/.ddev/.env ]; then
+      cp ${DDEV_APPROOT}/.ddev/scripts/sample.env ${DDEV_APPROOT}/.ddev/.env
+      echo "Please configure upstream provider in .ddev/.env file!"
+    fi
 
 # Shell actions that can be done during removal of the add-on.
 # Files listed in project_files section will be automatically removed here if they contain #ddev-generated line.
