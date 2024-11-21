@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 #ddev-generated
 
+## Description: Check for updates of the annertech-ddev addon
+## Usage: check-annertech-ddev [flags] [args]
+## Example: "ddev check-annertech-ddev"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
-STARS='**********************************'
+STARS='****************************************'
 
-ADDONVER=$(ddev add-on list --json-output --installed | ddev exec jq -r \'.raw[] \| select\(.Name==\"annertech-ddev\"\) \| .Version\')
-LATESTVER=$(ddev exec curl -sL https://api.github.com/repos/annertech/annertech-ddev/releases/latest | ddev exec jq -r \".tag_name\")
+ADDONVER=$(cat .ddev/addon-metadata/annertech-ddev/manifest.yaml | grep -oP '(?<=version: ")[^"]+')
+LATESTVER=$(curl -sL https://api.github.com/repos/annertech/annertech-ddev/releases/latest | jq -r ".tag_name")
 
 printf "%b\n" "${YELLOW}${STARS}"
 printf "Checking Annertech DDEV addon\n"
@@ -22,5 +26,7 @@ if [ "$(printf '%s\n' "${LATESTVER}" "${ADDONVER}" | sort -V | head -n1)" = "${L
 else
   printf "%b\n" "${RED}${STARS}"
   printf "Annertech Add-on: Update required!\n"
+  printf "Please run:\n"
+  printf "ddev add-on get annertech/annertech-ddev\n"
   printf "%b\n" "${STARS}${NC}"
 fi

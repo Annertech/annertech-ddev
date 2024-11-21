@@ -85,6 +85,7 @@ project_files:
   - commands/host/remote-db
   - commands/host/timeslip
   - commands/web/behat
+  - commands/web/check-annertech-ddev
   - commands/web/platform
   - commands/web/robo
   - commands/web/solr-update-config
@@ -146,6 +147,7 @@ removal_actions:
   - rm commands/host/login
   - rm commands/host/remote-db
   - rm commands/web/behat
+  - commands/web/check-annertech-ddev
   - rm commands/web/platform
   - rm commands/web/robo
   - rm commands/web/solr-update-config
