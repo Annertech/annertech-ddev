@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+STARS='**********************************'
+
+ADDONVER=$(ddev add-on list --json-output --installed | jq -r '.raw[] | select(.Name=="annertech-ddev") | .Version')
+LATESTVER=$(ddev exec curl -sL https://api.github.com/repos/annertech/annertech-ddev/releases/latest | ddev exec jq -r \".tag_name\")
+
+printf "%b\n" "${YELLOW}${STARS}"
+printf "Checking Annertech DDEV addon\n"
+printf "Installed version: %s\n" "${ADDONVER}"
+printf "Latest version: %b\n" "${LATESTVER}${NC}"
+
+if [ "$(printf '%s\n' "${LATESTVER}" "${ADDONVER}" | sort -V | head -n1)" = "${LATESTVER}" ]; then
+  printf "%b\n" "${GREEN}${STARS}"
+  printf "Annertech Add-on: Up to date\n"
+  printf "%b\n" "${STARS}${NC}"
+else
+  printf "%b\n" "${RED}${STARS}"
+  printf "Annertech Add-on: Update required!\n"
+  printf "%b\n" "${STARS}${NC}"
+fi
