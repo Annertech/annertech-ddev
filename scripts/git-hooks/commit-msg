@@ -28,6 +28,6 @@ if [[ $branch_name =~ $BRANCH_PATTERN ]]; then
   echo "$ticket_id: $commit_message" > "$1"
   exit 0
 else
-  echo "Error: Commit message must start with the pattern 'T-0000000' or the branch name must follow 'YYYY_MM_T-XXXXXXXX__description' You can opt out of this rule by passing the '--no-verify' argument in the git commit command."
+  echo "Error: Commit message must start with the pattern 'T-0000000' or the branch name must follow 'YYYYMM_T-XXXXXXXX__description' You can opt out of this rule by passing the '--no-verify' argument in the git commit command."
   exit 1
 fi
