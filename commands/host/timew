@@ -4,8 +4,7 @@
 ## Description: Tag current timewarrior activity
 ## Usage: timew
 ## Example: "ddev timew"
-
-#!/bin/bash
+## Installed globally
 
 # Get the name of the active Git branch
 branch_name=$(git rev-parse --abbrev-ref HEAD)

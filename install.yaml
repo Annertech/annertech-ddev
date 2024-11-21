@@ -100,8 +100,8 @@ project_files:
 # even if a project doesn't have the addon installed yet.
 # Project level commands take priority.
 global_files:
-  - commands/global/open-issue
-  - commands/global/timew
+  - commands/host/open-issue
+  - commands/host/timew
   - commands/host/branch
   - commands/host/cloudflare
   - commands/host/login

@@ -4,8 +4,7 @@
 ## Description: Quickly open the current issue you are working on
 ## Usage: open-issue
 ## Example: "ddev open-issue"
-
-#!/bin/bash
+## Installed globally
 
 # Get the name of the active Git branch
 branch_name=$(git rev-parse --abbrev-ref HEAD)
