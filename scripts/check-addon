@@ -7,7 +7,7 @@ YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 STARS='**********************************'
 
-ADDONVER=$(ddev add-on list --json-output --installed | jq -r '.raw[] | select(.Name=="annertech-ddev") | .Version')
+ADDONVER=$(ddev add-on list --json-output --installed | ddev exec jq -r \'.raw[] \| select\(.Name==\"annertech-ddev\"\) \| .Version\')
 LATESTVER=$(ddev exec curl -sL https://api.github.com/repos/annertech/annertech-ddev/releases/latest | ddev exec jq -r \".tag_name\")
 
 printf "%b\n" "${YELLOW}${STARS}"
