@@ -144,6 +144,7 @@ post_install_actions:
     if [ ! -f ${DDEV_APPROOT}/.ddev/.env ]; then
       cp ${DDEV_APPROOT}/.ddev/scripts/sample.env ${DDEV_APPROOT}/.ddev/.env
       echo "Please configure upstream provider in .ddev/.env file!"
+    fi
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/.vscode ${DDEV_APPROOT}/
   - git add ${DDEV_APPROOT}/.ddev/config.annertech.yaml -f
   - git add ${DDEV_APPROOT}/.ddev/settings.local.*mode.php -f
