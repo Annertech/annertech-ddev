@@ -6,6 +6,7 @@ hooks:
     - exec-host: "chmod +x .git/hooks/commit-msg"
   post-start:
     - exec-host: "if [ ! $ANNERTECH_LOCAL_DEV ]; then ddev auth ssh; fi"
+    - exec-host: "ddev check-annertech-ddev"
   post-import-db:
     - exec: "drush cr"
     - exec: "drush sql:sanitize -y"
