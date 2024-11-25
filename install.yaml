@@ -151,6 +151,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/host/remote-db -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/timeslip -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/behat -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/web/check-annertech-ddev -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/robo -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/platform -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/solr-update-config -f
@@ -187,7 +188,7 @@ removal_actions:
   - rm commands/host/login
   - rm commands/host/remote-db
   - rm commands/web/behat
-  - commands/web/check-annertech-ddev
+  - rm commands/web/check-annertech-ddev
   - rm commands/web/platform
   - rm commands/web/robo
   - rm commands/web/solr-update-config
