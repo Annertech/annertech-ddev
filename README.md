@@ -36,7 +36,6 @@ ddev get annertech/annertech-ddev
 
 Ideally, add addon files to git:
 ```
-git add .ddev/settings.ddev.annertech.php
 git add .ddev/commands/host/branch -f
 git add .ddev/commands/host/cex -f
 git add .ddev/commands/host/cim -f
@@ -56,7 +55,7 @@ git add .ddev/commands/web/solr-update-config -f
 git add .ddev/nginx/ -f
 git add .ddev/scripts/ -f
 
-git add .ddev/config.hooks.yaml -f
+git add .ddev/config.annertech.yaml -f
 git add .ddev/settings.local.*mode.php -f
 
 git add .ddev/.env -f
