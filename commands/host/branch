@@ -36,6 +36,7 @@
 
 import sys
 from urllib.parse import urlparse
+from operator import attrgetter
 import datetime
 import subprocess
 
@@ -44,8 +45,9 @@ def extract_id(input_value):
     if input_value.isdigit():
         return input_value  # If it's purely numeric, treat it as the ID directly
     else:
-        path = urlparse(input_value).path
-        return path.split('/')[-1] if path.split('/')[-1].isdigit() else None
+        fragment, path = attrgetter('fragment', 'path')(urlparse(input_value))
+        card_path = fragment if path == '/' and fragment else path
+        return card_path.split('/')[-1] if card_path.split('/')[-1].isdigit() else None
 
 # Get current year and month
 current_year = datetime.datetime.now().year
