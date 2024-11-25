@@ -12,6 +12,24 @@ pre_install_actions:
     echo "Please read:"
     echo "https://github.com/Annertech/annertech-ddev/blob/main/README.md"
     echo "for instructions on how to properly install the addon!"
+  - |
+    #ddev-nodisplay
+    #ddev-description:Removing old annertech config files
+    has_old_files=false
+    for file in "${DDEV_APPROOT}/.ddev/config.hooks.yaml"; do
+      if [ ! -f "${file}" ]; then
+        continue
+      fi
+      if grep -q '#ddev-generated' "${file}"; then
+        rm -f "${file}"
+      else
+        echo "${file} needs to be removed but has been modified by the user. Please check it and remove it"
+        has_old_files=true
+      fi
+    done
+    if [ "${has_old_files}" = true ]; then
+      exit 2
+    fi
   # - |
   #   #ddev-description:check project type
   #   if [ "${DDEV_PROJECT_TYPE}" != "drupal*" ]; then
@@ -69,7 +87,7 @@ pre_install_actions:
 # If you use directories, they must be directories that are managed
 # by this add-on, or removal could remove things that are not owned by it
 project_files:
-  - config.hooks.yaml
+  - config.annertech.yaml
   - settings.local.devmode.php
   - settings.local.perfmode.php
   - scripts
@@ -122,6 +140,25 @@ dependencies:
 # DDEV environment variables can be interpolated into these actions.
 # post_install_actions are executed in the context of the target project's .ddev directory.
 post_install_actions:
+  - git add ${DDEV_APPROOT}/.ddev/config.annertech.yaml -f
+  - git add ${DDEV_APPROOT}/.ddev/settings.local.*mode.php -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/branch -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/cloudflare -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/devmode -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/githooks -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/login -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/protect -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/remote-db -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/timeslip -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/web/behat -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/web/robo -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/web/platform -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/web/solr-update-config -f
+  - git add ${DDEV_APPROOT}/.ddev/nginx/ -f
+  - git add ${DDEV_APPROOT}/.ddev/scripts/ -f
+  - git add ${DDEV_APPROOT}/.ddev/.env -f
+  - git add ${DDEV_APPROOT}/.ddev/addon-metadata/ -f
+  - git add ${DDEV_APPROOT}/.vscode -f
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/.vscode ${DDEV_APPROOT}/
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/git-hooks/commit-msg ${DDEV_APPROOT}/.git/hooks/commit-msg
   - chmod +x ${DDEV_APPROOT}/.git/hooks/commit-msg
@@ -135,6 +172,9 @@ post_install_actions:
 # Files listed in project_files section will be automatically removed here if they contain #ddev-generated line.
 # removal_actions are executed in the context of the target project's .ddev directory.
 removal_actions:
+  - rm config.annertech.yaml
+  - rm settings.local.perfmode.php
+  - rm settings.local.devmode.php
   - rm commands/host/branch
   - rm commands/host/protect
   - rm commands/host/branch
@@ -154,8 +194,6 @@ removal_actions:
   - rm nginx/libraries.conf
   - rm nginx/protect.conf
   - rm nginx/redirect.conf
-  - rm settings.local.perfmode.php
-  - rm settings.local.devmode.php
   - rm -rf scripts
   - |
     if [ -f ${DDEV_APPROOT}/config.hooks.yaml ]; then
