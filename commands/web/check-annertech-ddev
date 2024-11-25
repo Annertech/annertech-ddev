@@ -11,7 +11,7 @@ YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 STARS='****************************************'
 
-ADDONVER=$(cat .ddev/addon-metadata/annertech-ddev/manifest.yaml | grep -oP '(?<=version: ")[^"]+')
+ADDONVER=$(grep -oP '(?<=version: ")[^"]+' .ddev/addon-metadata/annertech-ddev/manifest.yaml)
 LATESTVER=$(curl -sL https://api.github.com/repos/annertech/annertech-ddev/releases/latest | jq -r ".tag_name")
 
 printf "%b\n" "${YELLOW}${STARS}"
