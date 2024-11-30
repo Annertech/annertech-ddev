@@ -32,6 +32,11 @@ Then get the addon:
 ddev get annertech/annertech-ddev
 ```
 
+NOTE: If ddev is not present in the current project you should configure with defaults
+```
+ddev config
+```
+
 ### 3. Commit to project repo
 
 Ideally, add addon files to git:
