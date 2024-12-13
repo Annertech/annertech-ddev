@@ -16,7 +16,7 @@ health_checks() {
   # ddev exec "curl -s elasticsearch:9200" | grep "${PROJNAME}-elasticsearch"
   git init
   ddev branch https://projects.YOURCOMPANY.com/app/tasks/12345678 "example task"
-  git rev-parse --abbrev-ref HEAD | grep "$(date +%Y%m)_T-12345678__example-task"
+  git branch --show-current | grep "$(date +%Y%m)_T-12345678__example-task"
 }
 
 teardown() {
