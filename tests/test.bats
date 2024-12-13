@@ -14,7 +14,8 @@ setup() {
 health_checks() {
   # Do something useful here that verifies the add-on
   # ddev exec "curl -s elasticsearch:9200" | grep "${PROJNAME}-elasticsearch"
-  ddev exec "curl -s https://localhost:443/"
+  ddev branch https://projects.YOURCOMPANY.com/app/tasks/12345678 "example task"
+  git rev-parse --abbrev-ref HEAD | grep 202412_T-12345678__example-task
 }
 
 teardown() {
