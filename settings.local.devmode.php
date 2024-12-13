@@ -48,6 +48,11 @@ $config['fastly.settings']['site_id'] = '';
 // Disable advagg.
 $config['advagg.settings']['enabled'] = FALSE;
 
+// Set reCaptcha v2 to test mode (requirement for automated tests to work with Captcha).
+// https://developers.google.com/recaptcha/docs/faq#id-like-to-run-automated-tests-with-recaptcha.-what-should-i-do
+$config['recaptcha.settings']['site_key'] = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
+$config['recaptcha.settings']['secret_key'] = '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe';
+
 /**
  * Enable local development services.
  */
