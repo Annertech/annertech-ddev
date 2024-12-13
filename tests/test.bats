@@ -29,7 +29,7 @@ teardown() {
   set -eu -o pipefail
   cd ${TESTDIR}
   git init
-  echo "# ddev get ${DIR} with project ${PROJNAME} in ${TESTDIR} ($(pwd))" >&3
+  echo "# ddev add-on get ${DIR} with project ${PROJNAME} in ${TESTDIR} ($(pwd))" >&3
   ddev add-on get ${DIR}
   ddev restart
   health_checks
@@ -38,7 +38,8 @@ teardown() {
 @test "install from release" {
   set -eu -o pipefail
   cd ${TESTDIR} || ( printf "unable to cd to ${TESTDIR}\n" && exit 1 )
-  echo "# ddev get ddev/ddev-annertech-addon with project ${PROJNAME} in ${TESTDIR} ($(pwd))" >&3
+  git init
+  echo "# ddev add-on get ddev/ddev-annertech-addon with project ${PROJNAME} in ${TESTDIR} ($(pwd))" >&3
   ddev add-on get annertech/annertech-ddev
   ddev restart >/dev/null
   health_checks
