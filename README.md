@@ -78,6 +78,9 @@ git commit -m 'Add annertech/annertech-ddev addon' --no-verify
 - - [`open-issue`](commands/host/open-issue): Opens teamwork issue for current branch
 - - [`timeslip`](commands/host/timeslip): Generates a timeslip message for FreeAgent. If `timewarrior` is installed it will also show the sum of time spent today
 - - [`timew`](commands/host/timew): Tags current timewarrior tracking with Teamwork link and project name
+- - [`travel-mode`](commands/host/travel-mode): Removes all DB dumps 
+    downloaded via `ddev pull`, also provides info on how to remove all DDEV 
+    projects and their databases
 - Provides **host** commands:
 - - [`branch`](commands/host/branch): Creates an opinionated git branch name from a Teamwork ticket ID
 - - [`cloudflare`](commands/host/cloudflare): Shares the project with the outside world over a Cloudflare tunnel
