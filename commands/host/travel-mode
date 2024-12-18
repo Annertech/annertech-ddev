@@ -27,6 +27,11 @@ if [ "$input" == "yes" ]; then
   echo "Deleting..."
   find "$PROJECTS" -type f -path '*/.ddev/.downloads/*' -delete
   echo "Deletion complete."
+  echo
+  echo "To fully remove all projects type:"
+  echo "ddev delete --all --clean-containers --omit-snapshot"
+  echo "to delete all DDEV projects and their databases."
+  echo "Pass -y if you don't want to be asked about every project"
 else
   echo "You did not type 'yes'. Exiting..."
   exit 1
