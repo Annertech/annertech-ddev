@@ -125,6 +125,7 @@ global_files:
   - commands/host/cloudflare
   - commands/host/login
   - commands/host/timeslip
+  - commands/host/travel-mode
 
 # Version constraint for DDEV that will be validated against the running DDEV executable
 # and prevent add-on from being installed if it doesn't validate.

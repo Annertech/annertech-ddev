@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+## Description: Delete all DB dumps saved by "ddev pull". Since those dumps are unsanitized until they get imported to a database, it is best to delete them if you plan to leave EU soil.
+## Usage: travel-mode
+## Example: "ddev travel-mode" 
+
+# Prompt for the PROJECTS folder, default to one level up from the current project
+GIT_ROOT=$(git rev-parse --show-toplevel)
+DEFAULT_PATH=$(dirname "$GIT_ROOT")
+read -p "Enter the path to the PROJECTS folder [default: $DEFAULT_PATH]: " PROJECTS
+PROJECTS=${PROJECTS:-$DEFAULT_PATH}
+PROJECTS=$(realpath "$PROJECTS")
+
+# Check if the folder exists
+if [ ! -d "$PROJECTS" ]; then
+  echo "The folder '$PROJECTS' does not exist. Exiting."
+  exit 1
+fi
+
+# Find files under .ddev/.downloads/*
+echo "Listing files under .ddev/.downloads/ in $PROJECTS..."
+find "$PROJECTS" -type f -path '*/.ddev/.downloads/*' -print
+
+read -p "Type 'yes' to delete the files: " input
+if [ "$input" == "yes" ]; then
+  echo "Deleting..."
+  find "$PROJECTS" -type f -path '*/.ddev/.downloads/*' -delete
+  echo "Deletion complete."
+else
+  echo "You did not type 'yes'. Exiting..."
+  exit 1
+fi
+
+
