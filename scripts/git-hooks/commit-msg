@@ -25,7 +25,7 @@ branch_name=$(git rev-parse --abbrev-ref HEAD)
 if [[ $branch_name =~ $BRANCH_PATTERN ]]; then
   ticket_id="${BASH_REMATCH[1]}"
   # Prepend the ticket ID to the commit message
-  echo "$ticket_id: $commit_message" > "$1"
+  echo "$ticket_id $commit_message" > "$1"
   exit 0
 else
   echo "Error: Commit message must start with the pattern 'T-0000000' or the branch name must follow 'YYYYMM_T-XXXXXXXX__description' You can opt out of this rule by passing the '--no-verify' argument in the git commit command."
