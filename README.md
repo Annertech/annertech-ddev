@@ -4,37 +4,20 @@ Highly opinionated set of configs and commands used by Annertech in our DDEV wor
 
 ## Install
 
-### 1. Cleanup First
-
-First clean-up previous variations of these files from before they were grouped in an addon.
-
-It is a good idea to update `anrt-tools/docksal-configuration` first:
-```
-composer update anrt-tools/docksal-configuration
-```
-This way composer will not overwrite DDEV files that used to live alongside Docksal files (long story).
-
-and then:
-
-```
-rm -rf .ddev/settings.ddev.annertech.php
-rm -rf .ddev/config.hooks.yaml
-rm -rf .ddev/commands/host/branch
-rm -rf .ddev/commands/host/login
-rm -rf .ddev/commands/web/robo
-rm -rf .ddev/commands/web/behat
-```
-
-### 2. Get the new addon
+### 1. Get the new addon
 
 Then get the addon:
 ```
-ddev get annertech/annertech-ddev
+ddev add-on get annertech/annertech-ddev
 ```
 
-### 3. Commit to project repo
+### 2. Commit to project repo
 
-Ideally, add addon files to git:
+<details>
+    <summary>
+      Add add-on files to git (happens automatically)
+    </summary>
+
 ```
 git add .ddev/commands/host/branch -f
 git add .ddev/commands/host/cex -f
@@ -64,6 +47,7 @@ git add .ddev/addon-metadata/ -f
 
 git add .vscode -f
 ```
+</details>
 
 ```
 git commit -m 'Add annertech/annertech-ddev addon' --no-verify
@@ -116,9 +100,16 @@ are automatically disabled in local environment to facilitate development.
 
 `ddev behat` command is provided and expects behat to be under `PROJECT_ROOT/tests/behat`.
 
+> **NOTE:**
+> Antibot will block Behat! Remember to uninstall it if needed.
+
 ### BackstopJS
 
 We rely on https://github.com/mmunz/ddev-backstopjs to get BackstopJS commands in DDEV. Go look there.
+
+### ReCaptcha bypass
+
+See https://github.com/Annertech/annertech-ddev/pull/29/files on how to bypass recaptcha when running automated tests.
 
 ## Tricks
 
