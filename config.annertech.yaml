@@ -10,5 +10,5 @@ hooks:
   post-import-db:
     - exec: "drush cr"
     - exec: "drush sql:sanitize -y"
-    - exec: "if [ $(grep 'stage_file_proxy' composer.json) ]; then drush en stage_file_proxy -y; fi"
+    - exec: "if [[ $(grep 'stage_file_proxy' composer.json) ]]; then drush en stage_file_proxy -y; fi"
     - exec: "drush uli"
