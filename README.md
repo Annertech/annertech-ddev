@@ -107,6 +107,11 @@ are automatically disabled in local environment to facilitate development.
 
 We rely on https://github.com/mmunz/ddev-backstopjs to get BackstopJS commands in DDEV. Go look there.
 
+### Cypress
+
+We rely on https://github.com/tyler36/ddev-cypress and, if needed, 
+https://www.drupal.org/project/drush_endpoint for Cypress tests.
+
 ### ReCaptcha bypass
 
 See https://github.com/Annertech/annertech-ddev/pull/29/files on how to bypass recaptcha when running automated tests.
