@@ -9,6 +9,10 @@
  * that you leave this file alone.
  */
 
+// Enable drush_endpoint
+$settings['drush_endpoint_enabled'] = TRUE;
+$settings['drush_endpoint_allow_uli'] = TRUE;
+
 // Simplei settings for local environments.
 $settings['simple_environment_indicator'] = 'darkgreen LOCAL';
 
@@ -176,6 +180,7 @@ $settings['config_exclude_modules'] = [
   'stage_file_proxy',
   'twig_vardumper',
   'upgrade_status',
+  'drush_endpoint',
 ];
 
 /**
