@@ -3,15 +3,28 @@
 ## Description: Easily change between development mode and live mode (aggregation, caching etc). Default setting is `off` at the start of every project.
 ## Usage: devmode [off|on]
 ## Example: "ddev devmode on"
-## ProjectTypes: drupal,drupal10
+## ProjectTypes: drupal,drupal10,drupal11
+
+# Helpers ====================================
+red='\033[0;31m'
+green='\033[0;32m'
+yellow='\033[1;33m'
+NC='\033[0m'
+
+echo-red () { echo -e "${red}$1${NC}"; }
+echo-green () { echo -e "${green}$1${NC}"; }
+echo-yellow () { echo -e "${yellow}$1${NC}"; }
+# End Helpers ====================================
 
 case $@ in
   off)
-    echo "Configuring settings.local.php for \e[1;0;41m caching and performance \e[0m"
+    echo "Configuring settings.local.php for:"
+    echo-green "   -> caching and performance <-"
     cp .ddev/settings.local.perfmode.php "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
     ;;
   on)
-    echo "Configuring settings.local.php for \e[1;0;42m development \e[0m"
+    echo "Configuring settings.local.php for "
+    echo-yellow "   -> development <- "
     cp .ddev/settings.local.devmode.php "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
     ;;
   *)
