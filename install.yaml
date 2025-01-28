@@ -196,6 +196,7 @@ removal_actions:
   - rm nginx/libraries.conf
   - rm nginx/protect.conf
   - rm nginx/redirect.conf
+  - rm nginx/noindex.conf
   - rm -rf scripts
   - |
     if [ -f ${DDEV_APPROOT}/config.hooks.yaml ]; then
