@@ -5,8 +5,20 @@
 COMMIT_PATTERN="^T-[0-9]*"
 BRANCH_PATTERN="[0-9]{6}_(T-[0-9]{8})"
 
-# Read the commit message
-commit_message=$(cat "$1")
+# Read and filter the commit message (remove comment lines and empty lines)
+commit_message=$(grep -vE '^\s*#' "$1" | sed '/^[[:space:]]*$/d')
+
+# Abort if no commit message is provided
+if [[ -z "$commit_message" ]]; then
+  echo "Error: Commit message cannot be empty."
+  exit 1
+fi
+
+# Abort if no commit message is provided
+if [[ -z "$commit_message" ]]; then
+  echo "Error: Commit message cannot be empty."
+  exit 1
+fi
 
 # Ignore merge commits
 if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
