@@ -146,6 +146,10 @@ post_install_actions:
       cp ${DDEV_APPROOT}/.ddev/scripts/sample.env ${DDEV_APPROOT}/.ddev/.env
       echo "Please configure upstream provider in .ddev/.env file!"
     fi
+  - |
+    if [ -f ${DDEV_APPROOT}/nginx/noindex.conf ]; then
+      rm ${DDEV_APPROOT}/nginx/noindex.conf
+    fi
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/.vscode ${DDEV_APPROOT}/
   - git add ${DDEV_APPROOT}/.ddev/config.annertech.yaml -f
   - git add ${DDEV_APPROOT}/.ddev/settings.local.*mode.php -f
@@ -196,7 +200,6 @@ removal_actions:
   - rm nginx/libraries.conf
   - rm nginx/protect.conf
   - rm nginx/redirect.conf
-  - rm nginx/noindex.conf
   - rm -rf scripts
   - |
     if [ -f ${DDEV_APPROOT}/config.hooks.yaml ]; then
