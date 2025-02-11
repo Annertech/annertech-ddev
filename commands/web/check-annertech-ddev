@@ -15,7 +15,7 @@ STARS='****************************************'
 ADDONVER=$(grep -oP '(?<=version: ")[^"]+' .ddev/addon-metadata/annertech-ddev/manifest.yaml)
 
 # Define the path to store the version file
-VERSION_FILE="/tmp/addon-version.txt"
+VERSION_FILE="/tmp/annertech-ddev-addon-version.txt"
 
 # Function to get the latest tag from GitHub API using curl and jq
 get_latest_tag() {
