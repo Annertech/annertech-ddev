@@ -1,0 +1,14 @@
+#!/bin/sh
+#ddev-generated
+## Description: Run rector inside the web container
+## Usage: rector [flags] [args]
+## Example: "ddev rector"
+
+## WIP
+#
+# Expects rector.php to be in place
+# $ composer require --dev palantirnet/drupal-rector
+# $ cp vendor/palantirnet/drupal-rector/rector.php .
+#
+
+vendor/bin/rector process web/modules/custom/ --dry-run
