@@ -8,6 +8,7 @@ hooks:
     - exec-host: "if [ ! $ANNERTECH_LOCAL_DEV ]; then ddev auth ssh; fi"
     - exec-host: "ddev check-annertech-ddev"
   post-import-db:
+    - exec: "if [[ $(grep 'fastly' composer.json) ]]; then drush dis fastly -y; fi"
     - exec: "drush cr"
     - exec: "drush sql:sanitize -y"
     - exec: "if [[ $(grep 'stage_file_proxy' composer.json) ]]; then drush en stage_file_proxy -y; fi"
