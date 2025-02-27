@@ -8,11 +8,11 @@
 case $@ in
   off)
     echo "Configuring settings.local.php for \e[1;0;41m caching and performance \e[0m"
-    cp .ddev/settings.local.perfmode.php "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
+    cp "${DDEV_APPROOT}/.ddev/settings.local.perfmode.php" "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
     ;;
   on)
     echo "Configuring settings.local.php for \e[1;0;42m development \e[0m"
-    cp .ddev/settings.local.devmode.php "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
+    cp "${DDEV_APPROOT}/.ddev/settings.local.devmode.php" "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
     ;;
   *)
     echo "Please set mode (eg: 'ddev devmode on')"
