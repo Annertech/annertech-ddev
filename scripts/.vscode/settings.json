@@ -4,7 +4,6 @@
     "css.validate": true,
     "diffEditor.ignoreTrimWhitespace": false,
     "editor.tabSize": 2,
-    "editor.autoIndent": "full",
     "editor.insertSpaces": true,
     "editor.formatOnPaste": true,
     "editor.formatOnSave": false,
