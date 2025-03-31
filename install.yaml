@@ -105,6 +105,7 @@ project_files:
   - commands/web/behat
   - commands/web/check-annertech-ddev
   - commands/web/platform
+  - commands/web/rector
   - commands/web/robo
   - commands/web/solr-update-config
   - nginx
@@ -195,6 +196,7 @@ removal_actions:
   - rm commands/web/behat
   - rm commands/web/check-annertech-ddev
   - rm commands/web/platform
+  - rm commands/web/rector
   - rm commands/web/robo
   - rm commands/web/solr-update-config
   - rm nginx/libraries.conf

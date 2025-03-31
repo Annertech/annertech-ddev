@@ -1,0 +1,21 @@
+#!/bin/sh
+#ddev-generated
+## Description: Run rector --dry-run inside the web container
+## Usage: rector [flags] [args]
+## Example: "ddev rector"
+
+if test -f rector.php ; then
+  echo "Rector config file found, running..."
+  if ! [ -f vendor/bin/rector ]; then
+    echo "Rector not found, installing..."
+    composer require --dev palantirnet/drupal-rector
+  fi
+  vendor/bin/rector process web/modules/custom/ --dry-run
+else
+  echo "\nRector config file not found, exiting..."
+  echo "You must install dependencies and add the config file first:\n"
+  echo "  composer require --dev palantirnet/drupal-rector"
+  echo "  cp vendor/palantirnet/drupal-rector/rector.php ."
+  echo "\n\n"
+  exit 1
+fi
