@@ -4,6 +4,7 @@ hooks:
     - exec-host: "cp .ddev/settings.local.devmode.php ${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
     - exec-host: "cp .ddev/scripts/git-hooks/commit-msg .git/hooks/commit-msg"
     - exec-host: "chmod +x .git/hooks/commit-msg"
+    - exec-host: "if [ $ANNERTECH_LOCAL_DEV ]; then cp .ddev/scripts/nginx/* .ddev/nginx/; fi"
   post-start:
     - exec-host: "if [ ! $ANNERTECH_LOCAL_DEV ]; then ddev auth ssh; fi"
     - exec-host: "ddev check-annertech-ddev"
