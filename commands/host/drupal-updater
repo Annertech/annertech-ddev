@@ -1,10 +1,12 @@
 #!/bin/bash
 
+#ddev-generated
+
 ## Description: Update Drupal modules and core, optionally committing each step
 ## Usage: drupal-updater [module-name] [--commit-steps] | --all [--with-core] [--commit-steps] | --core-version version [--commit-steps] | --revert [--all | module-name] | --dry-run [--omit-snapshot] | --from-branch branch-name
 ## Example: "ddev drupal-updater drupal/module-name --commit-steps" or "ddev drupal-updater --all --with-core --commit-steps" or "ddev drupal-updater --core-version 10.2.7 --commit-steps" or "ddev drupal-updater --revert --all" or "ddev drupal-updater --dry-run --omit-snapshot" or "ddev drupal-updater --from-branch main"
 ## Flags: [{"Name":"commit-steps","Shorthand":"c","Usage":"Create a commit for each update step","Type":"bool"},{"Name":"with-core","Usage":"Include core updates in --all","Type":"bool"},{"Name":"revert","Usage":"Revert module updates","Type":"bool"},{"Name":"all","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot","Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"update-changelog","Shorthand":"u","Usage":"Update the CHANGELOG.md with the latest changes","Type":"bool"},{"Name":"from-branch","Usage":"Ensure the current branch is recreated from the specified branch before updating","Type":"string"},{"Name":"core-version","Usage":"Update to a specific Drupal core version","Type":"string"}]
-## ProjectTypes: drupal,drupal10,drupal9,drupal8,drupal7
+## ProjectTypes: drupal,drupal11,drupal10
 
 CHANGELOG_FILE="CHANGELOG.md"
 CHANGELOG_CONTENT=""
@@ -58,9 +60,15 @@ update_module() {
       ddev drush updb -y
       ddev drush cex -y
 
+      echo -e "- $MODULE_NAME updated from $FROM_VERSION to $MODULE_VERSION\n$(cat $CHANGELOG_FILE)" > $CHANGELOG_FILE
+
+      # @todo make optional
+      #if [ "$commit_steps" = true ]; then
       # Commit if --commit-steps flag is provided
-      if [ "$commit_steps" = true ]; then
-        git add -A
+      if [ true ]; then
+        git add -u
+        # Strip drupal prefix to get installation path
+        git add web/modules/contrib${MODULE_NAME#drupal}
         git commit -m "#module-update: $MODULE_NAME updated from $FROM_VERSION to $MODULE_VERSION"
       fi
     fi
@@ -75,6 +83,7 @@ update_all_modules() {
   CORE_PACKAGES=$(ddev composer show | grep "drupal/core" | awk '{print $1}')
 
   for MODULE in $MODULES; do
+    echo $MODULE
     update_module "$MODULE"
   done
 
@@ -83,6 +92,9 @@ update_all_modules() {
       update_module "$CORE_PACKAGE"
     done
   fi
+
+  $DATE=$(date +"%Y-%m-%d)")
+  sed -i "1s/^/Date: $DATE\n\n/" "$CHANGELOG_FILE"
 
   # if [ "$commit_steps" != true ]; then
   #   git add -A
