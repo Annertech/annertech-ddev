@@ -2,10 +2,19 @@
 #ddev-generated
 
 ## Description: Generate a timeslip comment for "Free Agent"
-## Usage: timeslip
+## Usage: timeslip [-t|--timew]
 ## Example: "ddev timeslip"
 
 #!/bin/bash
+
+# Check for the presence of timew flags
+invoke_timew=false
+for arg in "$@"; do
+    if [[ "$arg" == "-t" || "$arg" == "--timew" ]]; then
+        invoke_timew=true
+        break
+    fi
+done
 
 # Get the name of the active Git branch
 branch_name=$(git rev-parse --abbrev-ref HEAD)
@@ -38,8 +47,9 @@ if [[ $branch_name =~ T-([0-9]+) ]]; then
         printf "\n\n"
     fi
 
-    if command -v timew &> /dev/null; then
-	timew s $url
+    # Run timew only if the -p or --plain flag is not used
+    if [[ $invoke_timew == true && $(command -v timew) ]]; then
+        timew s $url
     fi
 
 else
