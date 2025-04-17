@@ -22,14 +22,16 @@ if [[ $branch_name =~ T-([0-9]+) ]]; then
     result="$description ($url)"
 
     # Copy to clipboard based on OS
-    if command -v xclip &> /dev/null; then
-        echo "$result" | xclip -selection clipboard
-        echo "Copied to clipboard: $result"
-    elif command -v pbcopy &> /dev/null; then
-        echo "$result" | pbcopy
+    clipboard_command=$(command -v xclip || command -v pbcopy || command -v wl-copy)
+    if [[ -n $clipboard_command ]]; then
+        case $clipboard_command in
+            *xclip) echo "$result" | xclip -selection clipboard ;;
+            *pbcopy) echo "$result" | pbcopy ;;
+            *wl-copy) echo "$result" | wl-copy ;;
+        esac
         echo "Copied to clipboard: $result"
     else
-        echo "Clipboard command not found. Please install xclip (Linux) or use pbcopy (macOS)."
+        echo "Clipboard command not found. Please install xclip or wl-copy (Linux) or use pbcopy (macOS)."
         # Display the result for manual copying
         printf "Copy the following manually and paste to Free Agent:\n\n"
         printf "$result"
