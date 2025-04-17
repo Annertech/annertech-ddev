@@ -8,7 +8,14 @@ hooks:
     - exec-host: "if [ ! $ANNERTECH_LOCAL_DEV ]; then ddev auth ssh; fi"
     - exec-host: "ddev check-annertech-ddev"
   post-import-db:
-    - exec: "drush cr"
+    - exec: "drush cache:rebuild"
     - exec: "drush sql:sanitize -y"
     - exec: "if [[ $(grep 'stage_file_proxy' composer.json) ]]; then drush en stage_file_proxy -y; fi"
-    - exec: "drush uli"
+    - exec: "drush user:login"
+  pre-pull:
+    - exec: "echo 'Starting DB pull from upstream'"
+  post-pull:
+    - exec: "echo 'Removing temporary files'"
+    - exec: "rm .ddev/.downloads/*.sql.gz"
+    - exec: "echo 'Temporary files removed'"
+    - exec: "echo 'Consider taking a snapshot of the freshly downloaded database with \"ddev snapshot --name fresh\"'"
