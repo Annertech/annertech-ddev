@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+#ddev-generated
+## Description: Install custom annertech tip of the day set in DDEV
+## Usage: install-tips
+## Example: "ddev install-tips"
+
+echo "Removing old tips\n"
+rm ~/.ddev/.state.yaml ~/.ddev/.remote-config
+echo "Installing tips of the day\n"
+cat <<EOL >> ~/.ddev/global_config.yaml
+
+# Annertech tips of the day
+messages:
+  ticker_interval: 1
+remote_config:
+  update_interval: 10
+  remote:
+    owner: annertech
+    repo: remote-config
+    ref: annertech-tips
+    filepath: remote-config.jsonc
+# End of Annertech tips of the day
+EOL
