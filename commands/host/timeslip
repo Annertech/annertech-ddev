@@ -38,7 +38,7 @@ if [[ $branch_name =~ T-([0-9]+) ]]; then
         esac
         echo "Copied to clipboard: $result"
     else
-        echo "Clipboard command not found. Please install xclip (Linux X11), wl-clipboard (Linux Waylaynd), or use pbcopy (macOS).">>>>>>> main
+        echo "Clipboard command not found. Please install xclip (Linux X11), wl-clipboard (Linux Waylaynd), or use pbcopy (macOS)."
         # Display the result for manual copying
         printf "Copy the following manually and paste to Free Agent:\n\n"
         printf "%s\n\n" "$result"
