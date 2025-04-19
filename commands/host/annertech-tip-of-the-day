@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+#ddev-generated
+## Description: Install custom annertech tip of the day set in DDEV
+## Usage: install-tips
+## Example: "ddev install-tips"
+
+uninstall=false
+GLOBAL_CONF=~/.ddev/global_config.yaml
+
+for arg in "$@"; do
+  if [[ "$arg" == "-u" || "$arg" == "--uninstall" ]]; then
+    uninstall=true
+  fi
+done
+
+if [[ $uninstall == true ]]; then
+  echo "Uninstalling Annertech tips of the day"
+  if grep -q 'ANNERTECH_CUSTOM_TIPS_START' $GLOBAL_CONF; then
+    sed -i '/^##ANNERTECH_CUSTOM_TIPS_START/,/^##ANNERTECH_CUSTOM_TIPS_END/d' $GLOBAL_CONF
+    rm ~/.ddev/.state.yaml ~/.ddev/.remote-config
+    echo "Uninstalled Annertech tips of the day"
+  else
+    echo "No Annertech tips found, nothing to uninstall. Aborting..."
+  fi
+fi
+
+if [[ $uninstall == false ]]; then
+  if grep -q 'ANNERTECH_CUSTOM_TIPS_START' $GLOBAL_CONF; then
+    echo "Annertech tips already installed. Aborting..."
+  else
+    echo "Removing default DDEV tips"
+    rm ~/.ddev/.state.yaml ~/.ddev/.remote-config
+    echo "Installing Annertech tips of the day"
+cat <<EOL >> $GLOBAL_CONF
+##ANNERTECH_CUSTOM_TIPS_START
+# Annertech tips of the day
+messages:
+  ticker_interval: 1
+remote_config:
+  update_interval: 10
+  remote:
+    owner: annertech
+    repo: remote-config
+    ref: annertech-tips
+    filepath: remote-config.jsonc
+# End of Annertech tips of the day
+##ANNERTECH_CUSTOM_TIPS_END
+EOL
+  fi
+fi
+  
