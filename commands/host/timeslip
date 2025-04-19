@@ -5,8 +5,6 @@
 ## Usage: timeslip [-t|--timew]
 ## Example: "ddev timeslip"
 
-#!/bin/bash
-
 # Check for the presence of timew flags
 invoke_timew=false
 for arg in "$@"; do
