@@ -8,7 +8,20 @@ hooks:
     - exec-host: "if [ ! $ANNERTECH_LOCAL_DEV ]; then ddev auth ssh; fi"
     - exec-host: "ddev check-annertech-ddev"
   post-import-db:
-    - exec: "drush cr"
+    - exec: "drush cache:rebuild"
     - exec: "drush sql:sanitize -y"
     - exec: "if [[ $(grep 'stage_file_proxy' composer.json) ]]; then drush en stage_file_proxy -y; fi"
-    - exec: "drush uli"
+    - exec: "drush user:login"
+  pre-pull:
+    - exec: "echo 'Starting DB pull from upstream'"
+    # Backup current state before getting a new DB
+    # - exec-host: "ddev snapshot --name old --cleanup --yes"
+    # - exec-host: "ddev snapshot --name old"
+  post-pull:
+    - exec: "echo 'Removing temporary files'"
+    - exec: "rm .ddev/.downloads/*.sql.gz"
+    - exec: "echo 'Temporary files removed'"
+    # Since we are removing the DB dump, we'll have to download it again for any test.
+    # To save bandwidth and time we take a snapshot of the sanitized state with DDEV.
+    - exec-host: "ddev snapshot --name fresh --cleanup --yes"
+    - exec-host: "ddev snapshot --name fresh"

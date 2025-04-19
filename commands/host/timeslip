@@ -2,10 +2,17 @@
 #ddev-generated
 
 ## Description: Generate a timeslip comment for "Free Agent"
-## Usage: timeslip
+## Usage: timeslip [-t|--timew]
 ## Example: "ddev timeslip"
 
-#!/bin/bash
+# Check for the presence of timew flags
+invoke_timew=false
+for arg in "$@"; do
+    if [[ "$arg" == "-t" || "$arg" == "--timew" ]]; then
+        invoke_timew=true
+        break
+    fi
+done
 
 # Get the name of the active Git branch
 branch_name=$(git rev-parse --abbrev-ref HEAD)
@@ -22,24 +29,24 @@ if [[ $branch_name =~ T-([0-9]+) ]]; then
     result="$description ($url)"
 
     # Copy to clipboard based on OS
-    if command -v xclip &> /dev/null; then
-        echo "$result" | xclip -selection clipboard
-        echo "Copied to clipboard: $result"
-    elif command -v wl-copy &> /dev/null; then
-        echo "$result" | wl-copy --primary
-        echo "Copied to clipboard: $result"
-    elif command -v pbcopy &> /dev/null; then
-        echo "$result" | pbcopy
+    clipboard_command=$(command -v xclip || command -v pbcopy || command -v wl-copy)
+    if [[ -n $clipboard_command ]]; then
+        case $clipboard_command in
+            *xclip) echo "$result" | xclip -selection clipboard ;;
+            *pbcopy) echo "$result" | pbcopy ;;
+            *wl-copy) echo "$result" | wl-copy --primary;;
+        esac
         echo "Copied to clipboard: $result"
     else
-        echo "Clipboard command not found. Please install xclip (Linux X11), wl-clipboard (Linux Waylaynd), or use pbcopy (macOS)."
+        echo "Clipboard command not found. Please install xclip (Linux X11), wl-clipboard (Linux Waylaynd), or use pbcopy (macOS).">>>>>>> main
         # Display the result for manual copying
         printf "Copy the following manually and paste to Free Agent:\n\n"
         printf "%s\n\n" "$result"
     fi
 
-    if command -v timew &> /dev/null; then
-        timew s "$url"
+    # Run timew only if the -p or --plain flag is not used
+    if [[ $invoke_timew == true && $(command -v timew) ]]; then
+        timew s $url
     fi
 
 else
