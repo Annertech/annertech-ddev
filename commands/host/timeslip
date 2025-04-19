@@ -46,7 +46,7 @@ if [[ $branch_name =~ T-([0-9]+) ]]; then
 
     # Run timew only if the -p or --plain flag is not used
     if [[ $invoke_timew == true && $(command -v timew) ]]; then
-        timew s $url
+        timew s "$url"
     fi
 
 else
