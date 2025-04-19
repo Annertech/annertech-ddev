@@ -185,6 +185,15 @@ removal_actions:
   - rm settings.local.perfmode.php
   - rm settings.local.devmode.php
   - rm commands/host/annertech-tip-of-the-day
+  - |
+    #ddev-nodisplay
+    #ddev-description:Removing custom annertech tip of the day
+    if [ -f ~/.ddev/global_config.yaml ]; then
+      if grep -q 'ANNERTECH_CUSTOM_TIPS_START' ~/.ddev/global_config.yaml; then
+        sed -i '/^##ANNERTECH_CUSTOM_TIPS_START/,/^##ANNERTECH_CUSTOM_TIPS_END/d' ~/.ddev/global_config.yaml
+        rm ~/.ddev/.state.yaml ~/.ddev/.remote-config
+      fi
+    fi
   - rm commands/host/branch
   - rm commands/host/protect
   - rm commands/host/branch

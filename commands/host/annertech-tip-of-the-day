@@ -4,11 +4,17 @@
 ## Usage: install-tips
 ## Example: "ddev install-tips"
 
-echo "Removing old tips\n"
-rm ~/.ddev/.state.yaml ~/.ddev/.remote-config
-echo "Installing tips of the day\n"
-cat <<EOL >> ~/.ddev/global_config.yaml
+GLOBAL_CONF=~/.ddev/global_config.yaml
 
+if grep -q 'CUSTOM_TIPS_START' $GLOBAL_CONF; then
+  echo "Custom tips already installed, aborting."
+else
+  echo "Removing old tips"
+  rm ~/.ddev/.state.yaml ~/.ddev/.remote-config
+  echo "Installing tips of the day"
+cat <<EOL >> $GLOBAL_CONF
+
+##ANNERTECH_CUSTOM_TIPS_START
 # Annertech tips of the day
 messages:
   ticker_interval: 1
@@ -20,4 +26,6 @@ remote_config:
     ref: annertech-tips
     filepath: remote-config.jsonc
 # End of Annertech tips of the day
+##ANNERTECH_CUSTOM_TIPS_END
 EOL
+fi
