@@ -23,7 +23,7 @@ if [[ $branch_name =~ T-([0-9]+) ]]; then
     url="https://projects.annertech.com/app/tasks/$task_id"
 
     # Prompt the user for a description
-    read -p "Enter a description: " description
+    read -rp "Enter a description: " description
 
     # Construct the final output
     result="$description ($url)"
@@ -34,15 +34,14 @@ if [[ $branch_name =~ T-([0-9]+) ]]; then
         case $clipboard_command in
             *xclip) echo "$result" | xclip -selection clipboard ;;
             *pbcopy) echo "$result" | pbcopy ;;
-            *wl-copy) echo "$result" | wl-copy ;;
+            *wl-copy) echo "$result" | wl-copy --primary;;
         esac
         echo "Copied to clipboard: $result"
     else
-        echo "Clipboard command not found. Please install xclip or wl-copy (Linux) or use pbcopy (macOS)."
+        echo "Clipboard command not found. Please install xclip (Linux X11), wl-clipboard (Linux Waylaynd), or use pbcopy (macOS)."
         # Display the result for manual copying
         printf "Copy the following manually and paste to Free Agent:\n\n"
-        printf "$result"
-        printf "\n\n"
+        printf "%s\n\n" "$result"
     fi
 
     # Run timew only if the -p or --plain flag is not used
