@@ -3,9 +3,9 @@
 #ddev-generated
 
 ## Description: Update Drupal modules and core, optionally committing each step
-## Usage: drupal-updater [module-name] [--commit-steps] | --all [--with-core] [--commit-steps] | --core-version version [--commit-steps] | --revert [--all | module-name] | --dry-run [--omit-snapshot] | --from-branch branch-name
-## Example: "ddev drupal-updater drupal/module-name --commit-steps" or "ddev drupal-updater --all --with-core --commit-steps" or "ddev drupal-updater --core-version 10.2.7 --commit-steps" or "ddev drupal-updater --revert --all" or "ddev drupal-updater --dry-run --omit-snapshot" or "ddev drupal-updater --from-branch main"
-## Flags: [{"Name":"commit-steps","Shorthand":"c","Usage":"Create a commit for each update step","Type":"bool"},{"Name":"with-core","Usage":"Include core updates in --all","Type":"bool"},{"Name":"revert","Usage":"Revert module updates","Type":"bool"},{"Name":"all","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot","Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"update-changelog","Shorthand":"u","Usage":"Update the CHANGELOG.md with the latest changes","Type":"bool"},{"Name":"from-branch","Usage":"Ensure the current branch is recreated from the specified branch before updating","Type":"string"},{"Name":"core-version","Usage":"Update to a specific Drupal core version","Type":"string"}]
+## Usage: drupal-updater -c -u -g -a
+## Example: "ddev drupal-updater -c -u -g -a" \n"ddev drupal-updater drupal/module-name --commit-steps" \n"ddev drupal-updater --all --with-core --commit-steps" \n"ddev drupal-updater --dry-run --omit-snapshot"
+## Flags: [{"Name":"commit-steps","Shorthand":"g","Usage":"Create a git commit for each update step","Type":"bool"},{"Name":"with-core","Shorthand":"c", "Usage":"Include core updates in --all","Type":"bool"},{"Name":"all","Shorthand":"a","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot", "Shorthand": "o", "Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"update-changelog","Shorthand":"u","Usage":"Update the CHANGELOG.md with the latest changes","Type":"bool"}]
 ## ProjectTypes: drupal,drupal11,drupal10
 
 CHANGELOG_FILE="CHANGELOG.md"
@@ -102,98 +102,20 @@ update_all_modules() {
   # fi
 }
 
-# Function to update Drupal core to a specific version
-update_core_version() {
-  local TARGET_VERSION=$1
-
-  if [ "$dry_run" = true ]; then
-    ddev composer require \
-      drupal/core-recommended:"$TARGET_VERSION" \
-      drupal/core-composer-scaffold:"$TARGET_VERSION" \
-      drupal/core-project-message:"$TARGET_VERSION" \
-      --update-with-all-dependencies --dry-run
-  else
-    # Get the current core versions before updating
-    local FROM_VERSION
-    FROM_VERSION=$(ddev composer show drupal/core-recommended | grep versions | awk '{print $4}')
-
-    # Run the update for all relevant core packages
-    ddev composer require \
-      drupal/core-recommended:"$TARGET_VERSION" \
-      drupal/core-composer-scaffold:"$TARGET_VERSION" \
-      drupal/core-project-message:"$TARGET_VERSION" \
-      --update-with-all-dependencies
-
-    # Get the updated core version after the update
-    local CORE_VERSION
-    CORE_VERSION=$(ddev composer show drupal/core-recommended | grep versions | awk '{print $4}')
-
-    # Verify if all core packages were updated correctly
-    local SCAFFOLD_VERSION
-    local MESSAGE_VERSION
-    SCAFFOLD_VERSION=$(ddev composer show drupal/core-composer-scaffold | grep versions | awk '{print $4}')
-    MESSAGE_VERSION=$(ddev composer show drupal/core-project-message | grep versions | awk '{print $4}')
-
-    # Check if all versions match the target version
-    if [ "$CORE_VERSION" != "$TARGET_VERSION" ] || [ "$SCAFFOLD_VERSION" != "$TARGET_VERSION" ] || [ "$MESSAGE_VERSION" != "$TARGET_VERSION" ]; then
-      echo "Warning: Not all core packages were updated to $TARGET_VERSION."
-      echo "drupal/core-recommended: $CORE_VERSION"
-      echo "drupal/core-composer-scaffold: $SCAFFOLD_VERSION"
-      echo "drupal/core-project-message: $MESSAGE_VERSION"
-    else
-      # Run drush commands if the update was successful
-      ddev drush updb -y
-      ddev drush cex -y
-
-      # Commit if --commit-steps flag is provided
-      if [ "$commit_steps" = true ]; then
-        git add -A
-        git commit -m "drupal/core updated from $FROM_VERSION to $CORE_VERSION"
-      fi
-    fi
-  fi
-}
-
-# Function to revert commits
-revert_commits() {
-  if [ "$all" = true ]; then
-    git log --grep="drupal/" --format="%H" | xargs git revert --no-edit
-  else
-    local COMMIT_HASH
-    COMMIT_HASH=$(git log --grep="drupal/$1 updated to" --format="%H" | head -n 1)
-    if [ ! -z "$COMMIT_HASH" ]; then
-      git revert --no-edit "$COMMIT_HASH"
-    else
-      echo "No commit found for module $1"
-    fi
-  fi
-}
-
 # Parse flags and arguments
 while :; do
     case $1 in
-        --commit-steps|-c)
+        --commit-steps|-g)
+            echo "Committing each step"
             commit_steps=true
             shift
             ;;
-        --with-core)
+        --with-core|-c)
+            echo "Updating Core"
             with_core=true
             shift
             ;;
-        --core-version=*)
-            core_version="${1#*=}"
-            shift
-            ;;
-        --core-version)
-            core_version="$2"
-            shift 2
-            ;;
-        --revert)
-            action="revert"
-            module_name="$2"
-            shift 2
-            ;;
-        --all)
+        --all|-a)
             action="update_all"
             shift
             ;;
@@ -201,19 +123,13 @@ while :; do
             dry_run=true
             shift
             ;;
-        --omit-snapshot)
+        --omit-snapshot|-o)
+            echo "Omitting snapshot"
             omit_snapshot=true
             shift
             ;;
-        --from-branch=*)
-            from_branch="${1#*=}"
-            shift
-            ;;
-        --from-branch)
-            from_branch="$2"
-            shift 2
-            ;;
         --update-changelog|-u)
+            echo "Updating CHANGELOG``"
             update_changelog=true
             shift
             ;;
@@ -229,21 +145,6 @@ while :; do
             break
     esac
 done
-
-# Ensure the current branch is recreated from the from-branch, if specified
-if [ -n "$from_branch" ]; then
-  ensure_from_branch "$from_branch"
-fi
-
-# Execute based on the action determined
-if [ "$action" = "revert" ]; then
-  revert_commits "$module_name"
-fi
-
-if [ ! -z "$core_version" ]; then
-  create_snapshot
-  update_core_version "$core_version"
-fi
 
 if [ "$action" = "update_all" ]; then
   create_snapshot
