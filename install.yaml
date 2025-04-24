@@ -98,6 +98,7 @@ project_files:
   - commands/host/cloudflare
   - commands/host/cr
   - commands/host/devmode
+  - commands/host/drupal-updater
   - commands/host/githooks
   - commands/host/login
   - commands/host/protect
@@ -126,6 +127,7 @@ global_files:
   - commands/host/timew
   - commands/host/branch
   - commands/host/cloudflare
+  - commands/host/drupal-updater
   - commands/host/login
   - commands/host/timeslip
   - commands/host/travel-mode
@@ -159,6 +161,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/host/branch -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/cloudflare -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/devmode -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/drupal-updater -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/githooks -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/login -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/protect -f
@@ -202,6 +205,7 @@ removal_actions:
   - rm commands/host/cloudflare
   - rm commands/host/cr
   - rm commands/host/devmode
+  - rm commands/host/drupal-updater
   - rm commands/host/githooks
   - rm commands/host/login
   - rm commands/host/remote-db

@@ -1,0 +1,155 @@
+#!/bin/bash
+
+#ddev-generated
+
+## Description: Update Drupal modules and core, optionally committing each step
+## Usage: drupal-updater -c -u -g -a
+## Example: "ddev drupal-updater -c -u -g -a" \n"ddev drupal-updater drupal/module-name --commit-steps" \n"ddev drupal-updater --all --with-core --commit-steps" \n"ddev drupal-updater --dry-run --omit-snapshot"
+## Flags: [{"Name":"commit-steps","Shorthand":"g","Usage":"Create a git commit for each update step","Type":"bool"},{"Name":"with-core","Shorthand":"c", "Usage":"Include core updates in --all","Type":"bool"},{"Name":"all","Shorthand":"a","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot", "Shorthand": "o", "Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"update-changelog","Shorthand":"u","Usage":"Update the CHANGELOG.md with the latest changes","Type":"bool"}]
+## ProjectTypes: drupal,drupal11,drupal10
+
+echo "This script is brought to you by:"
+echo "- Valentin Zsigmond (drupal.org/u/vzsigmond)"
+echo "- Bill Seremetis (drupal.org/u/bserem)"
+echo "- Annertech (annertech.com)"
+
+CHANGELOG_FILE="CHANGELOG.md"
+CHANGELOG_CONTENT=""
+
+# Function to create a snapshot
+create_snapshot() {
+  if [ -z "$omit_snapshot" ]; then
+    ddev snapshot
+  fi
+}
+
+# Function to ensure the current branch is recreated from the from-branch
+ensure_from_branch() {
+  local FROM_BRANCH_NAME=$1
+  local CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+  if [ "$CURRENT_BRANCH" != "$FROM_BRANCH_NAME" ]; then
+    echo "Resetting current branch $CURRENT_BRANCH from $FROM_BRANCH_NAME"
+    # Reset the branch from the target branch
+    git clean -f -d
+    git fetch origin
+    git reset --hard "origin/$FROM_BRANCH_NAME"
+  else
+    echo "Current branch is already $FROM_BRANCH_NAME, nothing to do."
+  fi
+}
+
+# Function to update a single module
+update_module() {
+  local MODULE_NAME=$1
+
+  # Get the current version before updating
+  local FROM_VERSION
+  FROM_VERSION=$(ddev composer show "$MODULE_NAME" | grep versions | awk '{print $4}')
+
+  if [ "$dry_run" = true ]; then
+    ddev composer update "$MODULE_NAME" --dry-run
+  else
+    # Run the update
+    ddev composer update "$MODULE_NAME"
+
+    # Get the updated version after the update
+    local MODULE_VERSION
+    MODULE_VERSION=$(ddev composer show "$MODULE_NAME" | grep versions | awk '{print $4}')
+
+    # Check if the version has changed
+    if [ "$FROM_VERSION" = "$MODULE_VERSION" ]; then
+      echo "No update needed for $MODULE_NAME. The version is already $MODULE_VERSION."
+    else
+      # Run drush commands if there was an update
+      ddev drush updb -y
+      ddev drush cex -y
+
+      echo -e "- $MODULE_NAME updated from $FROM_VERSION to $MODULE_VERSION\n$(cat $CHANGELOG_FILE)" > $CHANGELOG_FILE
+
+      # @todo make optional
+      #if [ "$commit_steps" = true ]; then
+      # Commit if --commit-steps flag is provided
+      if [ true ]; then
+        git add -u
+        # Strip drupal prefix to get installation path
+        git add web/modules/contrib${MODULE_NAME#drupal}
+        git commit -m "$MODULE_NAME updated from $FROM_VERSION to $MODULE_VERSION (#drupal-updater)"
+      fi
+    fi
+  fi
+}
+
+# Function to update all modules and core based on flags
+update_all_modules() {
+  local MODULES
+  MODULES=$(ddev composer show | grep "drupal/" | grep -v "drupal/core" | awk '{print $1}')
+  local CORE_PACKAGES
+  CORE_PACKAGES=$(ddev composer show | grep "drupal/core" | awk '{print $1}')
+
+  for MODULE in $MODULES; do
+    echo $MODULE
+    update_module "$MODULE"
+  done
+
+  if [ "$with_core" = true ]; then
+    for CORE_PACKAGE in $CORE_PACKAGES; do
+      update_module "$CORE_PACKAGE"
+    done
+  fi
+
+  DATE=$(date +"%Y-%m-%d)")
+  sed -i "1s/^/# Date: $DATE\n\n/" "$CHANGELOG_FILE"
+
+  # if [ "$commit_steps" != true ]; then
+  #   git add -A
+  #   git commit -m "Updated all applicable Drupal modules and core packages"
+  # fi
+}
+
+# Parse flags and arguments
+while :; do
+    case $1 in
+        --commit-steps|-g)
+            commit_steps=true
+            shift
+            ;;
+        --with-core|-c)
+            with_core=true
+            shift
+            ;;
+        --all|-a)
+            shift
+            ;;
+        --dry-run)
+            dry_run=true
+            shift
+            ;;
+        --omit-snapshot|-o)
+            omit_snapshot=true
+            shift
+            ;;
+        --update-changelog|-u)
+            update_changelog=true
+            shift
+            ;;
+        --) # End of all options
+            shift
+            break
+            ;;
+        -?*)
+            printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
+            shift
+            ;;
+        *) # Default case: No more options
+            break
+    esac
+done
+
+if [ "$action" = "update_all" ]; then
+  create_snapshot
+  update_all_modules
+else
+  create_snapshot
+  update_module "$1"
+fi
