@@ -58,6 +58,7 @@ git commit -m 'Add annertech/annertech-ddev addon' --no-verify
 - Provides **global** commands (available in all projects, project level commands below take priority):
 - - [`branch`](commands/host/branch): Creates an opinionated git branch name from a Teamwork ticket ID
 - - [`cloudflare`](commands/host/cloudflare): Shares the project with the outside world over a Cloudflare tunnel
+- - [`drupal-updater`](commands/host/drupal-updater): Automatically updates Core and Contrib
 - - [`login`](commands/host/login): Opens a browser and logs you in to Drupal (works on local environments only)
 - - [`open-issue`](commands/host/open-issue): Opens teamwork issue for current branch
 - - [`timeslip`](commands/host/timeslip): Generates a timeslip message for FreeAgent. If `timewarrior` is installed it will also show the sum of time spent today
@@ -69,6 +70,7 @@ git commit -m 'Add annertech/annertech-ddev addon' --no-verify
 - - [`branch`](commands/host/branch): Creates an opinionated git branch name from a Teamwork ticket ID
 - - [`cloudflare`](commands/host/cloudflare): Shares the project with the outside world over a Cloudflare tunnel
 - - [`devmode [on|off]`](commands/host/devmode): Adds custom settings.local.php file and allows easy toggle between production and development mode
+- - [`drupal-updater`](commands/host/drupal-updater): Automatically updates Core and Contrib
 - - [`githooks`](commands/host/githooks): Installs git-hooks (also happens on project start)
 - - [`login`](commands/host/login): Opens a browser and logs you in to Drupal (works on local environments only)
 - - [`protect [on|off|reset]`](commands/host/protect): Enable or disable basic auth on a nixsal hosted dev project - [see file](commands/host/protect)

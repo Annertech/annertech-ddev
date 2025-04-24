@@ -106,17 +106,14 @@ update_all_modules() {
 while :; do
     case $1 in
         --commit-steps|-g)
-            echo "Committing each step"
             commit_steps=true
             shift
             ;;
         --with-core|-c)
-            echo "Updating Core"
             with_core=true
             shift
             ;;
         --all|-a)
-            action="update_all"
             shift
             ;;
         --dry-run)
@@ -124,12 +121,10 @@ while :; do
             shift
             ;;
         --omit-snapshot|-o)
-            echo "Omitting snapshot"
             omit_snapshot=true
             shift
             ;;
         --update-changelog|-u)
-            echo "Updating CHANGELOG``"
             update_changelog=true
             shift
             ;;
