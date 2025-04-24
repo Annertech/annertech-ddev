@@ -119,6 +119,7 @@ while :; do
             shift
             ;;
         --all|-a)
+            action="update_all"
             shift
             ;;
         --dry-run)
