@@ -14,7 +14,7 @@ $settings['drush_endpoint_enabled'] = TRUE;
 $settings['drush_endpoint_allow_uli'] = TRUE;
 
 // Simplei settings for local environments. Needs to be overwritten on PSH/Acquia config.
-$settings['simple_environment_indicator'] = 'darkgreen LOCAL';
+$settings['simple_environment_indicator'] = '#4A0080 LOCAL PERFORMANCE MODE';
 
 // Stage File Proxy settings.
 $config['stage_file_proxy.settings']['origin'] = getenv('STAGE_FILE_PROXY_URL');

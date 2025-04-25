@@ -102,7 +102,8 @@ are automatically disabled in local environment to facilitate development.
 
 `ddev behat` command is provided and expects behat to be under `PROJECT_ROOT/tests/behat`.
 
-> **NOTE:**
+> [!NOTE]
+>
 > Antibot will block Behat! Remember to uninstall it if needed.
 
 ### BackstopJS
@@ -117,6 +118,28 @@ https://www.drupal.org/project/drush_endpoint for Cypress tests.
 ### ReCaptcha bypass
 
 See https://github.com/Annertech/annertech-ddev/pull/29/files on how to bypass recaptcha when running automated tests.
+
+## Environment Indicators
+
+Environment indicators in the Drupal Toolbar are tricky because we need to ensure that colors don't conflict with each other and also work with white text.
+
+The following colors should be used:
+
+| Color                                                              | HEX       | Contrast | Environment |
+|--------------------------------------------------------------------|-----------|----------|-------------|
+| ![local](https://placehold.co/120x40/4A0080/white?text=local-ddev) | `#4A0080` | 13:1     | local, ddev |
+| ![dev](https://placehold.co/120x40/005B94/white?text=development)  | `#005B94` | 7:1      | dev         |
+| ![stage](https://placehold.co/120x40/59590D/white?text=staging)    | `#59590D` | 7:1      | stage       |
+| ![live](https://placehold.co/120x40/8b0000/white?text=production)  | `#8B0000` | 10:1     | production  |
+
+This is what people with color vision deficiency see when using the above colors:
+
+![Environment Indicator color palette](assets/color_palette.png)
+
+> [!NOTE]
+>
+> Please note that the add-on only controls the local environment color.
+> You must fix the rest yourself!
 
 ## Tricks
 
