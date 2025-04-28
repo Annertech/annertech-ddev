@@ -158,6 +158,7 @@ post_install_actions:
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/.vscode ${DDEV_APPROOT}/
   - git add ${DDEV_APPROOT}/.ddev/config.annertech.yaml -f
   - git add ${DDEV_APPROOT}/.ddev/settings.local.*mode.php -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/annertech-tip-of-the-day -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/branch -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/cloudflare -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/devmode -f
@@ -169,6 +170,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/host/timeslip -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/behat -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/check-annertech-ddev -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/web/rector -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/robo -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/platform -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/solr-update-config -f
