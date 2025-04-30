@@ -16,6 +16,13 @@ echo "- Annertech (annertech.com)"
 CHANGELOG_FILE="CHANGELOG.md"
 CHANGELOG_CONTENT=""
 
+# Determine docroot or fallback to web
+if [ -z ${DDEV_DOCROOT+x} ]; then
+  PROJECT_DOCROOT=web # Sensible default value
+else
+  PROJECT_DOCROOT=$DDEV_DOCROOT
+fi
+
 # Function to create a snapshot
 create_snapshot() {
   if [ -z "$omit_snapshot" ]; then
@@ -67,13 +74,12 @@ update_module() {
 
       echo -e "- $MODULE_NAME updated from $FROM_VERSION to $MODULE_VERSION\n$(cat $CHANGELOG_FILE)" > $CHANGELOG_FILE
 
-      # @todo make optional
-      #if [ "$commit_steps" = true ]; then
       # Commit if --commit-steps flag is provided
-      if [ true ]; then
+      if [ "$commit_steps" = true ]; then
         git add -u
+        git add vendor/
         # Strip drupal prefix to get installation path
-        git add web/modules/contrib${MODULE_NAME#drupal}
+        git add ${PROJECT_DOCROOT}/modules/contrib${MODULE_NAME#drupal}
         git commit -m "$MODULE_NAME updated from $FROM_VERSION to $MODULE_VERSION (#drupal-updater)"
       fi
     fi
