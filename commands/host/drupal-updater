@@ -58,7 +58,7 @@ update_module() {
     ddev composer update "$MODULE_NAME" --with-all-dependencies --dry-run
   else
     # Run the update
-    ddev composer update "$MODULE_NAME" --with-all-dependencies
+    ddev composer update "$MODULE_NAME" --with-all-dependencies --bump-after-update --no-progress --quiet
 
     # Get the updated version after the update
     local MODULE_VERSION
@@ -90,7 +90,6 @@ update_module() {
 update_all_modules() {
   local MODULES
   MODULES=$(ddev composer outdated --direct --minor-only | grep "drupal/" | grep -v "drupal/core" | awk '{print $1}')
-  echo "Modules that will be updated: " $MODULES
   local CORE_PACKAGES
   CORE_PACKAGES=$(ddev composer show | grep "drupal/core" | awk '{print $1}')
 
