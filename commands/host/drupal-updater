@@ -48,10 +48,10 @@ update_module() {
   FROM_VERSION=$(ddev composer show "$MODULE_NAME" | grep versions | awk '{print $4}')
 
   if [ "$dry_run" = true ]; then
-    ddev composer update "$MODULE_NAME" --dry-run
+    ddev composer update "$MODULE_NAME" --with-all-dependencies --dry-run
   else
     # Run the update
-    ddev composer update "$MODULE_NAME"
+    ddev composer update "$MODULE_NAME" --with-all-dependencies
 
     # Get the updated version after the update
     local MODULE_VERSION
