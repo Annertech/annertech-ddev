@@ -8,10 +8,10 @@
 ## Flags: [{"Name":"commit-steps","Shorthand":"g","Usage":"Create a git commit for each update step","Type":"bool"},{"Name":"with-core","Shorthand":"c", "Usage":"Include core updates in --all","Type":"bool"},{"Name":"all","Shorthand":"a","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot", "Shorthand": "o", "Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"update-changelog","Shorthand":"u","Usage":"Update the CHANGELOG.md with the latest changes","Type":"bool"}]
 ## ProjectTypes: drupal,drupal11,drupal10
 
-echo "This script is brought to you by:"
-echo "- Valentin Zsigmond (drupal.org/u/vzsigmond)"
-echo "- Bill Seremetis (drupal.org/u/bserem)"
-echo "- Annertech (annertech.com)"
+## This script is brought to you by:
+## - Valentin Zsigmond (drupal.org/u/vzsigmond)
+## - Bill Seremetis (drupal.org/u/bserem)
+## - Annertech (annertech.com)
 
 CHANGELOG_FILE="CHANGELOG.md"
 CHANGELOG_CONTENT=""
