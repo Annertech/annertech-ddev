@@ -87,8 +87,6 @@ $config['system.performance']['js']['preprocess'] = FALSE;
  * defined by the development.services.yml file above.
  *
  * Only use this setting once the site has been installed.
- * 
- * This is overriden in settings.project.php if needed by the project.
  */
 $settings['cache']['bins']['render'] = 'cache.backend.null';
 
