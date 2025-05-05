@@ -8,6 +8,16 @@
 ddev install-varnish
 ```
 
+## Bruno Testing
+
+_Bruno is an open-source alternative to Postman_
+
+There is a sample Bruno collection in this folder. Copy it to your project, 
+edit the environment URLs and run the requests.
+
+The sample collection files have the `#ddev-generated` comment in them. You 
+might have to remove this manually.
+
 ## Behat Testing
 
 You need to add the following in your `FeatureContext.php`
@@ -30,8 +40,6 @@ You need to add the following in your `FeatureContext.php`
     }
   }
 ```
-
-and then copy/use the `varnish.feature` file in this folder.
 
 ## Authors
 
