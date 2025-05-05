@@ -7,6 +7,7 @@
 uninstall=false
 GLOBAL_CONF=~/.ddev/global_config.yaml
 SERVICES=.platform/services.yaml
+DEV_URL=$(platform url -1 -e dev)
 
 for arg in "$@"; do
   if [[ "$arg" == "-u" || "$arg" == "--uninstall" ]]; then
@@ -24,8 +25,9 @@ if [[ $uninstall == false ]]; then
   else
     echo "Adding Varnish to platform.sh"
     sed -i 's/upstream: app:http/upstream: varnish:http/g' .platform/routes.yaml
-    cp --no-clobber .ddev/scripts/varnish/varnish.feature tests/behat/features/varnish.feature
     cp --no-clobber .ddev/scripts/varnish/config.vcl .platform/config.vcl
+    cp --no-clobber .ddev/scripts/varnish/varnish.feature tests/behat/features/varnish.feature
+    sed -i "s#CHANGE_WITH_URL#$DEV_URL#g" test/behat/features/varnish.feature
 cat <<EOL >> $SERVICES
 ##ANNERTECH_PLATFORMSH_VARNISH_START
 varnish:

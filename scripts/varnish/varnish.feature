@@ -107,7 +107,7 @@ Feature: Bot detection via User-Agent header
       | unknown        | unknown                             |
 
   Scenario Outline: Visit forbidden paths
-    When I go to "CHANGE_WITH_URL/<path>"
+    When I go to "CHANGE_WITH_URL<path>"
     Then the response status code should be 404
     Then the response should contain "404 Forbidden - Not Found"
     Then the response should contain "Varnish cache server"
