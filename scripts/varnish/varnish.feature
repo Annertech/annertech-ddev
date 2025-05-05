@@ -4,13 +4,14 @@
 Feature: Bot detection via User-Agent header
   Scenario: Visit a website as Scrapinghub bot
     Given I set the user agent to "Scrapy/2.5.1 (+https://scrapy.org)"
-    When I go to ""
+    When I go to "CHANGE_WITH_URL"
+    Then the response status code should be 403
     Then the response should contain "403 Forbidden - Bad Bot"
     Then the response should contain "Varnish cache server"
 
   Scenario Outline: Visit site as bot: <bot>
     Given I set the user agent to "<user_agent>"
-    When I go to ""
+    When I go to "CHANGE_WITH_URL"
     Then the response status code should be 403
     Then the response should contain "403 Forbidden - Bad Bot"
     Then the response should contain "Varnish cache server"
@@ -106,10 +107,9 @@ Feature: Bot detection via User-Agent header
       | unknown        | unknown                             |
 
   Scenario Outline: Visit forbidden paths
-    Given I set the user agent to "Scrapy/2.5.1 (+https://scrapy.org)"
-    When I go to ""
-    Then the response status code should be 403
-    Then the response should contain "403 Forbidden - Bad Bot"
+    When I go to "CHANGE_WITH_URL/<path>"
+    Then the response status code should be 404
+    Then the response should contain "404 Forbidden - Not Found"
     Then the response should contain "Varnish cache server"
 
     Examples:
