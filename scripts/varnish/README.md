@@ -1,5 +1,3 @@
-`#ddev-generated`
-
 # Varnish Bot Blocker
 
 ## Install
@@ -45,3 +43,7 @@ You need to add the following in your `FeatureContext.php`
 
 - VCL File: Valentin Zsigmond (drupal.org/u/vzsigmond)
 - Annertech (annertech.com)
+
+```
+#ddev-generated
+```
