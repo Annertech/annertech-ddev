@@ -106,6 +106,7 @@ project_files:
   - commands/host/timeslip
   - commands/web/behat
   - commands/web/check-annertech-ddev
+  - commands/web/install-varnish
   - commands/web/platform
   - commands/web/rector
   - commands/web/robo
@@ -170,6 +171,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/host/timeslip -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/behat -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/check-annertech-ddev -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/web/install-varnish -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/rector -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/robo -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/platform -f
