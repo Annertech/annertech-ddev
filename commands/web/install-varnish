@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#ddev-generated
+## Description: Install custom annertech tip of the day set in DDEV
+## Usage: install-varnish
+## Example: "ddev install-varnish"
+
+uninstall=false
+GLOBAL_CONF=~/.ddev/global_config.yaml
+SERVICES=.platform/services.yaml
+
+for arg in "$@"; do
+  if [[ "$arg" == "-u" || "$arg" == "--uninstall" ]]; then
+    uninstall=true
+  fi
+done
+
+#if [[ $uninstall == true ]]; then
+  # todo
+#fi
+
+if [[ $uninstall == false ]]; then
+  if grep -q 'ANNERTECH_PLATFORMSH_VARNISH_START' $SERVICES; then
+    echo "Varnish already installed. Aborting..."
+  else
+    echo "Adding Varnish to platform.sh"
+    sed -i 's/upstream: app:http/upstream: varnish:http/g' .platform/routes.yaml
+    cp --no-clobber .ddev/scripts/varnish/varnish.feature tests/behat/features/varnish.feature
+    cp --no-clobber .ddev/scripts/varnish/config.vcl .platform/config.vcl
+cat <<EOL >> $SERVICES
+##ANNERTECH_PLATFORMSH_VARNISH_START
+varnish:
+  type: varnish:7.3
+  relationships:
+    main: 'app:http'
+  configuration:
+    vcl: !include
+      type: string
+      path: config.vcl
+##ANNERTECH_PLATFORMSH_VARNISH_END
+EOL
+  fi
+fi
+  
