@@ -141,6 +141,30 @@ This is what people with color vision deficiency see when using the above colors
 > Please note that the add-on only controls the local environment color.
 > You must fix the rest yourself!
 
+<details>
+    <summary>
+        Platform.sh config for SimpleI environment indicator
+    </summary>
+    <pre><code>
+// Per environment settings:
+// Configure environment indicator (simplei)
+if (isset($platformsh->branch)) {
+  // Production type environment.
+  if ($platformsh->branch == 'main' || $platformsh->onDedicated()) {
+    $settings['simple_environment_indicator'] = '#8B0000 LIVE';
+  }
+  // Staging type environment
+  else if ($platformsh->branch == 'stage') {
+    $settings['simple_environment_indicator'] = '#59590D STAGE';
+  }
+  // Development type environment.
+  else {
+    $settings['simple_environment_indicator'] = '#005B94 DEV';
+  }
+}
+    </code></pre>
+</details>
+
 ## Tricks
 
 Handy shell aliases to add to your **host** machine:
