@@ -178,22 +178,22 @@ sub vcl_recv {
     # Throttle high-risk and sensitive operations
 
     # 1. User operations - registration, password reset, login
-    if (req.url ~ "(?i)(/user/register|/user/password|/user/login)") {
-        if (vsthrottle.is_denied("user_ops_" + client.ip, 5, 60s, 600s)) {
+    if (req.url ~ "(?i)(/user/register|/user/password|/user/login)" && req.method == "POST") {
+        if (vsthrottle.is_denied("user_ops_" + req.http.global_key, 5, 60s, 600s)) {
             return (synth(429, "Too Many Requests - Account Operations"));
         }
     }
 
     # 2. Search functionality (often abused)
     if (req.url ~ "(?i)(/search|\?q=search/)") {
-        if (vsthrottle.is_denied("search_" + client.ip, 60, 60s, 300s)) {
+        if (vsthrottle.is_denied("search_" + req.http.global_key, 60, 60s, 300s)) {
             return (synth(429, "Too Many Requests - Search"));
         }
     }
 
     # 3. File downloads - protect against aggressive downloaders
     if (req.url ~ "(?i)(\.pdf|\.docx?|\.xlsx?|\.pptx?|\.zip|\.rar|\.gz|\.tar|\.mp4|\.mov|\.avi)") {
-        if (vsthrottle.is_denied("large_downloads_" + client.ip, 60, 60s, 300s)) {
+        if (vsthrottle.is_denied("large_downloads_" + req.http.global_key, 60, 60s, 300s)) {
             return (synth(429, "Too Many Requests - Downloads"));
         }
     }
@@ -210,7 +210,7 @@ sub vcl_recv {
 
     # POST/PUT/DELETE requests - more aggressive throttling
     if (req.method == "POST" || req.method == "PUT" || req.method == "DELETE") {
-        if (vsthrottle.is_denied("write_" + client.ip, 20, 20s, 180s)) {
+        if (vsthrottle.is_denied("write_" + req.http.global_key, 20, 20s, 180s)) {
             return (synth(429, "Too Many Requests - Write Operations"));
         }
     }
