@@ -77,6 +77,7 @@ git commit -m 'Add annertech/annertech-ddev addon' --no-verify
 - - [`timeslip`](commands/host/timeslip): Generates a timeslip message for FreeAgent. If `timewarrior` is installed it will also show the sum of time spent today
 - Provides **web container** commands:
 - - [`behat`](commands/web/behat): Runs behat
+- - [`install-varnish`](commands/web/install-varnish): Installs and configures Varnish on platform.sh project. See [Varnish command README](scripts/varnish/README.md)
 - - [`platform`](commands/web/platform): Runs `platform cli`
 - - [`robo`](commands/web/robo): Runs robo
 - - [`solr:update-config`](commands/web/solr-update-config): Updates SOLR config.zip
