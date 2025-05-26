@@ -83,7 +83,7 @@ git commit -m 'Add annertech/annertech-ddev addon' --no-verify
 - - [`solr:update-config`](commands/web/solr-update-config): Updates SOLR config.zip
 - Uses DDEV Hooks to [properly instantiate project for development](config.hooks.yaml)
 - [Adds git hook to enforce proper commit messages](scripts/git-hooks/commit-msg)
-- [Sets to development mode on project start](config.hooks.yaml#L3)
+- [Sets to development mode on project start](config.annertech.yaml#L3)
 - [Customizes NGINX configuration](nginx)
 - Fixes search_api_solr to communicate with local [SOLR](ddev/ddev-drupal-solr) by [default](settings.local.devmode.php#L21) (special overrides might be needed for Pantheon sites)
 - [Automatically ignores configuration for development modules](settings.local.devmode.php#L170)
