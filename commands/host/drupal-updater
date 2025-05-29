@@ -104,7 +104,7 @@ update_all_modules() {
     done
   fi
 
-  DATE=$(date +"%Y-%m-%d)")
+  DATE=$(date +"%Y-%m-%d")
   sed -i "1s/^/# Date: $DATE\n\n/" "$CHANGELOG_FILE"
 
   # if [ "$commit_steps" != true ]; then
