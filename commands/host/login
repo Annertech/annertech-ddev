@@ -10,14 +10,18 @@ HTTPS=""
 if [ ${DDEV_PRIMARY_URL%://*} = "https" ]; then HTTPS=true; fi
 FULLURL=`ddev drush uli ${1}`
 
-case $OSTYPE in
-  linux-gnu)
-    xdg-open ${FULLURL}
-    ;;
-  "darwin"*)
-    open ${FULLURL}
-    ;;
-  "win*"* | "msys"*)
-    start ${FULLURL}
-    ;;
-esac
+if [ $ANNERTECH_LOCAL_DEV ]; then
+  echo $FULLURL
+else
+  case $OSTYPE in
+    linux-gnu)
+      xdg-open ${FULLURL}
+      ;;
+    "darwin"*)
+      open ${FULLURL}
+      ;;
+    "win*"* | "msys"*)
+      start ${FULLURL}
+      ;;
+  esac
+fi
