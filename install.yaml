@@ -157,6 +157,10 @@ post_install_actions:
     if [ -f ${DDEV_APPROOT}/nginx/noindex.conf ]; then
       rm ${DDEV_APPROOT}/nginx/noindex.conf
     fi
+  - |
+    if [ ! -f ${DDEV_APPROOT}/homeadditions/.bash_aliases ]; then
+      cp ${DDEV_APPROOT}/.ddev/scripts/ddev/homeadditions/.bash_aliases ${DDEV_APPROOT}/.ddev/homeadditions/.bash_aliases
+    fi
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/.vscode ${DDEV_APPROOT}/
   - git add ${DDEV_APPROOT}/.ddev/config.annertech.yaml -f
   - git add ${DDEV_APPROOT}/.ddev/settings.local.*mode.php -f
