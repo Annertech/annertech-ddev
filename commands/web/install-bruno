@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# ddev-generated
+## Description: Prepare bruno configuration
+## Usage: install-bruno
+## Example: "ddev install-bruno"
+
+GLOBAL_CONF=~/.ddev/global_config.yaml
+SERVICES=.platform/services.yaml
+MAIN_BRANCH=main
+if git show-ref --verify --quiet refs/heads/master; then
+  MAIN_BRANCH=master
+fi
+DEV_URL=$(platform url -1 -e dev)
+LIVE_URL=$(platform url -1 -e $MAIN_BRANCH)
+
+# Escape special characters for sed and ensure no trailing slashes
+ESCAPED_DEV_URL=$(echo "$DEV_URL" | sed -e 's/[&/\]/\\&/g')  # Escape
+ESCAPED_LIVE_URL=$(echo "$LIVE_URL" | sed -e 's/[&/\]/\\&/g')  # Escape
+# Remove the trailing slash if it exists (after escaping)
+ESCAPED_DEV_URL=$(echo "$ESCAPED_DEV_URL" | sed -e 's/\\\/$//')
+ESCAPED_LIVE_URL=$(echo "$ESCAPED_LIVE_URL" | sed -e 's/\\\/$//')
+
+# Adding Bruno
+cp -r .ddev/scripts/varnish/bruno tests/
+find tests/bruno -name '*.bru' -exec sed -i '/^#ddev-generated$/d' {} +
+
+# Replace URLs in the relevant files
+sed -i "s/DEV_URL/$ESCAPED_DEV_URL/g" tests/bruno/environments/Dev.bru
+sed -i "s/LIVE_URL/$ESCAPED_LIVE_URL/g" tests/bruno/environments/Live.bru

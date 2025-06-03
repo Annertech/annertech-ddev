@@ -145,11 +145,11 @@ sub vcl_recv {
     call detect_exploit_paths;
 
     # Pass requests from verified good bots
-    if (req.http.is-good-bot == "true") {
+    if (req.method == "GET" && req.http.Accept && req.http.Accept ~ "text/html" && req.http.is-good-bot == "true") {
         # Apply a very lenient throttle even to good bots to prevent abuse
-        if (vsthrottle.is_denied("goodbot_" + req.http.User-Agent, 120, 60s, 300s)) {
-            return (synth(429, "Too Many Requests - Bot Rate Limited"));
-        }
+        # if (vsthrottle.is_denied("goodbot_" + req.http.User-Agent, 120, 60s, 300s)) {
+        #    return (synth(429, "Too Many Requests - Bot Rate Limited"));
+        # }
         return (pass);
     }
 
@@ -168,31 +168,17 @@ sub vcl_recv {
     set req.http.ua_hash = regsub(req.http.User-Agent, "^(.{16}).*", "\1");
     set req.http.global_key = client.ip + "_" + req.http.ua_hash;
 
-    # --- Begin advanced throttling system ---
-
-    # Global request throttling across all URLs (catch DoS or aggressive crawling)
-    if (vsthrottle.is_denied("global_" + req.http.global_key, 300, 60s, 600s)) {
-        return (synth(429, "Too Many Requests - Global Limit"));
-    }
-
     # Throttle high-risk and sensitive operations
 
-    # 1. User operations - registration, password reset, login
-    if (req.url ~ "(?i)(/user/register|/user/password|/user/login)" && req.method == "POST") {
-        if (vsthrottle.is_denied("user_ops_" + req.http.global_key, 5, 60s, 600s)) {
-            return (synth(429, "Too Many Requests - Account Operations"));
-        }
-    }
+    # User operations - registration, password reset, login
+    # if (req.url ~ "(?i)(/user/register|/user/password|/user/login)" && req.method == "POST") {
+    #    if (vsthrottle.is_denied("user_ops_" + req.http.global_key, 5, 60s, 600s)) {
+    #        return (synth(429, "Too Many Requests - Account Operations"));
+    #    }
+    # }
 
-    # 2. Search functionality (often abused)
-    if (req.url ~ "(?i)(/search|\?q=search/)") {
-        if (vsthrottle.is_denied("search_" + req.http.global_key, 60, 60s, 300s)) {
-            return (synth(429, "Too Many Requests - Search"));
-        }
-    }
-
-    # 3. File downloads - protect against aggressive downloaders
-    if (req.url ~ "(?i)(\.pdf|\.docx?|\.xlsx?|\.pptx?|\.zip|\.rar|\.gz|\.tar|\.mp4|\.mov|\.avi)") {
+    # File downloads - protect against aggressive downloaders
+    if (req.url ~ "(?i)(\.pdf|\.zip|\.rar|\.gz|\.tar)") {
         if (vsthrottle.is_denied("large_downloads_" + req.http.global_key, 60, 60s, 300s)) {
             return (synth(429, "Too Many Requests - Downloads"));
         }
@@ -203,14 +189,14 @@ sub vcl_recv {
     # GET requests for dynamic pages (exclude static assets for better performance)
     if (req.method == "GET" && req.http.Accept && req.http.Accept ~ "text/html") {
       # Distinguish between "browsing" pattern and aggressive pattern
-      if (vsthrottle.is_denied("browse_" + req.http.global_key, 40, 20s, 120s)) {
+      if (vsthrottle.is_denied("browse_" + req.http.global_key, 100, 30s, 120s)) {
           return (synth(429, "Too Many Requests - Browsing"));
       }
     }
 
     # POST/PUT/DELETE requests - more aggressive throttling
     if (req.method == "POST" || req.method == "PUT" || req.method == "DELETE") {
-        if (vsthrottle.is_denied("write_" + req.http.global_key, 20, 20s, 180s)) {
+        if (vsthrottle.is_denied("write_" + req.http.global_key, 100, 30s, 180s)) {
             return (synth(429, "Too Many Requests - Write Operations"));
         }
     }

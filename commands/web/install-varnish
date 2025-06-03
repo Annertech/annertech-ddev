@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #ddev-generated
-## Description: Install custom annertech tip of the day set in DDEV
+## Description: Install custom annertech varnish config for platform.sh projects
 ## Usage: install-varnish
 ## Example: "ddev install-varnish"
 
