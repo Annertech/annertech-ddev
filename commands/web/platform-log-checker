@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#ddev-generated
+## Description: Check platform access log
+## Usage: platform-log-checker
+## Example: "ddev platform-log-checker"
+
+platform ssh "tail -n 5000 /var/log/access.log | cut -d' ' -f 12- | sort | uniq -c | sort -nr | head -n 10"

@@ -109,6 +109,7 @@ project_files:
   - commands/web/install-bruno
   - commands/web/install-varnish
   - commands/web/platform
+  - commands/web/platform-log-checker
   - commands/web/rector
   - commands/web/robo
   - commands/web/solr-update-config
@@ -181,6 +182,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/web/rector -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/robo -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/platform -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/web/platform-log-checker -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/solr-update-config -f
   - git add ${DDEV_APPROOT}/.ddev/nginx/ -f
   - git add ${DDEV_APPROOT}/.ddev/scripts/ -f
@@ -224,6 +226,7 @@ removal_actions:
   - rm commands/web/install-varnish
   - rm commands/web/install-bruno
   - rm commands/web/platform
+  - rm commands/web/platform-log-checker
   - rm commands/web/rector
   - rm commands/web/robo
   - rm commands/web/solr-update-config
