@@ -1,0 +1,9 @@
+### GET request with specified user-agent
+GET / HTTP/1.1
+User-Agent: office
+Host: {{host}}
+###
+
+### GET request to forbidden path
+GET /filemanager HTTP/1.1
+Host: {{host}}
