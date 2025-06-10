@@ -1,0 +1,40 @@
+#! /bin/bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Disk size helper utility for platform.sh projects
+## Usage: platform-disk-helper
+## Example: "ddev platform-disk-helper"
+
+if [ -f "${DDEV_APPROOT}/.ddev/.env" ]; then
+  set -a
+  source "${DDEV_APPROOT}/.ddev/.env"
+  set +a
+  if [[ $DDEV_UPSTREAM_PROVIDER == 'platform' ]]; then
+    echo "Currently used and assigned disk space:"
+    platform disk -1 --columns Service,Used,Limit
+
+    WEB=`platform disk -1 --columns Limit -s app --bytes --no-header --format=plain` > /dev/null
+    DB=`platform disk -1 --columns Limit -s mysqldb --bytes --no-header --format=plain` > /dev/null
+    SOLR=`platform disk -1 --columns Limit -s solrsearch --bytes --no-header --format=plain` > /dev/null
+    TOTAL_ASSIGNED=$((WEB + DB + SOLR))
+    TOTAL_AVAILABLE=`platform project:info subscription.storage`
+
+    echo
+    echo "Total assigned (app+mysqldb+solrsearch):"
+    numfmt --to iec --format "%3.2f" $TOTAL_ASSIGNED
+
+    echo
+    echo "Total storage available in project:"
+    numfmt --from-unit=1048576 --to iec --format="%3.2f" $TOTAL_AVAILABLE
+
+    echo
+    echo "WARNING: command uses hardcoded values for service totals. Verify numbers with table above!"
+    echo
+  else
+    echo "Not a Platform.sh project"
+  fi
+else
+  echo "Couldn't identify if it is a Platform.sh project"
+fi
+
