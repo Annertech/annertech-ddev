@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #ddev-generated
+#annertech-ddev
 
 ## Description: Delete all DB dumps saved by "ddev pull". Since those dumps are unsanitized until they get imported to a database, it is best to delete them if you plan to leave EU soil.
 ## Usage: travel-mode

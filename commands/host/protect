@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 #ddev-generated
+#annertech-ddev
+
 ## Description: Enable or disable basic auth on a nixsal hosted dev project
 ## Usage: protect [off|on|reset]
 ## Example: "ddev protect on"

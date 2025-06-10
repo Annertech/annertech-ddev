@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #ddev-generated
+#annertech-ddev
 
 ## Description: Quickly open the current issue you are working on
 ## Usage: open-issue

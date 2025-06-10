@@ -1,5 +1,7 @@
 #!/bin/sh
 #ddev-generated
+#annertech-ddev
+
 ## Description: Update SOLR config (config.zip), looks into Robo first to see if a project has a custom described action set for this.
 ## Usage: solr:update-config
 ## Example: "ddev solr:update-config"

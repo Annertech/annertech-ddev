@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #ddev-generated
+#annertech-ddev
 
 ## Description: Check for updates of the annertech-ddev addon
 ## Usage: check-annertech-ddev [flags] [args]

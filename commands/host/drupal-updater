@@ -1,6 +1,6 @@
 #!/bin/bash
-
 #ddev-generated
+#annertech-ddev
 
 ## Description: Update Drupal modules and core, optionally committing each step
 ## Usage: drupal-updater -c -u -g -a

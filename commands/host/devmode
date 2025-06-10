@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 #ddev-generated
+#annertech-ddev
+
 ## Description: Easily change between development mode and live mode (aggregation, caching etc). Default setting is `off` at the start of every project.
 ## Usage: devmode [off|on]
 ## Example: "ddev devmode on"

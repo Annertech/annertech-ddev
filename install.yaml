@@ -101,6 +101,7 @@ project_files:
   - commands/host/drupal-updater
   - commands/host/githooks
   - commands/host/login
+  - commands/host/platform-ulitool
   - commands/host/protect
   - commands/host/remote-db
   - commands/host/timeslip
@@ -132,6 +133,7 @@ global_files:
   - commands/host/cloudflare
   - commands/host/drupal-updater
   - commands/host/login
+  - commands/host/platform-ulitool
   - commands/host/timeslip
   - commands/host/travel-mode
 
@@ -173,6 +175,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/host/githooks -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/login -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/protect -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/platform-ulitool -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/remote-db -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/timeslip -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/behat -f
@@ -220,6 +223,7 @@ removal_actions:
   - rm commands/host/drupal-updater
   - rm commands/host/githooks
   - rm commands/host/login
+  - rm commands/host/platform-ulitool
   - rm commands/host/remote-db
   - rm commands/web/behat
   - rm commands/web/check-annertech-ddev

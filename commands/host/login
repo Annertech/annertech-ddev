@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #ddev-generated
+#annertech-ddev
 
 ## Description: Launch a browser and login to the current Drupal project.
 ## Usage: login [--name=USER]

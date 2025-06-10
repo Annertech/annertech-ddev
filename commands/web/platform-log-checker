@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 #ddev-generated
+#annertech-ddev
+
 ## Description: Check platform access log
 ## Usage: platform-log-checker
 ## Example: "ddev platform-log-checker"

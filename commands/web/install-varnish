@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 #ddev-generated
+#annertech-ddev
+
 ## Description: Install custom annertech varnish config for platform.sh projects
 ## Usage: install-varnish
 ## Example: "ddev install-varnish"

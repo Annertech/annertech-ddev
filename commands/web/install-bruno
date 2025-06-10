@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# ddev-generated
+#ddev-generated
+#annertech-ddev
+
 ## Description: Prepare bruno configuration
 ## Usage: install-bruno
 ## Example: "ddev install-bruno"
