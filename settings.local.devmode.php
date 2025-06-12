@@ -26,6 +26,15 @@ $config['search_api.server.solr']['backend_config']['connector_config']['port'] 
 $config['search_api.server.solr']['backend_config']['connector_config']['path'] = '/';
 $config['search_api.server.solr']['backend_config']['connector_config']['core'] = 'dev';
 
+// Override drupal/symfony_mailer sendmailer to user DDEV sendmail paths instead of Platform.sh.
+$config['symfony_mailer.settings']['default_transport'] = 'sendmail';
+$config['symfony_mailer.mailer_transport.sendmail']['plugin'] = 'sendmail';
+$config['symfony_mailer.mailer_transport.sendmail']['configuration']['query']['command'] = '/usr/local/bin/mailpit sendmail -t --smtp-addr 127.0.0.1:1025';
+unset($config['symfony_mailer.mailer_transport.sendmail']['configuration']['user']);
+unset($config['symfony_mailer.mailer_transport.sendmail']['configuration']['pass']);
+unset($config['symfony_mailer.mailer_transport.sendmail']['configuration']['host']);
+unset($config['symfony_mailer.mailer_transport.sendmail']['configuration']['port']);
+
 // Set $settings['file_private_path'] if not set in settings.php.
 if (empty($settings['file_private_path'])) {
   $settings['file_private_path'] = '../private';
