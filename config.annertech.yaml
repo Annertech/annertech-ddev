@@ -1,15 +1,16 @@
 #ddev-generated
 hooks:
   pre-start:
-    - exec-host: "cp .ddev/settings.local.devmode.php ${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
     - exec-host: "cp .ddev/scripts/git-hooks/commit-msg .git/hooks/commit-msg"
     - exec-host: "chmod +x .git/hooks/commit-msg"
   post-start:
     - exec-host: "if [ ! $ANNERTECH_LOCAL_DEV ]; then ddev auth ssh; fi"
     - exec-host: "ddev check-annertech-ddev"
+    - exec-host: "ddev devmode on"
   post-import-db:
     - exec: "drush cache:rebuild"
     - exec: "drush sql:sanitize -y"
+    - exec-host: "ddev devmode on"
     - exec: "if [[ $(grep 'stage_file_proxy' composer.json) ]]; then drush en stage_file_proxy -y; fi"
     - exec: "drush user:login"
   post-pull:

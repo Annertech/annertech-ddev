@@ -7,14 +7,18 @@
 ## Example: "ddev devmode on"
 ## ProjectTypes: drupal,drupal10
 
+
+# @todo: needs work once Drush 13.6 lands (https://www.drupal.org/docs/develop/development-tools/disabling-and-debugging-caching#s-toggle-twig-debug-caching-and-cssjs-aggregation-with-drush)
 case $@ in
   off)
     echo -e "Configuring settings.local.php for \e[1;0;41m caching and performance \e[0m"
     cp "${DDEV_APPROOT}/.ddev/settings.local.perfmode.php" "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
+    drush twig:debug off
     ;;
   on)
     echo -e "Configuring settings.local.php for \e[1;0;45m development \e[0m"
     cp "${DDEV_APPROOT}/.ddev/settings.local.devmode.php" "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
+    drush twig:debug on
     ;;
   *)
     echo "Please set mode (eg: 'ddev devmode on')"
