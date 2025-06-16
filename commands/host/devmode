@@ -5,20 +5,27 @@
 ## Description: Easily change between development mode and live mode (aggregation, caching etc). Default setting is `off` at the start of every project.
 ## Usage: devmode [off|on]
 ## Example: "ddev devmode on"
-## ProjectTypes: drupal,drupal10
+## ProjectTypes: drupal,drupal10,drupal11
 
 
-# @todo: needs work once Drush 13.6 lands (https://www.drupal.org/docs/develop/development-tools/disabling-and-debugging-caching#s-toggle-twig-debug-caching-and-cssjs-aggregation-with-drush)
+# We need drush 13.6.0+ for twig_debug mode (also doess CSS/JS aggregation setting, but we still keep this in our settings.local.php files)
+CURRENT_DRUSH=`ddev exec composer show drush/drush | sed -n '/versions/s/^[^0-9]\+\([^,]\+\).*$/\1/p'`
+REQUIRED_DRUSH="13.6.0"
+DRUSH_IS_COMPATIBLE=0
+if [ "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" = "$requiredver" ]; then
+  DRUSH_IS_COMPATIBLE=1
+fi
+
 case $@ in
   off)
     echo -e "Configuring settings.local.php for \e[1;0;41m caching and performance \e[0m"
     cp "${DDEV_APPROOT}/.ddev/settings.local.perfmode.php" "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
-    drush twig:debug off
+    if [[ $DRUSH_IS_COMPATIBLE ]]; then ddev exec drush theme:dev off; fi
     ;;
   on)
     echo -e "Configuring settings.local.php for \e[1;0;45m development \e[0m"
     cp "${DDEV_APPROOT}/.ddev/settings.local.devmode.php" "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
-    drush twig:debug on
+    if [[ $DRUSH_IS_COMPATIBLE ]]; then ddev exec drush theme:dev on; fi
     ;;
   *)
     echo "Please set mode (eg: 'ddev devmode on')"
