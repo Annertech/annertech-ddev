@@ -11,6 +11,22 @@ GLOBAL_CONF=~/.ddev/global_config.yaml
 SERVICES=.platform/services.yaml
 DEV_URL=$(platform url -1 -e dev)
 
+function generate_vcl() {
+    mkdir .platform/varnish
+    # Don't overwrite the allowlist VCL
+    cp --no-clobber .ddev/scripts/varnish/varnish_vcls/allowlist.vcl .platform/varnish/
+    # Generate single config file
+    # Use project file for allowlist
+    cat ./platform/varnish/allowlist.vcl >> .platform/config.vcl
+    # Get latest versions for everything else
+    cat .ddev/scripts/varnish/varnish_vcls/ai_bots.vcl >> .platform/config.vcl
+    cat .ddev/scripts/varnish/varnish_vcls/bad_bots.vcl >> .platform/config.vcl
+    cat .ddev/scripts/varnish/varnish_vcls/good_bots.vcl >> .platform/config.vcl
+    cat .ddev/scripts/varnish/varnish_vcls/exploit_paths.vcl >> .platform/config.vcl
+    # This comes last, it contains `sub vcl_recv`
+    cat .ddev/scripts/varnish/varnish_vcls/config.vcl >> .platform/config.vcl
+}
+
 for arg in "$@"; do
   if [[ "$arg" == "-u" || "$arg" == "--uninstall" ]]; then
     uninstall=true
@@ -51,19 +67,3 @@ EOL
     sed -i "s#CHANGE_WITH_URL#$DEV_URL#g" tests/behat/features/varnish.feature
   fi
 fi
-
-function generate_vcl() {
-    mkdir .platform/varnish
-    # Don't overwrite the allowlist VCL
-    cp --no-clobber .ddev/scripts/varnish/varnish_vcls/allowlist.vcl .platform/varnish/
-    # Generate single config file
-    # Use project file for allowlist
-    cat ./platform/varnish/allowlist.vcl >> .platform/config.vcl
-    # Get latest versions for everything else
-    cat .ddev/scripts/varnish/varnish_vcls/ai_bots.vcl >> .platform/config.vcl
-    cat .ddev/scripts/varnish/varnish_vcls/bad_bots.vcl >> .platform/config.vcl
-    cat .ddev/scripts/varnish/varnish_vcls/good_bots.vcl >> .platform/config.vcl
-    cat .ddev/scripts/varnish/varnish_vcls/exploit_paths.vcl >> .platform/config.vcl
-    # This comes last, it contains `sub vcl_recv`
-    cat .ddev/scripts/varnish/varnish_vcls/config.vcl >> .platform/config.vcl
-}
