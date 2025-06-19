@@ -1,12 +1,14 @@
 #ddev-generated
 
-include "./allowlist.vcl";
 
-include "./ai_bots.vcl";
-include "./bad_bots.vcl";
-include "./good_bots.vcl";
+# Not using includes because we combine everything in a single file in commands/web/install-varnish
+#include "./allowlist.vcl";
 
-include "./exploit_paths.vcl";
+#include "./ai_bots.vcl";
+#include "./bad_bots.vcl";
+#include "./good_bots.vcl";
+
+#include "./exploit_paths.vcl";
 
 # import vsthrottle; # Throttling is currently disabled.
 
