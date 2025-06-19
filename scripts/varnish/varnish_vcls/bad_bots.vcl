@@ -1,4 +1,5 @@
 #ddev-generated
+# bad_bots.vcl
 sub detect_bad_bots {
     # Generic bad bot signatures
     if (req.http.User-Agent ~ "(?i)(zgrab|proximic|spamdexer|spambot|scrapinghub|htmlparser|libwww|lipperhey|dotnetclr|indy library|emailcollector|fetch|mfc|HTMLEditor)") {

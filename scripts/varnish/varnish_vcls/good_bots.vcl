@@ -1,4 +1,5 @@
 #ddev-generated
+# good_bots.vcl
 sub detect_good_bots {
     # Search engines and crawlers
     if (req.http.User-Agent ~ "(?i)(googlebot|bingbot|yandexbot|applebot|duckduckbot|baiduspider|yahoo|sogou)") {

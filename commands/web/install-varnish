@@ -12,12 +12,12 @@ SERVICES=.platform/services.yaml
 DEV_URL=$(platform url -1 -e dev)
 
 function generate_vcl() {
-    mkdir .platform/varnish
+    mkdir -p .platform/varnish
     # Don't overwrite the allowlist VCL
     cp --no-clobber .ddev/scripts/varnish/varnish_vcls/allowlist.vcl .platform/varnish/
     # Generate single config file
     # Use project file for allowlist
-    cat ./platform/varnish/allowlist.vcl >> .platform/config.vcl
+    cat ./.platform/varnish/allowlist.vcl >> .platform/config.vcl
     # Get latest versions for everything else
     cat .ddev/scripts/varnish/varnish_vcls/ai_bots.vcl >> .platform/config.vcl
     cat .ddev/scripts/varnish/varnish_vcls/bad_bots.vcl >> .platform/config.vcl

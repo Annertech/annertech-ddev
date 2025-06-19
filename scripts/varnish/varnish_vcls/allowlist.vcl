@@ -1,4 +1,5 @@
 #ddev-generated
+# allowlist.vcl
 # IP-based ACL for allowed addresses
 # Example entries:
 # "x.x.x.x";
