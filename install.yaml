@@ -201,6 +201,7 @@ post_install_actions:
 # Files listed in project_files section will be automatically removed here if they contain #ddev-generated line.
 # removal_actions are executed in the context of the target project's .ddev directory.
 removal_actions:
+  - rm .env
   - rm config.annertech.yaml
   - rm settings.local.perfmode.php
   - rm settings.local.devmode.php
@@ -215,8 +216,6 @@ removal_actions:
       fi
     fi
   - rm commands/host/branch
-  - rm commands/host/protect
-  - rm commands/host/branch
   - rm commands/host/cex
   - rm commands/host/cim
   - rm commands/host/cloudflare
@@ -226,6 +225,7 @@ removal_actions:
   - rm commands/host/githooks
   - rm commands/host/login
   - rm commands/host/platform-ulitool
+  - rm commands/host/protect
   - rm commands/host/remote-db
   - rm commands/web/behat
   - rm commands/web/check-annertech-ddev
@@ -242,10 +242,19 @@ removal_actions:
   - rm nginx/redirect.conf
   - rm -rf scripts
   - |
-    if [ -f ${DDEV_APPROOT}/config.hooks.yaml ]; then
-      if grep -q '#ddev-generated' ${DDEV_APPROOT}/config.hooks.yaml; then
-        rm -f ${DDEV_APPROOT}/config.hooks.yaml
-        echo "Unwilling to remove '${DDEV_APPROOT}/config.hooks.yaml' because it does not have #ddev-generated in it; you can manually delete it if it is safe to delete."
+    if [ -f ${DDEV_APPROOT}/.ddev/config.hooks.yaml ]; then
+      if grep -q '#ddev-generated' ${DDEV_APPROOT}/.ddev/config.hooks.yaml; then
+        rm -f ${DDEV_APPROOT}/.ddev/config.hooks.yaml
+      else
+        echo "Unwilling to remove '${DDEV_APPROOT}/.ddev/config.hooks.yaml' because it does not have #ddev-generated in it; you can manually delete it if it is safe to delete."
+      fi
+    fi
+  - |
+    if [ -f ${DDEV_APPROOT}/.ddev/homeadditions/.bash_aliases ]; then
+      if grep -q '#ddev-generated' ${DDEV_APPROOT}/.ddev/homeadditions/.bash_aliases; then
+        rm -f ${DDEV_APPROOT}/.ddev/homeadditions/.bash_aliases
+      else
+        echo "Unwilling to remove '${DDEV_APPROOT}/.ddev/homeadditions/.bash_aliases' because it does not have #ddev-generated in it; you can manually delete it if it is safe to delete."
       fi
     fi
 
