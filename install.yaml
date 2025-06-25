@@ -201,20 +201,31 @@ post_install_actions:
 # Files listed in project_files section will be automatically removed here if they contain #ddev-generated line.
 # removal_actions are executed in the context of the target project's .ddev directory.
 removal_actions:
+  - |
+    #ddev-nodisplay
+    #ddev-description:Removing annertech config and settings
   - rm .env
   - rm config.annertech.yaml
   - rm settings.local.perfmode.php
   - rm settings.local.devmode.php
-  - rm commands/host/annertech-tip-of-the-day
   - |
     #ddev-nodisplay
-    #ddev-description:Removing custom annertech tip of the day
+    #ddev-description:Removing customized annertech tip of the day (on host!)
     if [ -f ~/.ddev/global_config.yaml ]; then
       if grep -q 'ANNERTECH_CUSTOM_TIPS_START' ~/.ddev/global_config.yaml; then
         sed -i '/^##ANNERTECH_CUSTOM_TIPS_START/,/^##ANNERTECH_CUSTOM_TIPS_END/d' ~/.ddev/global_config.yaml
         rm ~/.ddev/.state.yaml ~/.ddev/.remote-config
       fi
     fi
+  - rm commands/host/annertech-tip-of-the-day
+  - |
+    #ddev-nodisplay
+    #ddev-description:Removing web environment tokens
+    sed -i '/PLATFORM_ENVIRONMENT/d' config.yaml
+    sed -i '/PLATFORM_PROJECT/d' config.yaml
+  - |
+    #ddev-nodisplay
+    #ddev-description:Removing annertech custom commands
   - rm commands/host/branch
   - rm commands/host/cex
   - rm commands/host/cim
@@ -237,6 +248,9 @@ removal_actions:
   - rm commands/web/rector
   - rm commands/web/robo
   - rm commands/web/solr-update-config
+  - |
+    #ddev-nodisplay
+    #ddev-description:Removing annertech custom scripts and modifications
   - rm nginx/libraries.conf
   - rm nginx/protect.conf
   - rm nginx/redirect.conf
