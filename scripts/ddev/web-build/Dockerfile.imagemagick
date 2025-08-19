@@ -1,0 +1,15 @@
+ARG BASE_IMAGE
+FROM $BASE_IMAGE
+
+RUN apt-get update
+RUN apt-get remove "*imagemagick*" --purge -y && apt autoremove --purge -y
+RUN apt-get install -y php-pear php8.3-dev libaom-dev aom-tools cmake build-essential libltdl-dev libjpeg-dev libpng-dev libtiff-dev libgif-dev libfreetype6-dev liblcms2-dev libxml2-dev
+ENV PHP_INI_DIR=/etc/php/8.3/fpm/
+RUN pecl config-set php_ini "$PHP_INI_DIR/php.ini" && pear config-set php_ini "$PHP_INI_DIR/php.ini"
+
+# Use https://github.com/SoftCreatR/imei for imagemagick installation
+RUN t=$(mktemp) && \
+    wget 'https://dist.1-2.dev/imei.sh' -qO "$t" && \
+    bash "$t" && \
+    printf "\n" | pecl install imagick \
+    rm "$t"

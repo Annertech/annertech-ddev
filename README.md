@@ -97,6 +97,14 @@ git commit -m 'Add annertech/annertech-ddev addon' --no-verify
 
 are automatically disabled in local environment to facilitate development.
 
+## Automatically identified and configured
+
+If your Drupal projects depends on ImageMagick then DDEV will be
+automatically configured to compile and use ImageMagick v7 in DDEV. See
+`scripts/ddev/web-build` for details.
+
+Platform.sh is using v7 while DDEV is still running v6 by default.
+
 ## Automated Testing commands provided
 
 ### Behat
