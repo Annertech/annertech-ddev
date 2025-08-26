@@ -2,6 +2,11 @@
 
 #ddev-generated
 
+/**
+ * @file
+ * Cloned from https://github.com/simplesamlphp/simplesamlphp/blob/master/config/acl.php.dist
+ */
+
 /*
  * This file defines "named" access control lists, which can
  * be reused in several places.

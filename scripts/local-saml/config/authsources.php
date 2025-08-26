@@ -2,6 +2,12 @@
 
 #ddev-generated
 
+/**
+ * @file
+ * Cloned from https://github.com/simplesamlphp/simplesamlphp/blob/master/config/authsources.php.dist
+ * and adapted to provide a local SP for use in DDEV.
+ */
+
 $config = [
     /*
      * When multiple authentication sources are defined, you can specify one to use by default

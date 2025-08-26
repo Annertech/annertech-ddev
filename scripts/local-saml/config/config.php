@@ -2,6 +2,12 @@
 
 #ddev-generated
 
+/**
+ * @file
+ * Cloned from https://github.com/simplesamlphp/simplesamlphp/blob/master/config/config.php.dist
+ * and adapted to use inside DDEV.
+ */
+
 // Local environment settings.
 $store_sql_dsn = 'mysql:host=db;dbname=db';
 $store_sql_username = 'db';
