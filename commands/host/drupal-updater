@@ -3,9 +3,9 @@
 #annertech-ddev
 
 ## Description: Update Drupal modules and core, optionally committing each step
-## Usage: drupal-updater -c -u -g -a
-## Example: "ddev drupal-updater -c -u -g -a" \n"ddev drupal-updater drupal/module-name --commit-steps" \n"ddev drupal-updater --all --with-core --commit-steps" \n"ddev drupal-updater --dry-run --omit-snapshot"
-## Flags: [{"Name":"commit-steps","Shorthand":"g","Usage":"Create a git commit for each update step","Type":"bool"},{"Name":"with-core","Shorthand":"c", "Usage":"Include core updates in --all","Type":"bool"},{"Name":"all","Shorthand":"a","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot", "Shorthand": "o", "Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"update-changelog","Shorthand":"u","Usage":"Update the CHANGELOG.md with the latest changes","Type":"bool"}]
+## Usage: drupal-updater -c -u -g -a -d -o
+## Example: "ddev drupal-updater -c -u -g -a -d -o" \n"ddev drupal-updater drupal/module-name --commit-steps" \n"ddev drupal-updater --all --with-core --commit-steps" \n"ddev drupal-updater --dry-run --omit-snapshot"
+## Flags: [{"Name":"commit-steps","Shorthand":"g","Usage":"Create a git commit for each update step","Type":"bool"},{"Name":"with-core","Shorthand":"c", "Usage":"Include core updates in --all","Type":"bool"},{"Name":"all","Shorthand":"a","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot", "Shorthand": "o", "Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"update-changelog","Shorthand":"u","Usage":"Update the CHANGELOG.md with the latest changes","Type":"bool"},{"Name":"run-db-updates","Shorthand":"d","Usage":"Run database updates between module updates","Type":"bool"}]
 ## ProjectTypes: drupal,drupal11,drupal10
 
 ## This script is brought to you by:
@@ -69,8 +69,10 @@ update_module() {
       echo "No update needed for $MODULE_NAME. The version is already $MODULE_VERSION."
     else
       # Run drush commands if there was an update
-      ddev drush updb -y
-      ddev drush cex -y
+      if [ "$updb" = true ]; then
+        ddev drush updb -y
+        ddev drush cex -y
+      fi
 
       echo -e "- $MODULE_NAME updated from $FROM_VERSION to $MODULE_VERSION\n$(cat $CHANGELOG_FILE)" > $CHANGELOG_FILE
 
@@ -138,6 +140,10 @@ while :; do
             ;;
         --update-changelog|-u)
             update_changelog=true
+            shift
+            ;;
+        --run-db-updates|-d)
+            updb=true
             shift
             ;;
         --) # End of all options
