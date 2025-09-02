@@ -3,8 +3,8 @@
 #annertech-ddev
 
 ## Description: Update Drupal modules and core, optionally committing each step
-## Usage: drupal-updater -c -u -g -a -d -o
-## Example: "ddev drupal-updater -c -u -g -a -d -o" \n"ddev drupal-updater drupal/module-name --commit-steps" \n"ddev drupal-updater --all --with-core --commit-steps" \n"ddev drupal-updater --dry-run --omit-snapshot"
+## Usage: drupal-updater
+## Example: "ddev drupal-updater -cugado" \n"ddev drupal-updater drupal/module-name --commit-steps" \n"ddev drupal-updater --all --with-core --commit-steps" \n"ddev drupal-updater --dry-run --omit-snapshot"
 ## Flags: [{"Name":"commit-steps","Shorthand":"g","Usage":"Create a git commit for each update step","Type":"bool"},{"Name":"with-core","Shorthand":"c", "Usage":"Include core updates in --all","Type":"bool"},{"Name":"all","Shorthand":"a","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot", "Shorthand": "o", "Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"update-changelog","Shorthand":"u","Usage":"Update the CHANGELOG.md with the latest changes","Type":"bool"},{"Name":"run-db-updates","Shorthand":"d","Usage":"Run database updates between module updates","Type":"bool"}]
 ## ProjectTypes: drupal,drupal11,drupal10
 
@@ -116,47 +116,34 @@ update_all_modules() {
 }
 
 # Parse flags and arguments
-while :; do
-    case $1 in
-        --commit-steps|-g)
-            commit_steps=true
-            shift
-            ;;
-        --with-core|-c)
-            with_core=true
-            shift
-            ;;
-        --all|-a)
-            action="update_all"
-            shift
-            ;;
-        --dry-run)
-            dry_run=true
-            shift
-            ;;
-        --omit-snapshot|-o)
-            omit_snapshot=true
-            shift
-            ;;
-        --update-changelog|-u)
-            update_changelog=true
-            shift
-            ;;
-        --run-db-updates|-d)
-            updb=true
-            shift
-            ;;
-        --) # End of all options
-            shift
-            break
-            ;;
-        -?*)
-            printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
-            shift
-            ;;
-        *) # Default case: No more options
-            break
-    esac
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -*) # Handle grouped short options like -cugado
+      OPTS="${1:1}" # Remove leading dash
+      for (( i=0; i<${#OPTS}; i++ )); do
+        opt="${OPTS:$i:1}"
+        case $opt in
+          c) with_core=true ;;
+          u) update_changelog=true ;;
+          g) commit_steps=true ;;
+          a) action="update_all" ;;
+          d) updb=true ;;
+          o) omit_snapshot=true ;;
+          *) echo "WARN: Unknown option -$opt" ;;
+        esac
+      done
+      shift
+      ;;
+    --commit-steps) commit_steps=true; shift ;;
+    --with-core) with_core=true; shift ;;
+    --all) action="update_all"; shift ;;
+    --dry-run) dry_run=true; shift ;;
+    --omit-snapshot) omit_snapshot=true; shift ;;
+    --update-changelog) update_changelog=true; shift ;;
+    --run-db-updates) updb=true; shift ;;
+    --) shift; break ;;
+    *) break ;;
+  esac
 done
 
 if [ "$action" = "update_all" ]; then
