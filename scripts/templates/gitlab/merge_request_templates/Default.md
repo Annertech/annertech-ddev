@@ -7,21 +7,20 @@
 - [ ] Commits follow `T-[teamworkId] description` description format
 - [ ] MR title updated to match, with auto-link to Teamwork `T-[teamworkId]`
 - [ ] `CHANGELOG.md` updated
-- [ ] Teamwork card commented/updated
+- [ ] Teamwork card commented/updated and MR link added
 
 ### Documentation
 - [ ] **Code documented, READMEs updated as required!**
 
 ### Automated tests
 - [ ] **I have added and/or updated tests as required!**
-- [ ] I've run `ddev behat` locally
 - [ ] I've run `ddev backstop test` locally and inspected the visual output
-- [ ] I've run `ddev cypress run` locally
+- [ ] I've run `ddev behat` locally if applicable
+- [ ] I've run `ddev cypress run` locally if applicable
 
 ### QA
 - [ ] Clear Testing Notes with steps and URLs provided in card/issue/MR
 - [ ] Screenshots provided in card/issue/MR
-- [ ] MR link added to card _Deployment Notes_
 - [ ] Code Review performed & MR Approved
 - [ ] Internal QA on `dev` (or own environment) performed
 - [ ] Complies with [Best Practises](https://knowledge.annertech.com/coding/) & [Coding Standards](https://www.drupal.org/docs/develop/standards/coding-standards)
@@ -31,8 +30,8 @@
 
 ### Accessibility
 
-- [ ] Pages under review pass AXE/Wave accessibility testing
-  See Knowledge [Accessibility section](https://knowledge.annertech.com/accessibility) for guidance on testing and implementation.
+- [ ] Pages under review pass AXE/Wave accessibility testing  
+  _See Knowledge [Accessibility section](https://knowledge.annertech.com/accessibility) for guidance on testing and implementation_
 
 
 ---
