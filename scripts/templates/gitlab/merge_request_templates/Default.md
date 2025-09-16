@@ -2,15 +2,12 @@
 
 ### Prerequisites
 - [ ] **I pulled the latest `main|master` branch**
-- [ ] I've used `ddev branch` to get the expected branch name
-- [ ] I've pulled a fresh DB (`ddev remote-db`) or verified that there are 
-  no outstanding configuration changes on the production site
-- [ ] My commits start with `T-[teamworkId] description`
-- [ ] I've renamed the MR title to match `T-[teamworkId] description` and an
-  automatic link has been generated towards teamwork
-- [ ] I have updated the `CHANGELOG.md` file with the changes I've made
-- [ ] I have commented/updated the Teamwork card
-- [ ] MR link added to the Teamwork card description under Deployment Notes
+- [ ] Verified correct branch via `ddev branch` 
+- [ ] Synced fresh DB (`ddev remote-db`) or confirmed no prod config changes
+- [ ] Commits follow `T-[teamworkId] description` description format
+- [ ] MR title updated to match, with auto-link to Teamwork `T-[teamworkId]`
+- [ ] `CHANGELOG.md` updated
+- [ ] Teamwork card commented/updated and MR link added
 
 ### Documentation
 - [ ] **Code documented, READMEs updated as required!**
