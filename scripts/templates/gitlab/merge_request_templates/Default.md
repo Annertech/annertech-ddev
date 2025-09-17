@@ -5,7 +5,7 @@
 - [ ] Verified correct branch via `ddev branch` 
 - [ ] Synced fresh DB (`ddev remote-db`) or confirmed no prod config changes
 - [ ] Commits follow `T-[teamworkId] description` description format
-- [ ] MR title updated to match, with auto-link to Teamwork `T-[teamworkId]`
+- [ ] MR title updated to match `T-[teamworkId]`, with auto-link to Teamwork
 - [ ] `CHANGELOG.md` updated
 - [ ] Teamwork card commented/updated and MR link added
 
