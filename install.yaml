@@ -166,6 +166,8 @@ post_install_actions:
       cp ${DDEV_APPROOT}/.ddev/scripts/ddev/homeadditions/.bash_aliases ${DDEV_APPROOT}/.ddev/homeadditions/.bash_aliases
     fi
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/.vscode ${DDEV_APPROOT}/
+  - mkdir -p ${DDEV_APPROOT}/.gitlab/merge_request_templates
+  - cp -r ${DDEV_APPROOT}/.ddev/scripts/templates/gitlab/merge_request_templates/Default.md ${DDEV_APPROOT}/.gitlab/merge_request_templates/
   - git add ${DDEV_APPROOT}/.ddev/config.annertech.yaml -f
   - git add ${DDEV_APPROOT}/.ddev/settings.local.*mode.php -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/annertech-tip-of-the-day -f
