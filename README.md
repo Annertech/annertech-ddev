@@ -34,6 +34,7 @@ git add .ddev/commands/host/timeslip -f
 git add .ddev/commands/web/behat -f
 git add .ddev/commands/web/robo -f
 git add .ddev/commands/web/platform -f
+git add .ddev/commands/web/upsun -f
 git add .ddev/commands/web/solr-update-config -f
 
 git add .ddev/nginx/ -f
@@ -79,7 +80,7 @@ git commit -m 'Add annertech/annertech-ddev addon' --no-verify
 - Provides **web container** commands:
 - - [`behat`](commands/web/behat): Runs behat
 - - [`install-varnish`](commands/web/install-varnish): Installs and configures Varnish on platform.sh project. See [Varnish command README](scripts/varnish/README.md)
-- - [`platform`](commands/web/platform): Runs `platform cli`
+- - [`upsun`](commands/web/platform): Runs `platform/upsun cli`
 - - [`robo`](commands/web/robo): Runs robo
 - - [`solr:update-config`](commands/web/solr-update-config): Updates SOLR config.zip
 - Uses DDEV Hooks to [properly instantiate project for development](config.hooks.yaml)
@@ -184,14 +185,16 @@ alias composer='ddev composer'
 alias behat='ddev behat'
 alias drush='ddev drush'
 alias platform='ddev platform'
+alias upsun='ddev upsun'
 alias robo='ddev robo'
 
 alias xe='ddev xdebug enable'
 alias xd='ddev xdebug disable'
 alias xt='status=$(ddev xdebug status) &&  if [ "$status" == "xdebug enabled" ]; then ddev xdebug off; else ddev xdebug on; fi' 
 
-# If you don't want to have platform cli installed on your host you can rely to the one in DDEV
+# If you don't want to have platform/upsun cli installed on your host you can rely to the one in DDEV
 alias platform='ddev exec platform'
+alias upsun='ddev upsun'
 ```
 
 ## Common Problems and How-To Fix Them

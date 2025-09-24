@@ -109,6 +109,7 @@ project_files:
   - commands/web/check-annertech-ddev
   - commands/web/install-bruno
   - commands/web/install-varnish
+  - commands/web/upsun
   - commands/web/platform
   - commands/web/platform-disk-helper
   - commands/web/platform-log-checker
@@ -187,6 +188,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/web/install-varnish -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/rector -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/robo -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/web/upsun -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/platform -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/platform-disk-helper -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/platform-log-checker -f
@@ -244,6 +246,7 @@ removal_actions:
   - rm commands/web/check-annertech-ddev
   - rm commands/web/install-varnish
   - rm commands/web/install-bruno
+  - rm commands/web/upsun
   - rm commands/web/platform
   - rm commands/web/platform-disk-helper
   - rm commands/web/platform-log-checker
