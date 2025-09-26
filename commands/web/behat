@@ -6,6 +6,15 @@
 ## Usage: behat [flags] [args]
 ## Example: "ddev behat --tags ~wip"
 
+# Check if the tests/behat directory exists
+if [ ! -d "tests/behat" ]; then
+    echo
+    echo "\033[38;5;208mError: Directory tests/behat does not exist.\033[0m"
+    echo "\033[38;5;208mAre Behat tests defined for this project?\033[0m"
+    echo
+    exit 1
+fi
+
 # Navigate to the behat directory
 cd tests/behat
 
