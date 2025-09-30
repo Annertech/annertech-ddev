@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+# Abort a push if no backstop test have been found
+
+# Directory to check
+BASE_DIR="tests/backstop/backstop_data/bitmaps_test"
+
+# Today's date in YYYYMMDD format
+TODAY=$(date +%Y%m%d)
+
+# Look for any folder that starts with today's date
+MATCH=$(find "$BASE_DIR" -maxdepth 1 -type d -name "${TODAY}-*")
+
+if [ -z "$MATCH" ]; then
+  echo
+  echo "=================================================================================================="
+  echo "❌ Push aborted ❌"
+  echo "No folder found in $BASE_DIR starting with today's date ($TODAY)"
+  echo "Did you run Backstop tests?"
+  echo "=================================================================================================="
+  echo
+  exit 1
+fi
+
+# If a folder is found, allow the push
+exit 0
