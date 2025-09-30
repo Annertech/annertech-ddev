@@ -198,8 +198,6 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/.env -f
   - git add ${DDEV_APPROOT}/.ddev/addon-metadata/ -f
   - git add ${DDEV_APPROOT}/.vscode -f
-  - cp -r ${DDEV_APPROOT}/.ddev/scripts/git-hooks/commit-msg ${DDEV_APPROOT}/.git/hooks/commit-msg
-  - chmod +x ${DDEV_APPROOT}/.git/hooks/commit-msg
 
 # Shell actions that can be done during removal of the add-on.
 # Files listed in project_files section will be automatically removed here if they contain #ddev-generated line.
