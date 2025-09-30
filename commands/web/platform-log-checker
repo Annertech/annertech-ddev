@@ -11,3 +11,4 @@ platform ssh "tail -n 5000 /var/log/access.log | cut -d' ' -f 12- | sort | uniq 
 # curl -s https://www.ipdeny.com/ipblocks/data/countries/cn.zone -o cn.zone
 # grepcidr -f cn.zone access.log > cn.log
 # goaccess cn.log --geoip-database /var/lib/GeoIP/GeoLite2-City.mmdb --log-format COMBINED -a > china-access-log.html
+# awk '{print $1}' cn.log | sort | uniq -c | sort -nr
