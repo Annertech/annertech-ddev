@@ -76,6 +76,7 @@ git commit -m 'Add annertech/annertech-ddev addon' --no-verify
 - - [`githooks`](commands/host/githooks): Installs git-hooks (also happens on project start)
 - - [`login`](commands/host/login): Opens a browser and logs you in to Drupal (works on local environments only)
 - - [`protect [on|off|reset]`](commands/host/protect): Enable or disable basic auth on a nixsal hosted dev project - [see file](commands/host/protect)
+- - [`tests`](commands/host/tests): Informs about available tests for current project
 - - [`timeslip`](commands/host/timeslip): Generates a timeslip message for FreeAgent. If `timewarrior` is installed it will also show the sum of time spent today
 - Provides **web container** commands:
 - - [`behat`](commands/web/behat): Runs behat

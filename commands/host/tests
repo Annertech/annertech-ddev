@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Informs you about available test suites in current project
+## Usage: tests
+## Example: "ddev tests"
+
+# Backstop
+if [ -f "tests/backstop/backstop.json" ]; then
+  echo
+  echo "Backstop:"
+  echo "  ddev backstop reference"
+  echo "  ddev backstop test"
+  echo "  ddev backstop-results"
+fi
+
+# Behat
+if [ -f "tests/behat/behat.yml" ]; then
+  echo
+  echo "Behat:"
+  echo "  ddev ssh"
+  echo "  cd tests/behat"
+  echo "  bin/behat"
+fi
+
+# Bruno
+# @todo: check for postman?
+# @todo: run them with DDEV?
+if [ -f "tests/bruno/bruno/bruno.json" ]; then
+  echo
+  echo "Bruno:"
+  echo "  Not in DDEV, see https://www.usebruno.com/"
+fi
+
+# Cypress
+if [ -f "cypress.config.js" ]; then
+  echo
+  echo "Cypress:"
+  echo "  ddev cypress run"
+fi
+echo

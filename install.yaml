@@ -104,6 +104,7 @@ project_files:
   - commands/host/platform-ulitool
   - commands/host/protect
   - commands/host/remote-db
+  - commands/host/tests
   - commands/host/timeslip
   - commands/web/behat
   - commands/web/check-annertech-ddev
@@ -181,6 +182,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/host/protect -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/platform-ulitool -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/remote-db -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/tests -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/timeslip -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/behat -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/check-annertech-ddev -f
