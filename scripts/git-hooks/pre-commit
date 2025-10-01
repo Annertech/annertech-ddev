@@ -1,28 +1,35 @@
 #!/usr/bin/env bash
 #ddev-generated
 
+FORBIDDEN_PATTERNS=('devel: 0' 'devel_php: 0' 'drush_endpoint: 0')
+if [ -f ".ddev/.env" ]; then
+	source ".ddev/.env"
+	if [ $DDEV_UPSTREAM_PROVIDER = "platform" ]; then
+		FORBIDDEN_PATTERNS=('devel: 0' 'devel_php: 0' 'drush_endpoint: 0' ' page_cache: 0')
+	fi
+fi
+
 # Abort commit if you are disabling CSS/JS aggregation
 FILES_PATTERN='system\.performance\.yml$'
 FORBIDDEN='preprocess: false'
 git diff --cached --name-only | \
-    grep -E $FILES_PATTERN | \
-    GREP_COLOR='mt=4;5;37;41' xargs grep --color --with-filename -n "$FORBIDDEN" \
-    && echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
-    && echo "Use --no-verify to bypass this check" \
-    && exit 1
+	grep -E $FILES_PATTERN | \
+	GREP_COLOR='mt=4;5;37;41' xargs grep --color --with-filename -n "$FORBIDDEN" \
+	&& echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
+	&& echo "Use --no-verify to bypass this check" \
+	&& exit 1
 
 # Abort commit if you are enabling modules you shouldn't
 FILES_PATTERN='core\.extension\.yml$'
-FORBIDDEN_PATTERNS=('devel: 0' 'devel_php: 0' 'drush_endpoint: 0' '^page_cache: 0')
 # Loop through all
 for FORBIDDEN_PATTERN in "${FORBIDDEN_PATTERNS[@]}"; do
-    git diff --cached --name-only | \
-        grep -E $FILES_PATTERN | \
-        GREP_COLOR='mt=4;5;37;41' xargs grep --color --with-filename -n "$FORBIDDEN_PATTERN" \
-        && echo "COMMIT REJECTED Found \"$FORBIDDEN_PATTERN\" references. Please remove them before committing." \
-        && echo "Use --no-verify to bypass this check" \
-        && exit 1
-done
+	git diff --cached --name-only | \
+		grep -E $FILES_PATTERN | \
+		GREP_COLOR='mt=4;5;37;41' xargs grep --color --with-filename -n "$FORBIDDEN_PATTERN" \
+		&& echo "COMMIT REJECTED Found \"$FORBIDDEN_PATTERN\" references. Please remove them before committing." \
+		&& echo "Use --no-verify to bypass this check" \
+		&& exit 1
+	done
 
 # All good, commit continues
 exit 0
