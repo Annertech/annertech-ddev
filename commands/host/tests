@@ -7,7 +7,7 @@
 ## Example: "ddev tests"
 
 # Backstop
-if [ -f "tests/backstop/backstop.json" ]; then
+if [ -f "${DDEV_APPROOT}/tests/backstop/backstop.json" ]; then
   echo
   echo "Backstop:"
   echo "  ddev backstop reference"
@@ -16,7 +16,7 @@ if [ -f "tests/backstop/backstop.json" ]; then
 fi
 
 # Behat
-if [ -f "tests/behat/behat.yml" ]; then
+if [ -f "${DDEV_APPROOT}/tests/behat/behat.yml" ]; then
   echo
   echo "Behat:"
   echo "  ddev ssh"
@@ -27,7 +27,7 @@ fi
 # Bruno
 # @todo: check for postman?
 # @todo: run them with DDEV?
-if [ -f "tests/bruno/bruno/bruno.json" ]; then
+if [ -f "${DDEV_APPROOT}/tests/bruno/bruno/bruno.json" ]; then
   echo
   echo "Bruno:"
   echo "  Not in DDEV, see https://www.usebruno.com/"
