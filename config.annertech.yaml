@@ -1,10 +1,10 @@
 #ddev-generated
+#annertech-ddev
 hooks:
   pre-start:
-    - exec-host: "cp .ddev/scripts/git-hooks/commit-msg .git/hooks/commit-msg"
-    - exec-host: "cp .ddev/scripts/git-hooks/pre-commit .git/hooks/pre-commit"
     - exec-host: "if [[ $(grep 'imagemagick' composer.json) ]]; then cp .ddev/scripts/ddev/web-build/Dockerfile.imagemagick .ddev/web-build; fi" # Use imagemagick7 in DDEV
   post-start:
+    - exec-host: "ddev githooks"
     - exec-host: "if [ ! $ANNERTECH_LOCAL_DEV ]; then ddev auth ssh; fi"
     - exec-host: "ddev check-annertech-ddev"
     - exec-host: "ddev devmode on"
