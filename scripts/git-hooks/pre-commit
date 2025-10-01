@@ -31,5 +31,20 @@ for FORBIDDEN_PATTERN in "${FORBIDDEN_PATTERNS[@]}"; do
 		&& exit 1
 	done
 
+# Check if any staged files are forbidden
+# Get all staged files
+STAGED_FILES=$(git diff --cached --name-only)
+FORBIDDEN_FOLDERS=("devel_php")
+
+for folder in "${FORBIDDEN_FOLDERS[@]}"; do
+	if echo "$STAGED_FILES" | grep -q "/$folder/"; then
+		echo
+		echo "COMMIT REJECTED: files in $folder are staged."
+		echo "Please unstage them before committing."
+		echo
+		exit 1
+	fi
+done
+
 # All good, commit continues
 exit 0
