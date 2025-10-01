@@ -102,6 +102,7 @@ $settings['skip_permissions_hardening'] = TRUE;
 $settings['config_exclude_modules'] = [
   'devel',
   'devel_a11y',
+  'devel_php',
   'stage_file_proxy',
   'twig_vardumper',
   'upgrade_status',
