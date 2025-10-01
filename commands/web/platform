@@ -3,7 +3,7 @@
 #annertech-ddev
 
 ## Description: Run upsun (ex platform.sh) cli inside the web container
-## Usage: upsun [args]
-## Example: "ddev upsun drush uli"
+## Usage: platform [args]
+## Example: "ddev platform drush uli"
 
 upsun "$@"
