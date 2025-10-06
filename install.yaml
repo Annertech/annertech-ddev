@@ -154,11 +154,13 @@ dependencies:
 # DDEV environment variables can be interpolated into these actions.
 # post_install_actions are executed in the context of the target project's .ddev directory.
 post_install_actions:
+  # Copy .env file and inform developer to edit it.
   - |
     if [ ! -f ${DDEV_APPROOT}/.ddev/.env ]; then
       cp ${DDEV_APPROOT}/.ddev/scripts/sample.env ${DDEV_APPROOT}/.ddev/.env
       echo "Please configure upstream provider in .ddev/.env file!"
     fi
+  # Remove old files that are no longer needed.
   - |
     if [ -f ${DDEV_APPROOT}/nginx/noindex.conf ]; then
       rm ${DDEV_APPROOT}/nginx/noindex.conf
@@ -167,6 +169,9 @@ post_install_actions:
     if [ ! -f ${DDEV_APPROOT}/homeadditions/.bash_aliases ]; then
       cp ${DDEV_APPROOT}/.ddev/scripts/ddev/homeadditions/.bash_aliases ${DDEV_APPROOT}/.ddev/homeadditions/.bash_aliases
     fi
+  # Install new git hooks on add-on install because people don't restart their projects.
+  - cp ${DDEV_APPROOT}/.ddev/scripts/git-hooks/pre-commit ${DDEV_APPROOT}/.git/hooks/pre-commit
+  - cp ${DDEV_APPROOT}/.ddev/scripts/git-hooks/commit-msg ${DDEV_APPROOT}/.git/hooks/commit-msg
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/.vscode ${DDEV_APPROOT}/
   - mkdir -p ${DDEV_APPROOT}/.gitlab/merge_request_templates
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/templates/gitlab/merge_request_templates/Default.md ${DDEV_APPROOT}/.gitlab/merge_request_templates/
