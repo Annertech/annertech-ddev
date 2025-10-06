@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 #ddev-generated
 
+# @todo: Lots of repetition below in performance settings,
+#  they are easy to copy over to other hooks like that but
+#  the file is getting bigger. Decide if they should be in
+#  a loop.
+
 # Abort commit if you are disabling CSS/JS aggregation
 FILES_PATTERN='system\.performance\.yml$'
 FORBIDDEN='preprocess: false'
@@ -9,6 +14,16 @@ git diff --cached --name-only | \
 	GREP_COLOR='mt=4;5;37;41' xargs grep --color --with-filename -n "$FORBIDDEN" \
 	&& echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
 	&& echo "You MUST not disable CSS/JS aggregation!" \
+	&& exit 1
+
+# Abort commit if you are disabling browser caching
+FILES_PATTERN='system\.performance\.yml$'
+FORBIDDEN='max_age: 0'
+git diff --cached --name-only | \
+	grep -E $FILES_PATTERN | \
+	GREP_COLOR='mt=4;5;37;41' xargs grep --color --with-filename -n "$FORBIDDEN" \
+	&& echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
+	&& echo "You MUST not disable browser caching!" \
 	&& exit 1
 
 # Abort commit if you are enabling GZIPping of CSS/JS assets
