@@ -6,10 +6,15 @@
 ## Usage: tests
 ## Example: "ddev tests"
 
+underline=`tput smul`
+nounderline=`tput rmul`
+bold=`tput bold`
+normal=`tput sgr0`
+
 # Backstop
 if [ -f "${DDEV_APPROOT}/tests/backstop/backstop.json" ]; then
   echo
-  echo "Backstop:"
+  echo "${bold}Backstop:${normal}"
   echo "  ddev backstop reference"
   echo "  ddev backstop test"
   echo "  ddev backstop-results"
@@ -18,7 +23,7 @@ fi
 # Behat
 if [ -f "${DDEV_APPROOT}/tests/behat/behat.yml" ]; then
   echo
-  echo "Behat:"
+  echo "${bold}Behat:${normal}"
   echo "  ddev ssh"
   echo "  cd tests/behat"
   echo "  bin/behat"
@@ -29,14 +34,14 @@ fi
 # @todo: run them with DDEV?
 if [ -f "${DDEV_APPROOT}/tests/bruno/bruno/bruno.json" ]; then
   echo
-  echo "Bruno:"
-  echo "  Not in DDEV, see https://www.usebruno.com/"
+  echo "${bold}Bruno:${normal}"
+  echo "  Runs outside DDEV, see https://www.usebruno.com/"
 fi
 
 # Cypress
 if [ -f "cypress.config.js" ]; then
   echo
-  echo "Cypress:"
+  echo "${bold}Cypress:${normal}"
   echo "  ddev cypress run"
 fi
 echo
