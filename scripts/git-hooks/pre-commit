@@ -8,7 +8,17 @@ git diff --cached --name-only | \
 	grep -E $FILES_PATTERN | \
 	GREP_COLOR='mt=4;5;37;41' xargs grep --color --with-filename -n "$FORBIDDEN" \
 	&& echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
-	&& echo "Use --no-verify to bypass this check" \
+	&& echo "You MUST not disable CSS/JS aggregation!" \
+	&& exit 1
+
+# Abort commit if you are enabling GZIPping of CSS/JS assets
+FILES_PATTERN='system\.performance\.yml$'
+FORBIDDEN='gzip: true'
+git diff --cached --name-only | \
+	grep -E $FILES_PATTERN | \
+	GREP_COLOR='mt=4;5;37;41' xargs grep --color --with-filename -n "$FORBIDDEN" \
+	&& echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
+	&& echo "You MUST not enable CSS/JS GZIP in AdvAgg!" \
 	&& exit 1
 
 # Abort commit if you are enabling modules you shouldn't
