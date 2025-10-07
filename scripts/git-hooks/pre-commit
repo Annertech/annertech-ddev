@@ -49,7 +49,7 @@ if [ -f ".ddev/.env" ]; then
     source ".ddev/.env"
     # Also include page_cache in forbidden modules for Platform (Upsun)
     if [ "$DDEV_UPSTREAM_PROVIDER" = "platform" ]; then
-        FORBIDDEN_PATTERNS+=( 'page_cache: 0')
+        FORBIDDEN_PATTERNS+=( ' page_cache: 0')
     fi
 fi
 
