@@ -6,70 +6,79 @@
 #  the file is getting bigger. Decide if they should be in
 #  a loop.
 
-# Abort commit if you are disabling CSS/JS aggregation
+#
+# Checks for wrong performance settings
+#
 FILES_PATTERN='system\.performance\.yml$'
+
+# Abort commit if you are disabling CSS/JS aggregation
 FORBIDDEN='preprocess: false'
-git diff --cached --name-only | \
-	grep -E $FILES_PATTERN | \
-	GREP_COLOR='mt=4;5;37;41' xargs grep --color --with-filename -n "$FORBIDDEN" \
-	&& echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
-	&& echo "You MUST not disable CSS/JS aggregation!" \
-	&& exit 1
+STAGED_FILES=$(git diff --cached --name-only | grep -E "$FILES_PATTERN")
+
+if [ -n "$STAGED_FILES" ]; then
+    echo "$STAGED_FILES" | xargs grep --color --with-filename -n "$FORBIDDEN" \
+    && echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
+    && echo "You MUST not disable CSS/JS aggregation!" \
+    && exit 1
+fi
 
 # Abort commit if you are disabling browser caching
-FILES_PATTERN='system\.performance\.yml$'
 FORBIDDEN='max_age: 0'
-git diff --cached --name-only | \
-	grep -E $FILES_PATTERN | \
-	GREP_COLOR='mt=4;5;37;41' xargs grep --color --with-filename -n "$FORBIDDEN" \
-	&& echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
-	&& echo "You MUST not disable browser caching!" \
-	&& exit 1
+STAGED_FILES=$(git diff --cached --name-only | grep -E "$FILES_PATTERN")
+if [ -n "$STAGED_FILES" ]; then
+    echo "$STAGED_FILES" | xargs grep --color --with-filename -n "$FORBIDDEN" \
+    && echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
+    && echo "You MUST not disable browser caching!" \
+    && exit 1
+fi
 
 # Abort commit if you are enabling GZIPping of CSS/JS assets
-FILES_PATTERN='system\.performance\.yml$'
 FORBIDDEN='gzip: true'
-git diff --cached --name-only | \
-	grep -E $FILES_PATTERN | \
-	GREP_COLOR='mt=4;5;37;41' xargs grep --color --with-filename -n "$FORBIDDEN" \
-	&& echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
-	&& echo "You MUST not enable CSS/JS GZIP in AdvAgg!" \
-	&& exit 1
+STAGED_FILES=$(git diff --cached --name-only | grep -E "$FILES_PATTERN")
+if [ -n "$STAGED_FILES" ]; then
+    echo "$STAGED_FILES" | xargs grep --color --with-filename -n "$FORBIDDEN" \
+    && echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
+    && echo "You MUST not enable CSS/JS GZIP in AdvAgg!" \
+    && exit 1
+fi
 
-# Abort commit if you are enabling modules you shouldn't
+# Abort commit if you are **enabling** modules that should not be enabled
 FILES_PATTERN='core\.extension\.yml$'
 FORBIDDEN_PATTERNS=('devel: 0' 'devel_php: 0' 'drush_endpoint: 0')
 if [ -f ".ddev/.env" ]; then
-	source ".ddev/.env"
-	if [ $DDEV_UPSTREAM_PROVIDER = "platform" ]; then
-	  # Include `page_cache` in forbidden modules if you are on platform/upsun hosting
-		FORBIDDEN_PATTERNS=('devel: 0' 'devel_php: 0' 'drush_endpoint: 0' ' page_cache: 0')
-	fi
+    source ".ddev/.env"
+    # Also include page_cache in forbidden modules for Platform (Upsun)
+    if [ "$DDEV_UPSTREAM_PROVIDER" = "platform" ]; then
+        FORBIDDEN_PATTERNS+=( 'page_cache: 0')
+    fi
 fi
-# Loop through all
-for FORBIDDEN_PATTERN in "${FORBIDDEN_PATTERNS[@]}"; do
-	git diff --cached --name-only | \
-		grep -E $FILES_PATTERN | \
-		GREP_COLOR='mt=4;5;37;41' xargs grep --color --with-filename -n "$FORBIDDEN_PATTERN" \
-		&& echo "COMMIT REJECTED Found \"$FORBIDDEN_PATTERN\" references. Please remove them before committing." \
-		&& echo "Use --no-verify to bypass this check" \
-		&& exit 1
-	done
 
-# Check if any staged files are forbidden
-# Get all staged files
+STAGED_FILES=$(git diff --cached --name-only | grep -E "$FILES_PATTERN")
+if [ -n "$STAGED_FILES" ]; then
+    for FORBIDDEN_PATTERN in "${FORBIDDEN_PATTERNS[@]}"; do
+        echo "$STAGED_FILES" | xargs grep --color --with-filename -n "$FORBIDDEN_PATTERN" \
+        && echo "COMMIT REJECTED Found \"$FORBIDDEN_PATTERN\" references. Please remove them before committing." \
+        && echo "Use --no-verify to bypass this check" \
+        && exit 1
+    done
+fi
+
+#
+# Abort commit if you are **committing** forbidden modules/files
+#
 STAGED_FILES=$(git diff --cached --name-only)
 FORBIDDEN_FOLDERS=("devel_php")
-
 for folder in "${FORBIDDEN_FOLDERS[@]}"; do
-	if echo "$STAGED_FILES" | grep -q "/$folder/"; then
-		echo
-		echo "COMMIT REJECTED: files in $folder are staged."
-		echo "Please unstage them before committing."
-		echo
-		exit 1
-	fi
+    if echo "$STAGED_FILES" | grep -q "/$folder/"; then
+        echo
+        echo "COMMIT REJECTED: files in $folder are staged."
+        echo "Please unstage them before committing."
+        echo
+        exit 1
+    fi
 done
 
+#
 # All good, commit continues
+#
 exit 0
