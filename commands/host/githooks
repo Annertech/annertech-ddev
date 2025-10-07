@@ -7,4 +7,4 @@
 ## Example: "ddev githooks"
 
 echo "Installing git hooks"
-cp .ddev/scripts/git-hooks/* .git/hooks -v
+cp -v .ddev/scripts/git-hooks/* .git/hooks
