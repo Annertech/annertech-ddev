@@ -7,31 +7,18 @@
 ## Example: "ddev devmode on"
 ## ProjectTypes: drupal,drupal10,drupal11
 
-
-# We need drush 13.6.0+ for twig_debug mode (also doess CSS/JS aggregation setting, but we still keep this in our settings.local.php files)
-CURRENT_DRUSH=`ddev exec composer show drush/drush | sed -n '/versions/s/^[^0-9]\+\([^,]\+\).*$/\1/p'`
-REQUIRED_DRUSH="13.6.0"
-DRUSH_IS_COMPATIBLE=false
-if [ "$(printf '%s\n' "$REQUIRED_DRUSH" "$CURRENT_DRUSH" | sort -V | head -n1)" = "$REQUIRED_DRUSH" ]; then
-  DRUSH_IS_COMPATIBLE=true
-fi
-
 case $@ in
   off)
     echo -e "Configuring environment for \e[1;0;41m caching and performance \e[0m"
     cp "${DDEV_APPROOT}/.ddev/settings.local.perfmode.php" "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
-    if [[ $DRUSH_IS_COMPATIBLE = true ]];
-      echo -e "Disable the twig debug and disable the cache"
-      then ddev exec drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => FALSE, 'twig_debug' => FALSE, 'twig_cache_disable' => FALSE]);";
-    fi
+    echo -e "Disable the twig debug and disable the cache"
+    then ddev exec drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => FALSE, 'twig_debug' => FALSE, 'twig_cache_disable' => FALSE]);";
     ;;
   on)
     echo -e "Configuring environment for \e[1;0;45m development \e[0m"
     cp "${DDEV_APPROOT}/.ddev/settings.local.devmode.php" "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
-    if [[ $DRUSH_IS_COMPATIBLE = true ]];
-      echo -e "Enable the twig debug and disable the cache"
-      then ddev exec drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);";
-    fi
+    echo -e "Enable the twig debug and disable the cache"
+    then ddev exec drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);";
     ;;
   *)
     echo "Please set mode (eg: 'ddev devmode on')"
