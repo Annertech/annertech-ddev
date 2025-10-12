@@ -18,7 +18,7 @@ case $@ in
     echo -e "Configuring environment for \e[1;0;45m development \e[0m"
     echo -e "CSS/JS aggregation disabled, Twig debug settings enabled."
     cp "${DDEV_APPROOT}/.ddev/settings.local.devmode.php" "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
-    then ddev exec drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);";
+    ddev exec drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);";
     ;;
   *)
     echo "Please set mode (eg: 'ddev devmode on')"
