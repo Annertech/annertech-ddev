@@ -1,0 +1,19 @@
+#!/bin/bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Run phpunit inside the web container
+## Usage: phpunit
+## Example: "ddev phpunit"
+
+# Check if PHPUnit is installed
+if [ ! -f "vendor/bin/phpunit" ]; then
+    echo
+    echo "\033[38;5;208mError: the phpunit command does not exist.\033[0m"
+    echo "\033[38;5;208mIs drupal/core-dev listed as a requirement in composer.json?\033[0m"
+    echo
+    exit 1
+fi
+
+cd $DOCROOT
+../vendor/bin/phpunit --config ../.ddev $*

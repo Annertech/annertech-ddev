@@ -111,6 +111,7 @@ project_files:
   - commands/web/install-bruno
   - commands/web/install-varnish
   - commands/web/upsun
+  - commands/web/phpunit
   - commands/web/platform
   - commands/web/platform-disk-helper
   - commands/web/platform-log-checker
@@ -118,6 +119,7 @@ project_files:
   - commands/web/robo
   - commands/web/solr-update-config
   - nginx
+  - phpunit.xml
   # - some-directory/file1.txt
   # - some-directory/file2.txt
   # - extra_files_dir_created_by_this_template/
@@ -201,6 +203,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/web/rector -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/robo -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/upsun -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/web/phpunit -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/platform -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/platform-disk-helper -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/platform-log-checker -f
@@ -211,6 +214,7 @@ post_install_actions:
     if [ -f ${DDEV_APPROOT}/.ddev/.env.anner ]; then
       git add ${DDEV_APPROOT}/.ddev/.env.anner -f
     fi
+  - git add ${DDEV_APPROOT}/.ddev/phpunit.xml -f
   - git add ${DDEV_APPROOT}/.vscode -f
 
 # Shell actions that can be done during removal of the add-on.
@@ -259,6 +263,7 @@ removal_actions:
   - rm commands/web/install-varnish
   - rm commands/web/install-bruno
   - rm commands/web/upsun
+  - rm commands/web/phpunit
   - rm commands/web/platform
   - rm commands/web/platform-disk-helper
   - rm commands/web/platform-log-checker
@@ -271,6 +276,7 @@ removal_actions:
   - rm nginx/libraries.conf
   - rm nginx/protect.conf
   - rm nginx/redirect.conf
+  - rm phpunit.xml
   - rm -rf scripts
   - |
     if [ -f ${DDEV_APPROOT}/.ddev/config.hooks.yaml ]; then
