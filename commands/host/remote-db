@@ -6,15 +6,17 @@
 ## Usage: remote-db
 ## Example: "ddev remote-db --skip-hooks"
 
-if [ -f "${DDEV_APPROOT}/.ddev/.env" ]; then
+fail_msg="Couldn't identify provider, please set it with 'ddev dotenv set .ddev/.env.anner --ddev-upstream-provider [upsun|tibus|etc]' or use 'ddev pull' manually."
+
+if [ -f "${DDEV_APPROOT}/.ddev/.env.anner" ]; then
     set -a
-    source "${DDEV_APPROOT}/.ddev/.env"
+    source "${DDEV_APPROOT}/.ddev/.env.anner"
     set +a
     if [[ $DDEV_UPSTREAM_PROVIDER ]]; then
         ddev pull $DDEV_UPSTREAM_PROVIDER --skip-files -y $@
     else
-	echo "Couldn't identify provider, please use 'ddev pull' manually."
+      echo $fail_msg
     fi
 else
-    echo "Couldn't identify provider, please use 'ddev pull' manually."
+    echo $fail_msg
 fi

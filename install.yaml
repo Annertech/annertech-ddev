@@ -154,11 +154,16 @@ dependencies:
 # DDEV environment variables can be interpolated into these actions.
 # post_install_actions are executed in the context of the target project's .ddev directory.
 post_install_actions:
-  # Copy .env file and inform developer to edit it.
+  # Populate .env.anner, migrate from old one if needed
   - |
-    if [ ! -f ${DDEV_APPROOT}/.ddev/.env ]; then
-      cp ${DDEV_APPROOT}/.ddev/scripts/sample.env ${DDEV_APPROOT}/.ddev/.env
-      echo "Please configure upstream provider in .ddev/.env file!"
+    if [ -f .env ]; then
+      source ".env"
+      if [[ $DDEV_UPSTREAM_PROVIDER ]]; then
+        ddev dotenv set .ddev/.env.anner --ddev-upstream-provider $DDEV_UPSTREAM_PROVIDER
+        git add .env.anner
+        # Remove our old .env file
+        git rm .env
+      fi
     fi
   # Remove old files that are no longer needed.
   - |
@@ -202,8 +207,10 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/web/solr-update-config -f
   - git add ${DDEV_APPROOT}/.ddev/nginx/ -f
   - git add ${DDEV_APPROOT}/.ddev/scripts/ -f
-  - git add ${DDEV_APPROOT}/.ddev/.env -f
-  - git add ${DDEV_APPROOT}/.ddev/addon-metadata/ -f
+  - |
+    if [ -f ${DDEV_APPROOT}/.ddev/.env.anner ]; then
+      git add ${DDEV_APPROOT}/.ddev/.env.anner -f
+    fi
   - git add ${DDEV_APPROOT}/.vscode -f
 
 # Shell actions that can be done during removal of the add-on.
