@@ -20,13 +20,20 @@ case $@ in
   off)
     echo -e "Configuring environment for \e[1;0;41m caching and performance \e[0m"
     cp "${DDEV_APPROOT}/.ddev/settings.local.perfmode.php" "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
-    if [[ $DRUSH_IS_COMPATIBLE = true ]]; then ddev exec drush theme:dev off; fi
+    if [[ $DRUSH_IS_COMPATIBLE = true ]];
+      echo -e "Disable the twig debug and disable the cache"
+      then ddev exec drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => FALSE, 'twig_debug' => FALSE, 'twig_cache_disable' => FALSE]);";
+    fi
     ;;
   on)
     echo -e "Configuring environment for \e[1;0;45m development \e[0m"
     cp "${DDEV_APPROOT}/.ddev/settings.local.devmode.php" "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
-    if [[ $DRUSH_IS_COMPATIBLE = true ]]; then ddev exec drush theme:dev on; fi
+    if [[ $DRUSH_IS_COMPATIBLE = true ]];
+      echo -e "Enable the twig debug and disable the cache"
+      then ddev exec drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);";
+    fi
     ;;
   *)
     echo "Please set mode (eg: 'ddev devmode on')"
 esac
+ddev exec drush cache:rebuild;
