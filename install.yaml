@@ -158,7 +158,6 @@ post_install_actions:
   - |
     if [ -f .env ]; then
       source ".env"
-      echo $DDEV_UPSTREAM_PROVIDER
       if [[ $DDEV_UPSTREAM_PROVIDER ]]; then
         ddev dotenv set .ddev/.env.anner --ddev-upstream-provider $DDEV_UPSTREAM_PROVIDER
         git add .env.anner
@@ -208,8 +207,10 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/web/solr-update-config -f
   - git add ${DDEV_APPROOT}/.ddev/nginx/ -f
   - git add ${DDEV_APPROOT}/.ddev/scripts/ -f
-  - git add ${DDEV_APPROOT}/.ddev/.env.anner -f
-  - git add ${DDEV_APPROOT}/.ddev/addon-metadata/ -f
+  - |
+    if [ -f ${DDEV_APPROOT}/.ddev/.env.anner ]; then
+      git add ${DDEV_APPROOT}/.ddev/.env.anner -f
+    fi
   - git add ${DDEV_APPROOT}/.vscode -f
 
 # Shell actions that can be done during removal of the add-on.
