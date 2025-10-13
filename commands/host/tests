@@ -44,4 +44,12 @@ if [ -f "cypress.config.js" ]; then
   echo "${bold}Cypress:${normal}"
   echo "  ddev cypress run"
 fi
+
+# PHPUnit
+if [ -f "${DDEV_APPROOT}/vendor/bin/phpunit" ]; then
+  echo
+  echo "${bold}PHPUnit:${normal}"
+  echo "  ddev phpunit"
+fi
+
 echo
