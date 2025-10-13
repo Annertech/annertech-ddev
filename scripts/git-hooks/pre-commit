@@ -80,7 +80,9 @@ for folder in "${FORBIDDEN_FOLDERS[@]}"; do
     fi
 done
 
-# Abort commit if the manifest file has no version.
+#
+# Abort commit if you are using a development version of the annertech-ddev addon
+#
 MANIFEST_FILE=".ddev/addon-metadata/annertech-ddev/manifest.yaml"
 STAGED_FILES=$(git diff --cached --name-only | grep -E "$MANIFEST_FILE")
 
@@ -91,7 +93,7 @@ if [ -n "$STAGED_FILES" ]; then
   # Check if version is missing or empty
   if [[ -z "$VERSION" ]]; then
     echo "No version found in $MANIFEST_FILE"
-    echo "Please add a 'version:' value before pushing."
+    echo "Please install a published version of the Annertech-DDEV add-on."
     exit 1
   fi
 fi
