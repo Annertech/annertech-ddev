@@ -91,33 +91,8 @@ project_files:
   - settings.local.devmode.php
   - settings.local.perfmode.php
   - scripts
-  - commands/host/annertech-tip-of-the-day
-  - commands/host/branch
-  - commands/host/cex
-  - commands/host/cim
-  - commands/host/cloudflare
-  - commands/host/cr
-  - commands/host/devmode
-  - commands/host/drupal-updater
-  - commands/host/githooks
-  - commands/host/login
-  - commands/host/platform-ulitool
-  - commands/host/protect
-  - commands/host/remote-db
-  - commands/host/tests
-  - commands/host/timeslip
-  - commands/web/behat
-  - commands/web/check-annertech-ddev
-  - commands/web/install-bruno
-  - commands/web/install-varnish
-  - commands/web/upsun
-  - commands/web/phpunit
-  - commands/web/platform
-  - commands/web/platform-disk-helper
-  - commands/web/platform-log-checker
-  - commands/web/rector
-  - commands/web/robo
-  - commands/web/solr-update-config
+  - commands/host
+  - commands/web
   - nginx
   - phpunit.xml
   # - some-directory/file1.txt
@@ -190,6 +165,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/host/devmode -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/drupal-updater -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/githooks -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/lints -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/login -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/protect -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/platform-ulitool -f
@@ -254,6 +230,7 @@ removal_actions:
   - rm commands/host/devmode
   - rm commands/host/drupal-updater
   - rm commands/host/githooks
+  - rm commands/host/lints
   - rm commands/host/login
   - rm commands/host/platform-ulitool
   - rm commands/host/protect

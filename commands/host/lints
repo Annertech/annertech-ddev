@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Informs you about available test suites in current project
+## Usage: lints
+## Example: "ddev lints"
+
+underline=`tput smul`
+nounderline=`tput rmul`
+bold=`tput bold`
+normal=`tput sgr0`
+
+# twig-cs-fixer
+if [ -f "${DDEV_APPROOT}/vendor/bin/twig-cs-fixer" ]; then
+  echo
+  echo "${bold}Twig:${normal}"
+  echo "  ddev exec vendor/bin/twig-cs-fixer lint /path/to/code"
+fi

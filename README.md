@@ -1,59 +1,12 @@
 # DDEV Annertech Tools
 
-Highly opinionated set of configs and commands used by Annertech in our DDEV workflow.
+**Highly opinionated** set of configs and commands used by Annertech in our 
+DDEV workflow.
 
-## Install
+## Installation and Updating
 
-### 1. Get the new addon
-
-Then get the addon:
-```
-ddev add-on get annertech/annertech-ddev
-```
-
-### 2. Commit to project repo
-
-<details>
-    <summary>
-      Add add-on files to git (happens automatically)
-    </summary>
-
-```
-git add .ddev/commands/host/branch -f
-git add .ddev/commands/host/cex -f
-git add .ddev/commands/host/cim -f
-git add .ddev/commands/host/cr -f
-git add .ddev/commands/host/cloudflare -f
-git add .ddev/commands/host/drupal-updater -f
-git add .ddev/commands/host/devmode -f
-git add .ddev/commands/host/githooks -f
-git add .ddev/commands/host/login -f
-git add .ddev/commands/host/protect -f
-git add .ddev/commands/host/remote-db -f
-git add .ddev/commands/host/timeslip -f
-git add .ddev/commands/web/behat -f
-git add .ddev/commands/web/robo -f
-git add .ddev/commands/web/platform -f
-git add .ddev/commands/web/upsun -f
-git add .ddev/commands/web/solr-update-config -f
-
-git add .ddev/nginx/ -f
-git add .ddev/scripts/ -f
-
-git add .ddev/config.annertech.yaml -f
-git add .ddev/settings.local.*mode.php -f
-
-git add .ddev/.env -f
-
-git add .ddev/addon-metadata/ -f
-
-git add .vscode -f
-```
-</details>
-
-```
-git commit -m 'Add annertech/annertech-ddev addon' --no-verify
-```
+1. `ddev add-on get annertech/annertech-ddev`
+2. `git commit -m 'Add annertech/annertech-ddev addon'`
 
 ## Features
 
@@ -74,6 +27,7 @@ git commit -m 'Add annertech/annertech-ddev addon' --no-verify
 - - [`devmode [on|off]`](commands/host/devmode): Adds custom settings.local.php file and allows easy toggle between production and development mode
 - - [`drupal-updater`](commands/host/drupal-updater): Automatically updates Core and Contrib. Usage `drupal-updater -cugado`.
 - - [`githooks`](commands/host/githooks): Installs git-hooks (also happens on project start)
+- - [`lints`](commands/host/lints): Shows available linters and the way to run them
 - - [`login`](commands/host/login): Opens a browser and logs you in to Drupal (works on local environments only)
 - - [`protect [on|off|reset]`](commands/host/protect): Enable or disable basic auth on a nixsal hosted dev project - [see file](commands/host/protect)
 - - [`tests`](commands/host/tests): Informs about available tests for current project
@@ -84,8 +38,9 @@ git commit -m 'Add annertech/annertech-ddev addon' --no-verify
 - - [`upsun`](commands/web/platform): Runs `platform/upsun cli`
 - - [`robo`](commands/web/robo): Runs robo
 - - [`solr:update-config`](commands/web/solr-update-config): Updates SOLR config.zip
+- - [`phpunit`](commands/web/phpunit): Runs phpunit tests
 - Uses DDEV Hooks to [properly instantiate project for development](config.hooks.yaml)
-- [Adds git hook to enforce proper commit messages](scripts/git-hooks/commit-msg)
+- [Adds git hooks](scripts/git-hooks/)
 - [Sets to development mode on project start](config.annertech.yaml#L3)
 - [Customizes NGINX configuration](nginx)
 - Fixes search_api_solr to communicate with local [SOLR](ddev/ddev-drupal-solr) by [default](settings.local.devmode.php#L21) (special overrides might be needed for Pantheon sites)
@@ -102,34 +57,15 @@ are automatically disabled in local environment to facilitate development.
 
 ## Automatically identified and configured
 
-If your Drupal projects depends on ImageMagick then DDEV will be
+If your Drupal projects depend on ImageMagick then DDEV will be
 automatically configured to compile and use ImageMagick v7 in DDEV. See
 `scripts/ddev/web-build` for details.
 
 Platform.sh is using v7 while DDEV is still running v6 by default.
 
-## Automated Testing commands provided
+## Automated Tests for a Project
 
-### Behat
-
-`ddev behat` command is provided and expects behat to be under `PROJECT_ROOT/tests/behat`.
-
-> [!NOTE]
->
-> Antibot will block Behat! Remember to uninstall it if needed.
-
-### BackstopJS
-
-We rely on https://github.com/mmunz/ddev-backstopjs to get BackstopJS commands in DDEV. Go look there.
-
-### Cypress
-
-We rely on https://github.com/tyler36/ddev-cypress and, if needed, 
-https://www.drupal.org/project/drush_endpoint for Cypress tests.
-
-### ReCaptcha bypass
-
-See https://github.com/Annertech/annertech-ddev/pull/29/files on how to bypass recaptcha when running automated tests.
+Use `ddev tests` to see what test suites are available for each project.
 
 ## Environment Indicators
 
@@ -192,10 +128,6 @@ alias robo='ddev robo'
 alias xe='ddev xdebug enable'
 alias xd='ddev xdebug disable'
 alias xt='status=$(ddev xdebug status) &&  if [ "$status" == "xdebug enabled" ]; then ddev xdebug off; else ddev xdebug on; fi' 
-
-# If you don't want to have platform/upsun cli installed on your host you can rely to the one in DDEV
-alias platform='ddev exec platform'
-alias upsun='ddev upsun'
 ```
 
 ## Common Problems and How-To Fix Them
