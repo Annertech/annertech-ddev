@@ -92,8 +92,8 @@ if [ -n "$STAGED_FILES" ]; then
 
   # Check if version is missing or empty
   if [[ -z "$VERSION" ]]; then
-    echo "No version found in $MANIFEST_FILE"
-    echo "Please install a published version of the Annertech-DDEV add-on."
+    echo "It looks like you are using a development version of the annertech-ddev addon"
+    echo "Please install a published version using: 'ddev add-on get annertech/annertech-ddev'"
     exit 1
   fi
 fi
