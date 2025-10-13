@@ -29,4 +29,4 @@ bin/behat "$@"
 
 # Create/update timestamp file
 cd ../..
-touch .ddev/.annertech_tests_timestamps
+touch ${DDEV_APPROOT}/.ddev/.annertech_tests_timestamps
