@@ -135,7 +135,7 @@ post_install_actions:
   - |
     if [ -f .env ]; then
       source ".env"
-      if [[ $DDEV_UPSTREAM_PROVIDER ]]; then
+      if [[ ${DDEV_UPSTREAM_PROVIDER:-} ]]; then
         ddev dotenv set .ddev/.env.anner --ddev-upstream-provider $DDEV_UPSTREAM_PROVIDER
         git add .env.anner
         # Remove our old .env file
