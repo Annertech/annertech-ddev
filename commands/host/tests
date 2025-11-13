@@ -42,7 +42,13 @@ fi
 if [ -f "cypress.config.js" ]; then
   echo
   echo "${bold}Cypress:${normal}"
-  echo "  ddev cypress run"
+  echo "  ddev cypress-run"
+  echo "  ddev cypress-run --headed"
+  echo "  ddev cypress-open"
+  echo
+  echo "If getting X related errors run xhost **first!**"
+  # First, ensure xhost allows connections
+  echo "xhost +local:"
 fi
 
 # PHPUnit
