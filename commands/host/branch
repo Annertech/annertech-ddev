@@ -5,6 +5,7 @@
 ## Description: Create a git branch from a Teamwork url/id
 ## Usage: branch
 ## Example: ddev branch
+## Aliases: branch, br
 
 # Given a Teamwork url or ID, and optional name, creates a new branch
 #
