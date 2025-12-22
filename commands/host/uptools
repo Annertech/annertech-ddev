@@ -125,11 +125,11 @@ def run_resume(project_id, project_name):
     echo_yellow("Starting resume process...")
     subprocess.run(["ddev", "exec", "platform", "environment:resume", f"--project={project_id}"])
 
-def run_uli(project_id, project_name):
+def run_uli(project_id, project_name, environment_id):
     """Get drush ULI for a Platform.sh project."""
-    echo_green(f"{project_name} Selected")
+    echo_green(f"{project_name} / {environment_id} Selected")
     echo_yellow("Getting URL...")
-    subprocess.run(["ddev", "exec", "platform", f"--project={project_id}", "drush", "uli"])
+    subprocess.run(["ddev", "exec", "platform", f"--project={project_id}", "-e", environment_id, "drush", "uli"])
 
 def run_ssh(project_id, project_name):
     """SSH into an Upsun project."""
@@ -239,7 +239,12 @@ def main():
     if action == "ssh":
         run_ssh(project_id, project_name)
     elif action == "uli":
-        run_uli(project_id, project_name)
+        env = select_environment(project_id)
+        if not env:
+            echo_red("No environment selected... Exiting")
+            sys.exit(0)
+        environment_id = env.split('\t')[0].replace(" (default)", "")
+        run_uli(project_id, project_name, environment_id)
     elif action == "resume":
         run_resume(project_id, project_name)
     elif action == "act":
