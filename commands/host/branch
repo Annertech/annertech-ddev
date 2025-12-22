@@ -41,6 +41,7 @@ from urllib.parse import urlparse
 from operator import attrgetter
 import datetime
 import subprocess
+import random
 
 # Function to extract the ID from the URL or use the provided ID directly
 def extract_id(input_value):
@@ -54,6 +55,30 @@ def extract_id(input_value):
 # Get current year and month
 current_year = datetime.datetime.now().year
 current_month = datetime.datetime.now().month
+
+# Branches that should not be used as a base for new branches
+FORBIDDEN_BASE_BRANCHES = ['dev', 'develop', 'development', 'stage', 'staging']
+
+# Warning quotes for forbidden branch attempts
+WARNING_QUOTES = [
+    "And you call yourself a Rocket Scientist!",
+    "Are you on drugs?",
+    "Your mind just hasn't been the same since the electro-shock, has it?",
+    "Just what do you think you're doing Dave?",
+    "It can only be attributed to human error.",
+    "That's something I cannot allow to happen.",
+    "Take a stress pill and think things over.",
+    "This mission is too important for me to allow you to jeopardize it.",
+]
+
+# Function to get the current git branch
+def get_current_branch():
+    try:
+        result = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                                capture_output=True, text=True, check=True)
+        return result.stdout.strip()
+    except subprocess.CalledProcessError:
+        return None
 
 # Main script
 def main():
@@ -89,6 +114,15 @@ def main():
 
     # Ensure only valid characters are in the branch name
     branch_name = "".join(c for c in branch_name if c.isalnum() or c in ['-', '_', '.'])
+
+    # Check if current branch is a forbidden base branch
+    current_branch = get_current_branch()
+    if current_branch and current_branch in FORBIDDEN_BASE_BRANCHES:
+        print(random.choice(WARNING_QUOTES))
+        print(f"You are on '{current_branch}' which should not be used as a base branch.")
+        print(f"If you are sure about the catastrophic consequences of your action then proceed manually:")
+        print(f"  git checkout -b {branch_name}")
+        sys.exit(1)
 
     # Print the branch name
     print(f"Creating new Git branch: {branch_name}")
