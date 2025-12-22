@@ -9,6 +9,8 @@
 
 import subprocess
 import sys
+import os
+import re
 
 # Menu options
 OPTIONS = {
@@ -37,11 +39,29 @@ def echo_green(msg):
 def echo_yellow(msg):
     print(f"{YELLOW}{msg}{NC}")
 
-def fzf_select(items, header):
+def get_current_project_id():
+    """Get the current project ID from .ddev/config.yaml."""
+    config_path = ".ddev/config.yaml"
+    if not os.path.exists(config_path):
+        return None
+    try:
+        with open(config_path, 'r') as f:
+            content = f.read()
+            match = re.search(r'PLATFORM_PROJECT[=:][\s]*([^\s\n]+)', content)
+            if match:
+                return match.group(1)
+    except (IOError, OSError):
+        pass
+    return None
+
+def fzf_select(items, header, query=None):
     """Use fzf to select from a list of items."""
     try:
+        cmd = ["fzf", "--reverse", "--height=50%", f"--header={header}", "-1"]
+        if query:
+            cmd.extend(["--query", query])
         fzf = subprocess.Popen(
-            ["fzf", "--reverse", "--height=50%", f"--header={header}", "-1"],
+            cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             text=True
@@ -66,6 +86,7 @@ def select_action():
 def select_project():
     """Use fzf to select a Platform.sh project."""
     echo_green("Start typing to select a project")
+    current_project = get_current_project_id()
     try:
         result = subprocess.run(
             ["ddev", "exec", "platform", "project:list", "--no-header",
@@ -73,6 +94,11 @@ def select_project():
             capture_output=True, text=True, check=True
         )
         projects = result.stdout.strip().split("\n")
+        # Move current project to top of list and mark it
+        if current_project:
+            matching = [f"{p} (current)" for p in projects if p.startswith(current_project)]
+            others = [p for p in projects if not p.startswith(current_project)]
+            projects = matching + others
         return fzf_select(projects, "id              Project")
     except subprocess.CalledProcessError:
         echo_red("Failed to get project list")
