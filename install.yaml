@@ -113,7 +113,7 @@ global_files:
   - commands/host/cloudflare
   - commands/host/drupal-updater
   - commands/host/login
-  - commands/host/platform-ulitool
+  - commands/host/uptools
   - commands/host/timeslip
   - commands/host/travel-mode
 
@@ -151,6 +151,11 @@ post_install_actions:
     if [ ! -f ${DDEV_APPROOT}/homeadditions/.bash_aliases ]; then
       cp ${DDEV_APPROOT}/.ddev/scripts/ddev/homeadditions/.bash_aliases ${DDEV_APPROOT}/.ddev/homeadditions/.bash_aliases
     fi
+  # Remove old commands replaced by uptools
+  - rm -f ${DDEV_APPROOT}/.ddev/commands/host/platform-ulitool || true
+  - rm -f ${DDEV_APPROOT}/.ddev/commands/host/platform-resume || true
+  - rm -f ~/.ddev/commands/host/platform-ulitool || true
+  - rm -f ~/.ddev/commands/host/platform-resume || true
   # Install new git hooks on add-on install because people don't restart their projects.
   - cp ${DDEV_APPROOT}/.ddev/scripts/git-hooks/pre-commit ${DDEV_APPROOT}/.git/hooks/pre-commit
   - cp ${DDEV_APPROOT}/.ddev/scripts/git-hooks/commit-msg ${DDEV_APPROOT}/.git/hooks/commit-msg
@@ -168,7 +173,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/host/lints -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/login -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/protect -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/platform-ulitool -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/uptools -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/remote-db -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/tests -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/timeslip -f
@@ -232,7 +237,7 @@ removal_actions:
   - rm commands/host/githooks
   - rm commands/host/lints
   - rm commands/host/login
-  - rm commands/host/platform-ulitool
+  - rm commands/host/uptools
   - rm commands/host/protect
   - rm commands/host/remote-db
   - rm commands/web/behat
