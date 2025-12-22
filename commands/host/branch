@@ -59,6 +59,9 @@ current_month = datetime.datetime.now().month
 # Branches that should not be used as a base for new branches
 FORBIDDEN_BASE_BRANCHES = ['dev', 'develop', 'development', 'stage', 'staging']
 
+# Branches that should remind user to pull before branching
+PULL_REMINDER_BRANCHES = ['main', 'master']
+
 # Warning quotes for forbidden branch attempts
 WARNING_QUOTES = [
     "And you call yourself a Rocket Scientist!",
@@ -123,6 +126,10 @@ def main():
         print(f"If you are sure about the catastrophic consequences of your action then proceed manually:")
         print(f"  git checkout -b {branch_name}")
         sys.exit(1)
+
+    # Remind user to pull from origin when on main/master
+    if current_branch and current_branch in PULL_REMINDER_BRANCHES:
+        print(f"\033[1mReminder: Make sure you have pulled the latest changes from origin/{current_branch}\033[0m")
 
     # Print the branch name
     print(f"Creating new Git branch: {branch_name}")
