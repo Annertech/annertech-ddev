@@ -2,6 +2,8 @@
 #ddev-generated
 #annertech-ddev
 
+# Ported to python from previous separate bash scripts and added a main menu.
+
 ## Description: Upsun/Platform.sh tools (ssh, uli, resume, activities, disk)
 ## Usage: uptools
 ## Example: "ddev uptools"
@@ -89,7 +91,7 @@ def select_project():
     current_project = get_current_project_id()
     try:
         result = subprocess.run(
-            ["ddev", "exec", "platform", "project:list", "--no-header",
+            ["ddev", "exec", "upsun", "project:list", "--no-header",
              "--columns=id,title", "--format=tsv", "--count=0"],
             capture_output=True, text=True, check=True
         )
@@ -123,13 +125,13 @@ def run_resume(project_id, project_name):
     """Resume a Platform.sh environment."""
     echo_green(f"{project_name} Selected")
     echo_yellow("Starting resume process...")
-    subprocess.run(["ddev", "exec", "platform", "environment:resume", f"--project={project_id}"])
+    subprocess.run(["ddev", "exec", "upsun", "environment:resume", f"--project={project_id}"])
 
 def run_uli(project_id, project_name, environment_id):
     """Get drush ULI for a Platform.sh project."""
     echo_green(f"{project_name} / {environment_id} Selected")
     echo_yellow("Getting URL...")
-    subprocess.run(["ddev", "exec", "platform", f"--project={project_id}", "-e", environment_id, "drush", "uli"])
+    subprocess.run(["ddev", "exec", "upsun", "drush", "uli", f"--project={project_id}", "-e", environment_id])
 
 def run_ssh(project_id, project_name):
     """SSH into an Upsun project."""
@@ -154,13 +156,13 @@ def run_disk_helper(project_id, project_name):
     echo_green(f"{project_name} Selected")
 
     print("\nCurrently used and assigned disk space:")
-    subprocess.run(["ddev", "exec", "platform", "disk", "-1", "--columns", "Service,Used,Limit", f"--project={project_id}"])
+    subprocess.run(["ddev", "exec", "upsun", "disk", "-1", "--columns", "Service,Used,Limit", f"--project={project_id}"])
 
     def get_disk_bytes(service):
         """Get disk limit in bytes for a service."""
         try:
             result = subprocess.run(
-                ["ddev", "exec", "platform", "disk", "-1", "--columns", "Limit",
+                ["ddev", "exec", "upsun", "disk", "-1", "--columns", "Limit",
                  "-s", service, "--bytes", "--no-header", "--format=plain", f"--project={project_id}"],
                 capture_output=True, text=True, check=True
             )
@@ -176,7 +178,7 @@ def run_disk_helper(project_id, project_name):
     # Get total available storage
     try:
         result = subprocess.run(
-            ["ddev", "exec", "platform", "project:info", "subscription.storage", f"--project={project_id}"],
+            ["ddev", "exec", "upsun", "project:info", "subscription.storage", f"--project={project_id}"],
             capture_output=True, text=True, check=True
         )
         total_available = int(result.stdout.strip()) if result.stdout.strip() else 0
