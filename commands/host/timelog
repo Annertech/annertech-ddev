@@ -4,17 +4,32 @@
 #teamwork-api
 
 ## Description: Log time to a Teamwork task
-## Usage: timelog [-v] <minutes> "<comment>"
+## Usage: timelog [-v] [-t task_id] <minutes> "<comment>"
 ## Example: ddev timelog 30 "Code review"
+## Example: ddev timelog -t 12345678 30 "Log to specific task"
 ## Aliases: timelog, timeslip
 
 VERBOSE=false
+TASK_ID_OVERRIDE=""
 
-if [[ "$1" == "-v" ]]; then
-  VERBOSE=true
-  echo "Verbose mode enabled."
-  shift
-fi
+# Parse flags
+while [[ "$1" == -* ]]; do
+  case "$1" in
+    -v)
+      VERBOSE=true
+      echo "Verbose mode enabled."
+      shift
+      ;;
+    -t)
+      TASK_ID_OVERRIDE="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
 
 TOTAL_MINUTES=$1
 COMMENT=$2
@@ -27,19 +42,22 @@ if [[ -z "$API_KEY" || -z "$DOMAIN" ]]; then
   exit 1
 fi
 
-# Get the task ID from the active Git branch
-branch_name=$(git rev-parse --abbrev-ref HEAD)
-
-if [[ $branch_name =~ T-([0-9]+) ]]; then
-  TASK_ID="${BASH_REMATCH[1]}"
+# Use override if provided, otherwise extract from branch
+if [[ -n "$TASK_ID_OVERRIDE" ]]; then
+  TASK_ID="$TASK_ID_OVERRIDE"
 else
-  echo "No task ID found in the branch name."
-  echo "Branch must contain 'T-<task_id>' (e.g., 202412_T-12345678__description)"
-  exit 1
+  branch_name=$(git rev-parse --abbrev-ref HEAD)
+  if [[ $branch_name =~ T-([0-9]+) ]]; then
+    TASK_ID="${BASH_REMATCH[1]}"
+  else
+    echo "No task ID found in the branch name and none provided via -t flag."
+    echo "Either use a branch containing 'T-<task_id>' or provide -t <task_id>"
+    exit 1
+  fi
 fi
 
 if [[ -z "$TOTAL_MINUTES" || -z "$COMMENT" ]]; then
-  echo "Usage: ddev timelog [-v] <minutes> \"<comment>\""
+  echo "Usage: ddev timelog [-v] [-t task_id] <minutes> \"<comment>\""
   exit 1
 fi
 
