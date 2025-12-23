@@ -93,7 +93,7 @@ This is what people with color vision deficiency see when using the above colors
 
 <details>
     <summary>
-        Platform.sh config for SimpleI environment indicator
+        Upsun config for SimpleI environment indicator
     </summary>
     <pre><code>
 // Per environment settings:
