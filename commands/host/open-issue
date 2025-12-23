@@ -7,13 +7,20 @@
 ## Example: "ddev open-issue"
 ## Installed globally
 
+DOMAIN="${TEAMWORK_DOMAIN}"
+
+if [[ -z "$DOMAIN" ]]; then
+  echo "Error: TEAMWORK_DOMAIN environment variable must be set."
+  exit 1
+fi
+
 # Get the name of the active Git branch
 branch_name=$(git rev-parse --abbrev-ref HEAD)
 
 # Extract the task ID using regex
 if [[ $branch_name =~ T-([0-9]+) ]]; then
     task_id="${BASH_REMATCH[1]}"
-    result="https://projects.annertech.com/app/tasks/$task_id"
+    result="https://${DOMAIN}/app/tasks/$task_id"
 
     # Copy to clipboard based on OS
     if command -v xclip &> /dev/null; then

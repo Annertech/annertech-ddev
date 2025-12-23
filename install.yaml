@@ -107,15 +107,16 @@ project_files:
 # Project level commands take priority.
 global_files:
   - commands/host/annertech-tip-of-the-day
-  - commands/host/open-issue
-  - commands/host/timew
   - commands/host/branch
   - commands/host/cloudflare
+  - commands/host/comment
   - commands/host/drupal-updater
   - commands/host/login
-  - commands/host/uptools
-  - commands/host/timeslip
+  - commands/host/open-issue
+  - commands/host/timelog
+  - commands/host/timew
   - commands/host/travel-mode
+  - commands/host/uptools
 
 # Version constraint for DDEV that will be validated against the running DDEV executable
 # and prevent add-on from being installed if it doesn't validate.
@@ -156,6 +157,9 @@ post_install_actions:
   - rm -f ${DDEV_APPROOT}/.ddev/commands/host/platform-resume || true
   - rm -f ~/.ddev/commands/host/platform-ulitool || true
   - rm -f ~/.ddev/commands/host/platform-resume || true
+  # Remove timeslip command (replaced by timelog)
+  - rm -f ${DDEV_APPROOT}/.ddev/commands/host/timeslip || true
+  - rm -f ~/.ddev/commands/host/timeslip || true
   # Install new git hooks on add-on install because people don't restart their projects.
   - cp ${DDEV_APPROOT}/.ddev/scripts/git-hooks/pre-commit ${DDEV_APPROOT}/.git/hooks/pre-commit
   - cp ${DDEV_APPROOT}/.ddev/scripts/git-hooks/commit-msg ${DDEV_APPROOT}/.git/hooks/commit-msg
@@ -167,6 +171,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/host/annertech-tip-of-the-day -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/branch -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/cloudflare -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/comment -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/devmode -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/drupal-updater -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/githooks -f
@@ -176,7 +181,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/host/uptools -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/remote-db -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/tests -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/timeslip -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/timelog -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/behat -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/check-annertech-ddev -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/install-bruno -f
@@ -231,6 +236,7 @@ removal_actions:
   - rm commands/host/cex
   - rm commands/host/cim
   - rm commands/host/cloudflare
+  - rm commands/host/comment
   - rm commands/host/cr
   - rm commands/host/devmode
   - rm commands/host/drupal-updater
@@ -240,6 +246,7 @@ removal_actions:
   - rm commands/host/uptools
   - rm commands/host/protect
   - rm commands/host/remote-db
+  - rm commands/host/timelog
   - rm commands/web/behat
   - rm commands/web/check-annertech-ddev
   - rm commands/web/install-varnish

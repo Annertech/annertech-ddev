@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+#teamwork-api
+
+## Description: Post a comment to a Teamwork task
+## Usage: comment [-v] "<comment>"
+## Example: ddev comment "Fixed the issue"
+## Aliases: comment
+
+VERBOSE=false
+
+if [[ "$1" == "-v" ]]; then
+  VERBOSE=true
+  echo "Verbose mode enabled."
+  shift
+fi
+
+COMMENT=$1
+
+API_KEY="${TEAMWORK_API_KEY}"
+DOMAIN="${TEAMWORK_DOMAIN}"
+
+if [[ -z "$API_KEY" || -z "$DOMAIN" ]]; then
+  echo "Error: TEAMWORK_API_KEY and TEAMWORK_DOMAIN environment variables must be set."
+  exit 1
+fi
+
+# Get the task ID from the active Git branch
+branch_name=$(git rev-parse --abbrev-ref HEAD)
+
+if [[ $branch_name =~ T-([0-9]+) ]]; then
+  TASK_ID="${BASH_REMATCH[1]}"
+else
+  echo "No task ID found in the branch name."
+  echo "Branch must contain 'T-<task_id>' (e.g., 202412_T-12345678__description)"
+  exit 1
+fi
+
+if [[ -z "$COMMENT" ]]; then
+  echo "Usage: ddev comment [-v] \"<comment>\""
+  exit 1
+fi
+
+# Construct JSON payload
+# Teamwork API expects 'comment' wrapper
+# content-type can be TEXT or HTML. Using TEXT for simplicity.
+DATA=$(cat <<EOF
+{
+  "comment": {
+    "body": "$COMMENT",
+    "content-type": "TEXT"
+  }
+}
+EOF
+)
+
+URL="https://${DOMAIN}/tasks/${TASK_ID}/comments.json"
+
+if [ "$VERBOSE" = true ]; then
+  echo "Posting comment to Task ${TASK_ID}..."
+  echo "Using Domain: '${DOMAIN}'"
+  echo "Constructed URL: $URL"
+  echo "Payload: $DATA"
+
+  # Execute Request with verbose output
+  curl -v \
+    -u "${API_KEY}:xxx" \
+    -H "Content-Type: application/json" \
+    -X POST "$URL" \
+    -d "$DATA"
+  echo "" # Newline for clean output
+else
+  # Execute Request silently
+  RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null \
+    -u "${API_KEY}:xxx" \
+    -H "Content-Type: application/json" \
+    -X POST "$URL" \
+    -d "$DATA")
+
+  if [[ "$RESPONSE" =~ ^2 ]]; then
+    echo "Done."
+    echo "https://${DOMAIN}/app/tasks/${TASK_ID}"
+  else
+    echo "Error: API returned HTTP $RESPONSE"
+  fi
+fi
