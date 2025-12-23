@@ -4,9 +4,11 @@
 #teamwork-api
 
 ## Description: Log time to a Teamwork task
-## Usage: timelog [-v] [-t task_id] <minutes> "<comment>"
-## Example: ddev timelog 30 "Code review"
-## Example: ddev timelog -t 12345678 30 "Log to specific task"
+## Usage: timelog [-v] [-t task_id] <time> "<comment>"
+## Example: ddev timelog 1h15m "Code review"
+## Example: ddev timelog 75m "Code review"
+## Example: ddev timelog 1.25 "Code review (decimal hours)"
+## Example: ddev timelog 75 "Code review (plain minutes)"
 ## Aliases: timelog, timeslip
 
 VERBOSE=false
@@ -31,8 +33,47 @@ while [[ "$1" == -* ]]; do
   esac
 done
 
-TOTAL_MINUTES=$1
+TIME_INPUT=$1
 COMMENT=$2
+
+if [[ -z "$TIME_INPUT" || -z "$COMMENT" ]]; then
+  echo "Usage: ddev timelog [-v] [-t task_id] <time> \"<comment>\""
+  echo "Time formats: 1h15m, 75m, 1.25 (decimal hours), 75 (plain minutes)"
+  exit 1
+fi
+
+# Parse time input into total minutes
+# Supports: "1h15m", "75m", "1.25" (decimal hours), "75" (plain minutes)
+parse_time() {
+  local input="$1"
+  local total=0
+
+  if [[ "$input" =~ ^([0-9]+)h([0-9]+)m$ ]]; then
+    # Format: 1h15m
+    total=$(( ${BASH_REMATCH[1]} * 60 + ${BASH_REMATCH[2]} ))
+  elif [[ "$input" =~ ^([0-9]+)h$ ]]; then
+    # Format: 1h
+    total=$(( ${BASH_REMATCH[1]} * 60 ))
+  elif [[ "$input" =~ ^([0-9]+)m$ ]]; then
+    # Format: 75m
+    total=${BASH_REMATCH[1]}
+  elif [[ "$input" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+    # Format: 1.25 (decimal hours)
+    local decimal="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+    total=$(echo "$decimal * 60" | bc | cut -d. -f1)
+  elif [[ "$input" =~ ^[0-9]+$ ]]; then
+    # Format: 75 (plain minutes)
+    total=$input
+  else
+    echo "Invalid time format: $input"
+    echo "Supported formats: 1h15m, 75m, 1.25 (decimal hours), 75 (plain minutes)"
+    exit 1
+  fi
+
+  echo "$total"
+}
+
+TOTAL_MINUTES=$(parse_time "$TIME_INPUT")
 
 API_KEY="${TEAMWORK_API_KEY}"
 DOMAIN="${TEAMWORK_DOMAIN}"
@@ -54,11 +95,6 @@ else
     echo "Either use a branch containing 'T-<task_id>' or provide -t <task_id>"
     exit 1
   fi
-fi
-
-if [[ -z "$TOTAL_MINUTES" || -z "$COMMENT" ]]; then
-  echo "Usage: ddev timelog [-v] [-t task_id] <minutes> \"<comment>\""
-  exit 1
 fi
 
 # Calculate hours and remaining minutes
