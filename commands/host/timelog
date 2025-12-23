@@ -4,15 +4,14 @@
 #teamwork-api
 
 ## Description: Log time to a Teamwork task
-## Usage: timelog [-v] [-t task_id] <time> "<comment>"
+## Usage: timelog [-v] [-u] [-t task_id] <time> "<comment>"
 ## Example: ddev timelog 1h15m "Code review"
-## Example: ddev timelog 75m "Code review"
-## Example: ddev timelog 1.25 "Code review (decimal hours)"
-## Example: ddev timelog 75 "Code review (plain minutes)"
+## Example: ddev timelog -u 30m "Internal meeting (unbillable)"
 ## Aliases: timelog, timeslip
 
 VERBOSE=false
 TASK_ID_OVERRIDE=""
+BILLABLE="true"
 
 # Parse flags
 while [[ "$1" == -* ]]; do
@@ -20,6 +19,10 @@ while [[ "$1" == -* ]]; do
     -v)
       VERBOSE=true
       echo "Verbose mode enabled."
+      shift
+      ;;
+    -u)
+      BILLABLE="false"
       shift
       ;;
     -t)
@@ -37,7 +40,7 @@ TIME_INPUT=$1
 COMMENT=$2
 
 if [[ -z "$TIME_INPUT" || -z "$COMMENT" ]]; then
-  echo "Usage: ddev timelog [-v] [-t task_id] <time> \"<comment>\""
+  echo "Usage: ddev timelog [-v] [-u] [-t task_id] <time> \"<comment>\""
   echo "Time formats: 1h15m, 75m, 1.25 (decimal hours), 75 (plain minutes)"
   exit 1
 fi
@@ -115,7 +118,7 @@ DATA=$(cat <<EOF
     "time": "$TIME",
     "hours": "$HOURS",
     "minutes": "$MINS",
-    "isbillable": "true"
+    "isbillable": "$BILLABLE"
   }
 }
 EOF
