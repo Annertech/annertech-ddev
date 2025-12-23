@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+#teamwork-api
+
+## Description: Post a comment to a Teamwork task
+## Usage: comment [-v] [-t task_id] "<comment>"
+## Example: ddev comment "Fixed the issue"
+## Example: ddev comment -t 12345678 "Comment on specific task"
+## Aliases: comment
+
+VERBOSE=false
+TASK_ID_OVERRIDE=""
+
+# Parse flags
+while [[ "$1" == -* ]]; do
+  case "$1" in
+    -v)
+      VERBOSE=true
+      echo "Verbose mode enabled."
+      shift
+      ;;
+    -t)
+      TASK_ID_OVERRIDE="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
+COMMENT=$1
+
+API_KEY="${TEAMWORK_API_KEY}"
+DOMAIN="${TEAMWORK_DOMAIN}"
+
+if [[ -z "$API_KEY" || -z "$DOMAIN" ]]; then
+  echo "Error: TEAMWORK_API_KEY and TEAMWORK_DOMAIN environment variables must be set."
+  exit 1
+fi
+
+# Use override if provided, otherwise extract from branch
+if [[ -n "$TASK_ID_OVERRIDE" ]]; then
+  TASK_ID="$TASK_ID_OVERRIDE"
+else
+  branch_name=$(git rev-parse --abbrev-ref HEAD)
+  if [[ $branch_name =~ T-([0-9]+) ]]; then
+    TASK_ID="${BASH_REMATCH[1]}"
+  else
+    echo "No task ID found in the branch name and none provided via -t flag."
+    echo "Either use a branch containing 'T-<task_id>' or provide -t <task_id>"
+    exit 1
+  fi
+fi
+
+if [[ -z "$COMMENT" ]]; then
+  echo "Usage: ddev comment [-v] [-t task_id] \"<comment>\""
+  exit 1
+fi
+
+# Construct JSON payload
+# Teamwork API expects 'comment' wrapper
+# content-type can be TEXT or HTML. Using TEXT for simplicity.
+DATA=$(cat <<EOF
+{
+  "comment": {
+    "body": "$COMMENT",
+    "content-type": "TEXT"
+  }
+}
+EOF
+)
+
+URL="https://${DOMAIN}/tasks/${TASK_ID}/comments.json"
+
+if [ "$VERBOSE" = true ]; then
+  echo "Posting comment to Task ${TASK_ID}..."
+  echo "Using Domain: '${DOMAIN}'"
+  echo "Constructed URL: $URL"
+  echo "Payload: $DATA"
+
+  # Execute Request with verbose output
+  curl -v \
+    -u "${API_KEY}:xxx" \
+    -H "Content-Type: application/json" \
+    -X POST "$URL" \
+    -d "$DATA"
+  echo "" # Newline for clean output
+else
+  # Execute Request silently
+  RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null \
+    -u "${API_KEY}:xxx" \
+    -H "Content-Type: application/json" \
+    -X POST "$URL" \
+    -d "$DATA")
+
+  if [[ "$RESPONSE" =~ ^2 ]]; then
+    echo "Done."
+    echo "https://${DOMAIN}/app/tasks/${TASK_ID}"
+  else
+    echo "Error: API returned HTTP $RESPONSE"
+  fi
+fi

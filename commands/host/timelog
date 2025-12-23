@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+#teamwork-api
+
+## Description: Log time to a Teamwork task
+## Usage: timelog [-v] [-u] [-t task_id] <time> "<comment>"
+## Example: ddev timelog 1h15m "Code review"
+## Example: ddev timelog -u 30m "Internal meeting (unbillable)"
+## Aliases: timelog, timeslip
+
+VERBOSE=false
+TASK_ID_OVERRIDE=""
+BILLABLE="true"
+
+# Parse flags
+while [[ "$1" == -* ]]; do
+  case "$1" in
+    -v)
+      VERBOSE=true
+      echo "Verbose mode enabled."
+      shift
+      ;;
+    -u)
+      BILLABLE="false"
+      shift
+      ;;
+    -t)
+      TASK_ID_OVERRIDE="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
+TIME_INPUT=$1
+COMMENT=$2
+
+if [[ -z "$TIME_INPUT" || -z "$COMMENT" ]]; then
+  echo "Usage: ddev timelog [-v] [-u] [-t task_id] <time> \"<comment>\""
+  echo "Time formats: 1h15m, 75m, 1.25 (decimal hours), 75 (plain minutes)"
+  exit 1
+fi
+
+# Parse time input into total minutes
+# Supports: "1h15m", "75m", "1.25" (decimal hours), "75" (plain minutes)
+parse_time() {
+  local input="$1"
+  local total=0
+
+  if [[ "$input" =~ ^([0-9]+)h([0-9]+)m$ ]]; then
+    # Format: 1h15m
+    total=$(( ${BASH_REMATCH[1]} * 60 + ${BASH_REMATCH[2]} ))
+  elif [[ "$input" =~ ^([0-9]+)h$ ]]; then
+    # Format: 1h
+    total=$(( ${BASH_REMATCH[1]} * 60 ))
+  elif [[ "$input" =~ ^([0-9]+)m$ ]]; then
+    # Format: 75m
+    total=${BASH_REMATCH[1]}
+  elif [[ "$input" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+    # Format: 1.25 (decimal hours)
+    local decimal="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+    total=$(echo "$decimal * 60" | bc | cut -d. -f1)
+  elif [[ "$input" =~ ^[0-9]+$ ]]; then
+    # Format: 75 (plain minutes)
+    total=$input
+  else
+    echo "Invalid time format: $input"
+    echo "Supported formats: 1h15m, 75m, 1.25 (decimal hours), 75 (plain minutes)"
+    exit 1
+  fi
+
+  echo "$total"
+}
+
+TOTAL_MINUTES=$(parse_time "$TIME_INPUT")
+
+API_KEY="${TEAMWORK_API_KEY}"
+DOMAIN="${TEAMWORK_DOMAIN}"
+
+if [[ -z "$API_KEY" || -z "$DOMAIN" ]]; then
+  echo "Error: TEAMWORK_API_KEY and TEAMWORK_DOMAIN environment variables must be set."
+  exit 1
+fi
+
+# Use override if provided, otherwise extract from branch
+if [[ -n "$TASK_ID_OVERRIDE" ]]; then
+  TASK_ID="$TASK_ID_OVERRIDE"
+else
+  branch_name=$(git rev-parse --abbrev-ref HEAD)
+  if [[ $branch_name =~ T-([0-9]+) ]]; then
+    TASK_ID="${BASH_REMATCH[1]}"
+  else
+    echo "No task ID found in the branch name and none provided via -t flag."
+    echo "Either use a branch containing 'T-<task_id>' or provide -t <task_id>"
+    exit 1
+  fi
+fi
+
+# Calculate hours and remaining minutes
+HOURS=$((TOTAL_MINUTES / 60))
+MINS=$((TOTAL_MINUTES % 60))
+
+# Get current date and time
+DATE=$(date +%Y%m%d)
+TIME=$(date +%H:%M)
+
+# Construct JSON payload
+# Teamwork API V1 expects 'time-entry' wrapper
+DATA=$(cat <<EOF
+{
+  "time-entry": {
+    "description": "$COMMENT",
+    "date": "$DATE",
+    "time": "$TIME",
+    "hours": "$HOURS",
+    "minutes": "$MINS",
+    "isbillable": "$BILLABLE"
+  }
+}
+EOF
+)
+
+URL="https://${DOMAIN}/tasks/${TASK_ID}/time_entries.json"
+
+if [ "$VERBOSE" = true ]; then
+  echo "Logging ${HOURS}h ${MINS}m to Task ${TASK_ID}..."
+  echo "Using Domain: '${DOMAIN}'"
+  echo "Constructed URL: $URL"
+  echo "Payload: $DATA"
+
+  # Execute Request with verbose output
+  curl -v \
+    -u "${API_KEY}:xxx" \
+    -H "Content-Type: application/json" \
+    -X POST "$URL" \
+    -d "$DATA"
+  echo "" # Newline for clean output
+else
+  # Execute Request silently
+  RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null \
+    -u "${API_KEY}:xxx" \
+    -H "Content-Type: application/json" \
+    -X POST "$URL" \
+    -d "$DATA")
+
+  if [[ "$RESPONSE" =~ ^2 ]]; then
+    echo "Done."
+    echo "https://${DOMAIN}/app/tasks/${TASK_ID}"
+  else
+    echo "Error: API returned HTTP $RESPONSE"
+  fi
+fi

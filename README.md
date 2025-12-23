@@ -13,10 +13,11 @@ DDEV workflow.
 - Provides **global** commands (available in all projects, project level commands below take priority):
 - - [`branch`](commands/host/branch): Creates an opinionated git branch name from a Teamwork ticket ID
 - - [`cloudflare`](commands/host/cloudflare): Shares the project with the outside world over a Cloudflare tunnel
+- - [`comment`](commands/host/comment): Post a comment to a Teamwork task
 - - [`drupal-updater`](commands/host/drupal-updater): Automatically updates Core and Contrib. Usage `drupal-updater -cugado`.
 - - [`login`](commands/host/login): Opens a browser and logs you in to Drupal (works on local environments only)
 - - [`open-issue`](commands/host/open-issue): Opens teamwork issue for current branch
-- - [`timeslip`](commands/host/timeslip): Generates a timeslip message for FreeAgent. If `timewarrior` is installed it will also show the sum of time spent today
+- - [`timelog`](commands/host/timelog): Log time to a Teamwork task
 - - [`timew`](commands/host/timew): Tags current timewarrior tracking with Teamwork link and project name
 - - [`travel-mode`](commands/host/travel-mode): Removes all DB dumps 
     downloaded via `ddev pull`, also provides info on how to remove all DDEV 
@@ -24,6 +25,7 @@ DDEV workflow.
 - Provides **host** commands:
 - - [`branch`](commands/host/branch): Creates an opinionated git branch name from a Teamwork ticket ID
 - - [`cloudflare`](commands/host/cloudflare): Shares the project with the outside world over a Cloudflare tunnel
+- - [`comment`](commands/host/comment): Post a comment to a Teamwork task
 - - [`devmode [on|off]`](commands/host/devmode): Adds custom settings.local.php file and allows easy toggle between production and development mode
 - - [`drupal-updater`](commands/host/drupal-updater): Automatically updates Core and Contrib. Usage `drupal-updater -cugado`.
 - - [`githooks`](commands/host/githooks): Installs git-hooks (also happens on project start)
@@ -31,7 +33,7 @@ DDEV workflow.
 - - [`login`](commands/host/login): Opens a browser and logs you in to Drupal (works on local environments only)
 - - [`protect [on|off|reset]`](commands/host/protect): Enable or disable basic auth on a nixsal hosted dev project - [see file](commands/host/protect)
 - - [`tests`](commands/host/tests): Informs about available tests for current project
-- - [`timeslip`](commands/host/timeslip): Generates a timeslip message for FreeAgent. If `timewarrior` is installed it will also show the sum of time spent today
+- - [`timelog`](commands/host/timelog): Log time to a Teamwork task
 - Provides **web container** commands:
 - - [`behat`](commands/web/behat): Runs behat
 - - [`install-varnish`](commands/web/install-varnish): Installs and configures Varnish on platform.sh project. See [Varnish command README](scripts/varnish/README.md)
@@ -112,6 +114,17 @@ if (isset($platformsh->branch)) {
 }
     </code></pre>
 </details>
+
+## Teamwork Integration
+
+Several commands integrate with Teamwork (`comment`, `timelog`, `open-issue`, `timew`). These require the following environment variables to be set on your host machine:
+
+```bash
+export TEAMWORK_DOMAIN="projects.yourcompany.com"
+export TEAMWORK_API_KEY="your_api_key_here"
+```
+
+Add these to your `~/.bashrc` or `~/.zshrc` file.
 
 ## Tricks
 
