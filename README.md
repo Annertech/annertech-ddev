@@ -136,6 +136,7 @@ alias behat='ddev behat'
 alias drush='ddev drush'
 alias platform='ddev platform'
 alias upsun='ddev upsun'
+alias upsunactlog='ddev exec upsun act:log --state=in_progress'
 alias robo='ddev robo'
 
 alias xe='ddev xdebug enable'
