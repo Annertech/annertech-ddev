@@ -203,6 +203,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/host/remote-db -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/tests -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/timelog -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/teamwork-operations -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/behat -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/check-annertech-ddev -f
   - git add ${DDEV_APPROOT}/.ddev/commands/web/install-bruno -f
@@ -269,6 +270,7 @@ removal_actions:
   - rm commands/host/protect
   - rm commands/host/remote-db
   - rm commands/host/timelog
+  - rm commands/host/teamwork-operations
   - rm commands/web/behat
   - rm commands/web/check-annertech-ddev
   - rm commands/web/install-varnish

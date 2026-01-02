@@ -41,7 +41,7 @@ if [[ -z "$API_KEY" || -z "$DOMAIN" ]]; then
   exit 1
 fi
 
-# Use override if provided, otherwise extract from branch
+# Use override if provided, otherwise extract from branch, otherwise prompt
 if [[ -n "$TASK_ID_OVERRIDE" ]]; then
   TASK_ID="$TASK_ID_OVERRIDE"
 else
@@ -49,15 +49,22 @@ else
   if [[ $branch_name =~ T-([0-9]+) ]]; then
     TASK_ID="${BASH_REMATCH[1]}"
   else
-    echo "No task ID found in the branch name and none provided via -t flag."
-    echo "Either use a branch containing 'T-<task_id>' or provide -t <task_id>"
-    exit 1
+    echo "No task ID found in the branch name."
+    read -p "Enter task ID: " TASK_ID
+    if [[ -z "$TASK_ID" ]]; then
+      echo "Error: Task ID is required."
+      exit 1
+    fi
   fi
 fi
 
+# Prompt for comment if not provided
 if [[ -z "$COMMENT" ]]; then
-  echo "Usage: ddev comment [-v] [-t task_id] \"<comment>\""
-  exit 1
+  read -p "Enter comment: " COMMENT
+  if [[ -z "$COMMENT" ]]; then
+    echo "Error: Comment cannot be empty."
+    exit 1
+  fi
 fi
 
 # Construct JSON payload

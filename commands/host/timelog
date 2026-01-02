@@ -4,14 +4,16 @@
 #teamwork-api
 
 ## Description: Log time to a Teamwork task
-## Usage: timelog [-v] [-u] [-t task_id] <time> "<comment>"
+## Usage: timelog [-v] [-b|-u] [-t task_id] <time> "<comment>"
 ## Example: ddev timelog 1h15m "Code review"
+## Example: ddev timelog -b 1h15m "Client work (billable)"
 ## Example: ddev timelog -u 30m "Internal meeting (unbillable)"
 ## Aliases: timelog, timeslip
 
 VERBOSE=false
 TASK_ID_OVERRIDE=""
 BILLABLE="true"
+BILLABLE_SET=false
 
 # Parse flags
 while [[ "$1" == -* ]]; do
@@ -21,8 +23,14 @@ while [[ "$1" == -* ]]; do
       echo "Verbose mode enabled."
       shift
       ;;
+    -b)
+      BILLABLE="true"
+      BILLABLE_SET=true
+      shift
+      ;;
     -u)
       BILLABLE="false"
+      BILLABLE_SET=true
       shift
       ;;
     -t)
@@ -38,12 +46,6 @@ done
 
 TIME_INPUT=$1
 COMMENT=$2
-
-if [[ -z "$TIME_INPUT" || -z "$COMMENT" ]]; then
-  echo "Usage: ddev timelog [-v] [-u] [-t task_id] <time> \"<comment>\""
-  echo "Time formats: 1h15m, 75m, 1.25 (decimal hours), 75 (plain minutes)"
-  exit 1
-fi
 
 # Parse time input into total minutes
 # Supports: "1h15m", "75m", "1.25" (decimal hours), "75" (plain minutes)
@@ -76,8 +78,6 @@ parse_time() {
   echo "$total"
 }
 
-TOTAL_MINUTES=$(parse_time "$TIME_INPUT")
-
 API_KEY="${TEAMWORK_API_KEY}"
 DOMAIN="${TEAMWORK_DOMAIN}"
 
@@ -86,7 +86,7 @@ if [[ -z "$API_KEY" || -z "$DOMAIN" ]]; then
   exit 1
 fi
 
-# Use override if provided, otherwise extract from branch
+# Use override if provided, otherwise extract from branch, otherwise prompt
 if [[ -n "$TASK_ID_OVERRIDE" ]]; then
   TASK_ID="$TASK_ID_OVERRIDE"
 else
@@ -94,9 +94,42 @@ else
   if [[ $branch_name =~ T-([0-9]+) ]]; then
     TASK_ID="${BASH_REMATCH[1]}"
   else
-    echo "No task ID found in the branch name and none provided via -t flag."
-    echo "Either use a branch containing 'T-<task_id>' or provide -t <task_id>"
+    echo "No task ID found in the branch name."
+    read -p "Enter task ID: " TASK_ID
+    if [[ -z "$TASK_ID" ]]; then
+      echo "Error: Task ID is required."
+      exit 1
+    fi
+  fi
+fi
+
+# Prompt for time if not provided
+if [[ -z "$TIME_INPUT" ]]; then
+  echo "Time formats: 1h15m, 75m, 1.25 (decimal hours), 75 (plain minutes)"
+  read -p "Enter time: " TIME_INPUT
+  if [[ -z "$TIME_INPUT" ]]; then
+    echo "Error: Time is required."
     exit 1
+  fi
+fi
+
+TOTAL_MINUTES=$(parse_time "$TIME_INPUT")
+
+# Prompt for description if not provided
+if [[ -z "$COMMENT" ]]; then
+  read -p "Enter description: " COMMENT
+  if [[ -z "$COMMENT" ]]; then
+    echo "Error: Description is required."
+    exit 1
+  fi
+fi
+
+# Prompt for billable status if neither -b nor -u flag was used
+if [[ "$BILLABLE_SET" == "false" ]]; then
+  read -p "Is this billable? (Y/n): " billable_input
+  billable_input=${billable_input:-Y}
+  if [[ "$billable_input" =~ ^[Nn] ]]; then
+    BILLABLE="false"
   fi
 fi
 
