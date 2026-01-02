@@ -142,6 +142,8 @@ post_install_actions:
   - rm -f ${DDEV_APPROOT}/.ddev/commands/host/platform-ulitool || true
   - rm -f ${DDEV_APPROOT}/.ddev/commands/host/platform-resume || true
   - rm -f ${DDEV_APPROOT}/.ddev/commands/host/timeslip || true
+  - rm -f ${DDEV_APPROOT}/.ddev/commands/host/uptools || true
+  - rm -f ${DDEV_APPROOT}/.ddev/commands/host/upbash || true
   # Remove all old global commands (no longer installing globally)
   - rm -f ~/.ddev/commands/host/platform-ulitool || true
   - rm -f ~/.ddev/commands/host/platform-resume || true
@@ -165,6 +167,7 @@ post_install_actions:
   - rm -f ~/.ddev/commands/host/timew || true
   - rm -f ~/.ddev/commands/host/travel-mode || true
   - rm -f ~/.ddev/commands/host/uptools || true
+  - rm -f ~/.ddev/commands/host/upbash || true
   - rm -f ~/.ddev/commands/web/behat || true
   - rm -f ~/.ddev/commands/web/check-annertech-ddev || true
   - rm -f ~/.ddev/commands/web/install-bruno || true
@@ -195,7 +198,8 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/host/lints -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/login -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/protect -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/uptools -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/upsun-command-center-python -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/host/upsun-command-center-bash -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/remote-db -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/tests -f
   - git add ${DDEV_APPROOT}/.ddev/commands/host/timelog -f
@@ -260,7 +264,8 @@ removal_actions:
   - rm commands/host/githooks
   - rm commands/host/lints
   - rm commands/host/login
-  - rm commands/host/uptools
+  - rm commands/host/upsun-command-center-python
+  - rm commands/host/upsun-command-center-bash
   - rm commands/host/protect
   - rm commands/host/remote-db
   - rm commands/host/timelog

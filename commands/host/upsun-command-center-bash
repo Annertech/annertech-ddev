@@ -2,13 +2,14 @@
 #ddev-generated
 #annertech-ddev
 
-# Bash version of uptools - Upsun/Platform.sh tools
+# Bash version of Upsun Command Centre
 # Converted to bash automatically with Claude Code.
 # We'll chose which one will be maintained further.
 
-## Description: Upsun/Platform.sh tools (ssh, uli, resume, activities, disk) - Bash version
-## Usage: upbash
-## Example: "ddev upbash"
+## Description: Upsun Command Centre (ssh, uli, resume, activities, disk) - Bash version
+## Usage: upsun-command-center-bash
+## Example: "ddev upsun-command-center-bash"
+## Aliases: upbash
 
 # Colours
 RED='\033[0;31m'

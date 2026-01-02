@@ -4,10 +4,10 @@
 
 # Ported to python from previous separate bash scripts and added a main menu.
 
-## Description: Upsun/Platform.sh tools (ssh, uli, resume, activities, disk)
-## Usage: uptools
-## Example: "ddev uptools"
-## Aliases: uptool, platform-ulitool, ulitool, platform-resume
+## Description: Upsun Command Centre (ssh, uli, resume, activities, disk) - Python version
+## Usage: upsun-command-center-python
+## Example: "ddev upsun-command-center-python"
+## Aliases: uptools, uptool, platform-ulitool, ulitool, platform-resume
 
 import subprocess
 import sys
