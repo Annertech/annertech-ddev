@@ -7,7 +7,7 @@
 ## Description: Upsun Command Centre (ssh, uli, resume, activities, disk) - Python version
 ## Usage: upsun-command-center-python
 ## Example: "ddev upsun-command-center-python"
-## Aliases: uptools, uptool, platform-ulitool, ulitool, platform-resume
+## Aliases: uptools, uptool, platform-ulitool, ulitool, platform-resume, uccp
 
 import subprocess
 import sys

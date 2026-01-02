@@ -9,7 +9,7 @@
 ## Description: Upsun Command Centre (ssh, uli, resume, activities, disk) - Bash version
 ## Usage: upsun-command-center-bash
 ## Example: "ddev upsun-command-center-bash"
-## Aliases: upbash
+## Aliases: upbash, uccb
 
 # Colours
 RED='\033[0;31m'
