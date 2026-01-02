@@ -102,21 +102,7 @@ project_files:
 
 # List of files and directories that are copied into the global .ddev directory
 # DDEV environment variables can be interpolated into these filenames
-# We are copying universal commands in the global folder too, so that users can use them
-# even if a project doesn't have the addon installed yet.
-# Project level commands take priority.
-global_files:
-  - commands/host/annertech-tip-of-the-day
-  - commands/host/branch
-  - commands/host/cloudflare
-  - commands/host/comment
-  - commands/host/drupal-updater
-  - commands/host/login
-  - commands/host/open-issue
-  - commands/host/timelog
-  - commands/host/timew
-  - commands/host/travel-mode
-  - commands/host/uptools
+# global_files: []
 
 # Version constraint for DDEV that will be validated against the running DDEV executable
 # and prevent add-on from being installed if it doesn't validate.
@@ -152,14 +138,45 @@ post_install_actions:
     if [ ! -f ${DDEV_APPROOT}/homeadditions/.bash_aliases ]; then
       cp ${DDEV_APPROOT}/.ddev/scripts/ddev/homeadditions/.bash_aliases ${DDEV_APPROOT}/.ddev/homeadditions/.bash_aliases
     fi
-  # Remove old commands replaced by uptools
+  # Remove deprecated commands
   - rm -f ${DDEV_APPROOT}/.ddev/commands/host/platform-ulitool || true
   - rm -f ${DDEV_APPROOT}/.ddev/commands/host/platform-resume || true
+  - rm -f ${DDEV_APPROOT}/.ddev/commands/host/timeslip || true
+  # Remove all old global commands (no longer installing globally)
   - rm -f ~/.ddev/commands/host/platform-ulitool || true
   - rm -f ~/.ddev/commands/host/platform-resume || true
-  # Remove timeslip command (replaced by timelog)
-  - rm -f ${DDEV_APPROOT}/.ddev/commands/host/timeslip || true
   - rm -f ~/.ddev/commands/host/timeslip || true
+  - rm -f ~/.ddev/commands/host/annertech-tip-of-the-day || true
+  - rm -f ~/.ddev/commands/host/branch || true
+  - rm -f ~/.ddev/commands/host/cex || true
+  - rm -f ~/.ddev/commands/host/cim || true
+  - rm -f ~/.ddev/commands/host/cloudflare || true
+  - rm -f ~/.ddev/commands/host/comment || true
+  - rm -f ~/.ddev/commands/host/cr || true
+  - rm -f ~/.ddev/commands/host/devmode || true
+  - rm -f ~/.ddev/commands/host/drupal-updater || true
+  - rm -f ~/.ddev/commands/host/githooks || true
+  - rm -f ~/.ddev/commands/host/login || true
+  - rm -f ~/.ddev/commands/host/open-issue || true
+  - rm -f ~/.ddev/commands/host/protect || true
+  - rm -f ~/.ddev/commands/host/remote-db || true
+  - rm -f ~/.ddev/commands/host/t-url || true
+  - rm -f ~/.ddev/commands/host/timelog || true
+  - rm -f ~/.ddev/commands/host/timew || true
+  - rm -f ~/.ddev/commands/host/travel-mode || true
+  - rm -f ~/.ddev/commands/host/uptools || true
+  - rm -f ~/.ddev/commands/web/behat || true
+  - rm -f ~/.ddev/commands/web/check-annertech-ddev || true
+  - rm -f ~/.ddev/commands/web/install-bruno || true
+  - rm -f ~/.ddev/commands/web/install-varnish || true
+  - rm -f ~/.ddev/commands/web/phpunit || true
+  - rm -f ~/.ddev/commands/web/platform || true
+  - rm -f ~/.ddev/commands/web/platform-disk-helper || true
+  - rm -f ~/.ddev/commands/web/platform-log-checker || true
+  - rm -f ~/.ddev/commands/web/rector || true
+  - rm -f ~/.ddev/commands/web/robo || true
+  - rm -f ~/.ddev/commands/web/solr-update-config || true
+  - rm -f ~/.ddev/commands/web/upsun || true
   # Install new git hooks on add-on install because people don't restart their projects.
   - cp ${DDEV_APPROOT}/.ddev/scripts/git-hooks/pre-commit ${DDEV_APPROOT}/.git/hooks/pre-commit
   - cp ${DDEV_APPROOT}/.ddev/scripts/git-hooks/commit-msg ${DDEV_APPROOT}/.git/hooks/commit-msg
