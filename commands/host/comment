@@ -68,10 +68,25 @@ if [[ -z "$COMMENT" ]]; then
   fi
 fi
 
-# Construct JSON payload
-# Teamwork API expects 'comment' wrapper
-# content-type can be TEXT or HTML. Using TEXT for simplicity.
-DATA=$(cat <<EOF
+# Check if comment contains special characters that need escaping
+# Backticks, quotes, backslashes, dollar signs need jq for safe JSON encoding
+if [[ "$COMMENT" =~ [\`\"\\$] ]]; then
+  # Special characters detected - use jq for proper escaping
+  if ! command -v jq &> /dev/null; then
+    echo "Error: Your comment contains special characters (\`, \", \\, \$) that require jq for safe encoding."
+    echo "Please install jq: https://jqlang.github.io/jq/download/"
+    exit 1
+  fi
+
+  DATA=$(jq -n --arg body "$COMMENT" '{
+    comment: {
+      body: $body,
+      "content-type": "TEXT"
+    }
+  }')
+else
+  # No special characters - use simple heredoc
+  DATA=$(cat <<EOF
 {
   "comment": {
     "body": "$COMMENT",
@@ -80,6 +95,7 @@ DATA=$(cat <<EOF
 }
 EOF
 )
+fi
 
 URL="https://${DOMAIN}/tasks/${TASK_ID}/comments.json"
 
