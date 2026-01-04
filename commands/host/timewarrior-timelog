@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+#teamwork-api
+
+## Description: Log timewarrior summary to Teamwork task
+## Usage: timewarrior-timelog
+## Aliases: twl
+
+  branch_name=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [[ $branch_name =~ T-([0-9]+) ]]; then
+    TASK_ID="${BASH_REMATCH[1]}"
+  else
+    echo "No task ID found in the branch name."
+    read -e -p "Enter task ID: " TASK_ID
+    if [[ -z "$TASK_ID" ]]; then
+      echo "Error: Task ID is required."
+      exit 1
+    fi
+  fi
+
+# Get total time from timewarrior
+TIME=$(timew summary "$TASK_ID" | tail -2 | head -1 | xargs)
+
+if [[ -z "$TIME" ]]; then
+  echo "Error: No time entries found for task ID $TASK_ID in timewarrior"
+  exit 1
+fi
+
+ddev timelog "$TIME"
