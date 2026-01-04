@@ -50,7 +50,7 @@ else
     TASK_ID="${BASH_REMATCH[1]}"
   else
     echo "No task ID found in the branch name."
-    read -p "Enter task ID: " TASK_ID
+    read -e -p "Enter task ID: " TASK_ID
     if [[ -z "$TASK_ID" ]]; then
       echo "Error: Task ID is required."
       exit 1
@@ -60,7 +60,8 @@ fi
 
 # Prompt for comment if not provided
 if [[ -z "$COMMENT" ]]; then
-  read -p "Enter comment: " COMMENT
+  echo "Enter comment:"
+  read -e COMMENT
   if [[ -z "$COMMENT" ]]; then
     echo "Error: Comment cannot be empty."
     exit 1

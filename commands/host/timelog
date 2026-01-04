@@ -95,7 +95,7 @@ else
     TASK_ID="${BASH_REMATCH[1]}"
   else
     echo "No task ID found in the branch name."
-    read -p "Enter task ID: " TASK_ID
+    read -e -p "Enter task ID: " TASK_ID
     if [[ -z "$TASK_ID" ]]; then
       echo "Error: Task ID is required."
       exit 1
@@ -106,7 +106,7 @@ fi
 # Prompt for time if not provided
 if [[ -z "$TIME_INPUT" ]]; then
   echo "Time formats: 1h15m, 75m, 1.25 (decimal hours), 75 (plain minutes)"
-  read -p "Enter time: " TIME_INPUT
+  read -e -p "Enter time: " TIME_INPUT
   if [[ -z "$TIME_INPUT" ]]; then
     echo "Error: Time is required."
     exit 1
@@ -117,7 +117,8 @@ TOTAL_MINUTES=$(parse_time "$TIME_INPUT")
 
 # Prompt for description if not provided
 if [[ -z "$COMMENT" ]]; then
-  read -p "Enter description: " COMMENT
+  echo "Enter description:"
+  read -e COMMENT
   if [[ -z "$COMMENT" ]]; then
     echo "Error: Description is required."
     exit 1
