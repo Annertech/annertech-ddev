@@ -186,44 +186,17 @@ post_install_actions:
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/.vscode ${DDEV_APPROOT}/
   - mkdir -p ${DDEV_APPROOT}/.gitlab/merge_request_templates
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/templates/gitlab/merge_request_templates/Default.md ${DDEV_APPROOT}/.gitlab/merge_request_templates/
-  - git add ${DDEV_APPROOT}/.ddev/config.annertech.yaml -f
-  - git add ${DDEV_APPROOT}/.ddev/settings.local.*mode.php -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/annertech-tip-of-the-day -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/branch -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/cloudflare -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/comment -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/devmode -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/drupal-updater -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/githooks -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/lints -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/login -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/protect -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/upsun-command-center-python -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/upsun-command-center-bash -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/remote-db -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/tests -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/timelog -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/host/teamwork-operations -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/web/behat -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/web/check-annertech-ddev -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/web/install-bruno -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/web/install-varnish -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/web/rector -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/web/robo -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/web/upsun -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/web/phpunit -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/web/platform -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/web/platform-disk-helper -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/web/platform-log-checker -f
-  - git add ${DDEV_APPROOT}/.ddev/commands/web/solr-update-config -f
+  - git add ${DDEV_APPROOT}/.ddev/config.annertech.yaml ${DDEV_APPROOT}/.ddev/settings.local.*mode.php ${DDEV_APPROOT}/.ddev/phpunit.xml -f
+  - git add ${DDEV_APPROOT}/.ddev/commands/ -f
   - git add ${DDEV_APPROOT}/.ddev/nginx/ -f
   - git add ${DDEV_APPROOT}/.ddev/scripts/ -f
+  - git add ${DDEV_APPROOT}/.ddev/homeadditions/ -f
+  - git add ${DDEV_APPROOT}/.vscode -f
+  - git add ${DDEV_APPROOT}/.gitlab/merge_request_templates/ -f
   - |
     if [ -f ${DDEV_APPROOT}/.ddev/.env.anner ]; then
       git add ${DDEV_APPROOT}/.ddev/.env.anner -f
     fi
-  - git add ${DDEV_APPROOT}/.ddev/phpunit.xml -f
-  - git add ${DDEV_APPROOT}/.vscode -f
 
 # Shell actions that can be done during removal of the add-on.
 # Files listed in project_files section will be automatically removed here if they contain #ddev-generated line.
@@ -231,73 +204,32 @@ post_install_actions:
 removal_actions:
   - |
     #ddev-nodisplay
-    #ddev-description:Removing annertech config and settings
-  - rm .env
-  - rm config.annertech.yaml
-  - rm settings.local.perfmode.php
-  - rm settings.local.devmode.php
+    #ddev-description:Removing all files tagged with #annertech-ddev
+    # Find and remove all files with #annertech-ddev marker in .ddev directory
+    find ${DDEV_APPROOT}/.ddev -type f -exec grep -l '#annertech-ddev' {} \; 2>/dev/null | while read -r file; do
+      rm -f "$file"
+    done
+    # Remove empty directories
+    find ${DDEV_APPROOT}/.ddev/scripts -type d -empty -delete 2>/dev/null || true
+  - |
+    #ddev-nodisplay
+    #ddev-description:Removing .env.anner if present
+    rm -f ${DDEV_APPROOT}/.ddev/.env.anner
   - |
     #ddev-nodisplay
     #ddev-description:Removing customized annertech tip of the day (on host!)
     if [ -f ~/.ddev/global_config.yaml ]; then
       if grep -q 'ANNERTECH_CUSTOM_TIPS_START' ~/.ddev/global_config.yaml; then
         sed -i '/^##ANNERTECH_CUSTOM_TIPS_START/,/^##ANNERTECH_CUSTOM_TIPS_END/d' ~/.ddev/global_config.yaml
-        rm ~/.ddev/.state.yaml ~/.ddev/.remote-config
+        rm -f ~/.ddev/.state.yaml ~/.ddev/.remote-config
       fi
     fi
-  - rm commands/host/annertech-tip-of-the-day
   - |
     #ddev-nodisplay
     #ddev-description:Removing web environment tokens
-    sed -i '/PLATFORM_ENVIRONMENT/d' config.yaml
-    sed -i '/PLATFORM_PROJECT/d' config.yaml
-  - |
-    #ddev-nodisplay
-    #ddev-description:Removing annertech custom commands
-  - rm commands/host/branch
-  - rm commands/host/cex
-  - rm commands/host/cim
-  - rm commands/host/cloudflare
-  - rm commands/host/comment
-  - rm commands/host/cr
-  - rm commands/host/devmode
-  - rm commands/host/drupal-updater
-  - rm commands/host/githooks
-  - rm commands/host/lints
-  - rm commands/host/login
-  - rm commands/host/upsun-command-center-python
-  - rm commands/host/upsun-command-center-bash
-  - rm commands/host/protect
-  - rm commands/host/remote-db
-  - rm commands/host/timelog
-  - rm commands/host/teamwork-operations
-  - rm commands/web/behat
-  - rm commands/web/check-annertech-ddev
-  - rm commands/web/install-varnish
-  - rm commands/web/install-bruno
-  - rm commands/web/upsun
-  - rm commands/web/phpunit
-  - rm commands/web/platform
-  - rm commands/web/platform-disk-helper
-  - rm commands/web/platform-log-checker
-  - rm commands/web/rector
-  - rm commands/web/robo
-  - rm commands/web/solr-update-config
-  - |
-    #ddev-nodisplay
-    #ddev-description:Removing annertech custom scripts and modifications
-  - rm nginx/libraries.conf
-  - rm nginx/protect.conf
-  - rm nginx/redirect.conf
-  - rm phpunit.xml
-  - rm -rf scripts
-  - |
-    if [ -f ${DDEV_APPROOT}/.ddev/config.hooks.yaml ]; then
-      if grep -q '#ddev-generated' ${DDEV_APPROOT}/.ddev/config.hooks.yaml; then
-        rm -f ${DDEV_APPROOT}/.ddev/config.hooks.yaml
-      else
-        echo "Unwilling to remove '${DDEV_APPROOT}/.ddev/config.hooks.yaml' because it does not have #ddev-generated in it; you can manually delete it if it is safe to delete."
-      fi
+    if [ -f config.yaml ]; then
+      sed -i '/PLATFORM_ENVIRONMENT/d' config.yaml
+      sed -i '/PLATFORM_PROJECT/d' config.yaml
     fi
   - |
     if [ -f ${DDEV_APPROOT}/.ddev/homeadditions/.bash_aliases ]; then
