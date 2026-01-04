@@ -21,20 +21,28 @@ DDEV workflow.
 - - [`login`](commands/host/login): Opens a browser and logs you in to Drupal (works on local environments only)
 - - [`open-issue`](commands/host/open-issue): Opens teamwork issue for current branch
 - - [`protect [on|off|reset]`](commands/host/protect): Enable or disable basic auth on a nixsal hosted dev project - [see file](commands/host/protect)
+- - [`remote-db`](commands/host/remote-db): Get latest DB from live site
+- - [`tw` - `teamwork-operations`](commands/host/teamwork-operations): **Interactive** Teamwork Operations Centre (open-issue, comment, timelog).
 - - [`tests`](commands/host/tests): Informs about available tests for current project
 - - [`timelog`](commands/host/timelog): Log time to a Teamwork task
-- - [`timew`](commands/host/timew): Tags current timewarrior tracking with Teamwork link and project name
+- - [`timew`](commands/host/timew): Tags current timewarrior tracking with Teamwork ID and project name
 - - [`travel-mode`](commands/host/travel-mode): Removes all DB dumps downloaded via `ddev pull`, also provides info on how to remove all DDEV projects and their databases
+- - [`uccb` - `upsun-command-center-bash`](commands/host/upsun-command-center-bash): **Interactive** Upsun Command Centre (bash version)
+- - _[`uccp` - `upsun-command-center-python`](commands/host/upsun-command-center-bash): **Interactive** Upsun Command Centre (python version)_
 - Provides **web container** commands:
 - - [`behat`](commands/web/behat): Runs behat
-- - [`install-varnish`](commands/web/install-varnish): Installs and configures Varnish on platform.sh project. See [Varnish command README](scripts/varnish/README.md)
+- - [`install-bruno`](commands/web/install-bruno): Prepare bruno configuration
+- - [`install-varnish`](commands/web/install-varnish): Installs and configures Varnish on Upsun project. See [Varnish command README](scripts/varnish/README.md)
 - - [`phpunit`](commands/web/phpunit): Runs phpunit tests
+- - [`platform`](commands/web/platform): Run upsun (ex platform.sh) cli inside the web container
+- - [`rector`](commands/web/rector): Run rector automated refactoring inside the web container
 - - [`robo`](commands/web/robo): Runs robo
 - - [`solr:update-config`](commands/web/solr-update-config): Updates SOLR config.zip
-- - [`upsun`](commands/web/platform): Runs `platform/upsun cli`
-- Uses DDEV Hooks to [properly instantiate project for development](config.hooks.yaml)
+- - [`upsun`](commands/web/upsun): Runs `platform/upsun cli`
+- [Adds container bash aliases](scripts/ddev/homeadditions/.bash_aliases) (`ll`, `groot`) and custom purple prompt matching the local environment color
+- Uses DDEV Hooks to [properly instantiate project for development](config.annertech.yaml)
 - [Adds git hooks](scripts/git-hooks/)
-- [Sets to development mode on project start](config.annertech.yaml#L3)
+- [Provides GitLab merge request templates](scripts/templates/gitlab/merge_request_templates/) with comprehensive pre-merge checklist
 - [Customizes NGINX configuration](nginx)
 - Fixes search_api_solr to communicate with local [SOLR](ddev/ddev-drupal-solr) by [default](settings.local.devmode.php#L21) (special overrides might be needed for Pantheon sites)
 - [Automatically ignores configuration for development modules](settings.local.devmode.php#L170)
@@ -46,7 +54,7 @@ DDEV workflow.
 - [Shield](settings.local.devmode.php#L35)
 - [TFA](settings.local.devmode.php#L38)
 
-are automatically disabled in local environment to facilitate development.
+are automatically disabled in the local environment to facilitate development.
 
 ## Automatically identified and configured
 
@@ -54,7 +62,7 @@ If your Drupal projects depend on ImageMagick then DDEV will be
 automatically configured to compile and use ImageMagick v7 in DDEV. See
 `scripts/ddev/web-build` for details.
 
-Platform.sh is using v7 while DDEV is still running v6 by default.
+Upsun is using v7 while DDEV is still running v6 by default.
 
 ## Automated Tests for a Project
 
