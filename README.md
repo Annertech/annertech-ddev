@@ -10,18 +10,6 @@ DDEV workflow.
 
 ## Features
 
-- Provides **global** commands (available in all projects, project level commands below take priority):
-- - [`branch`](commands/host/branch): Creates an opinionated git branch name from a Teamwork ticket ID
-- - [`cloudflare`](commands/host/cloudflare): Shares the project with the outside world over a Cloudflare tunnel
-- - [`comment`](commands/host/comment): Post a comment to a Teamwork task
-- - [`drupal-updater`](commands/host/drupal-updater): Automatically updates Core and Contrib. Usage `drupal-updater -cugado`.
-- - [`login`](commands/host/login): Opens a browser and logs you in to Drupal (works on local environments only)
-- - [`open-issue`](commands/host/open-issue): Opens teamwork issue for current branch
-- - [`timelog`](commands/host/timelog): Log time to a Teamwork task
-- - [`timew`](commands/host/timew): Tags current timewarrior tracking with Teamwork link and project name
-- - [`travel-mode`](commands/host/travel-mode): Removes all DB dumps 
-    downloaded via `ddev pull`, also provides info on how to remove all DDEV 
-    projects and their databases
 - Provides **host** commands:
 - - [`branch`](commands/host/branch): Creates an opinionated git branch name from a Teamwork ticket ID
 - - [`cloudflare`](commands/host/cloudflare): Shares the project with the outside world over a Cloudflare tunnel
@@ -31,16 +19,19 @@ DDEV workflow.
 - - [`githooks`](commands/host/githooks): Installs git-hooks (also happens on project start)
 - - [`lints`](commands/host/lints): Shows available linters and the way to run them
 - - [`login`](commands/host/login): Opens a browser and logs you in to Drupal (works on local environments only)
+- - [`open-issue`](commands/host/open-issue): Opens teamwork issue for current branch
 - - [`protect [on|off|reset]`](commands/host/protect): Enable or disable basic auth on a nixsal hosted dev project - [see file](commands/host/protect)
 - - [`tests`](commands/host/tests): Informs about available tests for current project
 - - [`timelog`](commands/host/timelog): Log time to a Teamwork task
+- - [`timew`](commands/host/timew): Tags current timewarrior tracking with Teamwork link and project name
+- - [`travel-mode`](commands/host/travel-mode): Removes all DB dumps downloaded via `ddev pull`, also provides info on how to remove all DDEV projects and their databases
 - Provides **web container** commands:
 - - [`behat`](commands/web/behat): Runs behat
 - - [`install-varnish`](commands/web/install-varnish): Installs and configures Varnish on platform.sh project. See [Varnish command README](scripts/varnish/README.md)
-- - [`upsun`](commands/web/platform): Runs `platform/upsun cli`
+- - [`phpunit`](commands/web/phpunit): Runs phpunit tests
 - - [`robo`](commands/web/robo): Runs robo
 - - [`solr:update-config`](commands/web/solr-update-config): Updates SOLR config.zip
-- - [`phpunit`](commands/web/phpunit): Runs phpunit tests
+- - [`upsun`](commands/web/platform): Runs `platform/upsun cli`
 - Uses DDEV Hooks to [properly instantiate project for development](config.hooks.yaml)
 - [Adds git hooks](scripts/git-hooks/)
 - [Sets to development mode on project start](config.annertech.yaml#L3)
