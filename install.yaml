@@ -190,6 +190,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/commands/ -f
   - git add ${DDEV_APPROOT}/.ddev/nginx/ -f
   - git add ${DDEV_APPROOT}/.ddev/scripts/ -f
+  - git add ${DDEV_APPROOT}/.ddev/homeadditions/ -f
   - git add ${DDEV_APPROOT}/.vscode -f
   - git add ${DDEV_APPROOT}/.gitlab/merge_request_templates/ -f
   - |
