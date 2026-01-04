@@ -203,73 +203,32 @@ post_install_actions:
 removal_actions:
   - |
     #ddev-nodisplay
-    #ddev-description:Removing annertech config and settings
-  - rm .env
-  - rm config.annertech.yaml
-  - rm settings.local.perfmode.php
-  - rm settings.local.devmode.php
+    #ddev-description:Removing all files tagged with #annertech-ddev
+    # Find and remove all files with #annertech-ddev marker in .ddev directory
+    find ${DDEV_APPROOT}/.ddev -type f -exec grep -l '#annertech-ddev' {} \; 2>/dev/null | while read -r file; do
+      rm -f "$file"
+    done
+    # Remove empty directories
+    find ${DDEV_APPROOT}/.ddev/scripts -type d -empty -delete 2>/dev/null || true
+  - |
+    #ddev-nodisplay
+    #ddev-description:Removing .env.anner if present
+    rm -f ${DDEV_APPROOT}/.ddev/.env.anner
   - |
     #ddev-nodisplay
     #ddev-description:Removing customized annertech tip of the day (on host!)
     if [ -f ~/.ddev/global_config.yaml ]; then
       if grep -q 'ANNERTECH_CUSTOM_TIPS_START' ~/.ddev/global_config.yaml; then
         sed -i '/^##ANNERTECH_CUSTOM_TIPS_START/,/^##ANNERTECH_CUSTOM_TIPS_END/d' ~/.ddev/global_config.yaml
-        rm ~/.ddev/.state.yaml ~/.ddev/.remote-config
+        rm -f ~/.ddev/.state.yaml ~/.ddev/.remote-config
       fi
     fi
-  - rm commands/host/annertech-tip-of-the-day
   - |
     #ddev-nodisplay
     #ddev-description:Removing web environment tokens
-    sed -i '/PLATFORM_ENVIRONMENT/d' config.yaml
-    sed -i '/PLATFORM_PROJECT/d' config.yaml
-  - |
-    #ddev-nodisplay
-    #ddev-description:Removing annertech custom commands
-  - rm commands/host/branch
-  - rm commands/host/cex
-  - rm commands/host/cim
-  - rm commands/host/cloudflare
-  - rm commands/host/comment
-  - rm commands/host/cr
-  - rm commands/host/devmode
-  - rm commands/host/drupal-updater
-  - rm commands/host/githooks
-  - rm commands/host/lints
-  - rm commands/host/login
-  - rm commands/host/upsun-command-center-python
-  - rm commands/host/upsun-command-center-bash
-  - rm commands/host/protect
-  - rm commands/host/remote-db
-  - rm commands/host/timelog
-  - rm commands/host/teamwork-operations
-  - rm commands/web/behat
-  - rm commands/web/check-annertech-ddev
-  - rm commands/web/install-varnish
-  - rm commands/web/install-bruno
-  - rm commands/web/upsun
-  - rm commands/web/phpunit
-  - rm commands/web/platform
-  - rm commands/web/platform-disk-helper
-  - rm commands/web/platform-log-checker
-  - rm commands/web/rector
-  - rm commands/web/robo
-  - rm commands/web/solr-update-config
-  - |
-    #ddev-nodisplay
-    #ddev-description:Removing annertech custom scripts and modifications
-  - rm nginx/libraries.conf
-  - rm nginx/protect.conf
-  - rm nginx/redirect.conf
-  - rm phpunit.xml
-  - rm -rf scripts
-  - |
-    if [ -f ${DDEV_APPROOT}/.ddev/config.hooks.yaml ]; then
-      if grep -q '#ddev-generated' ${DDEV_APPROOT}/.ddev/config.hooks.yaml; then
-        rm -f ${DDEV_APPROOT}/.ddev/config.hooks.yaml
-      else
-        echo "Unwilling to remove '${DDEV_APPROOT}/.ddev/config.hooks.yaml' because it does not have #ddev-generated in it; you can manually delete it if it is safe to delete."
-      fi
+    if [ -f config.yaml ]; then
+      sed -i '/PLATFORM_ENVIRONMENT/d' config.yaml
+      sed -i '/PLATFORM_PROJECT/d' config.yaml
     fi
   - |
     if [ -f ${DDEV_APPROOT}/.ddev/homeadditions/.bash_aliases ]; then
