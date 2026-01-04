@@ -5,7 +5,6 @@
 ## Description: Quickly open the current issue you are working on
 ## Usage: open-issue
 ## Example: "ddev open-issue"
-## Installed globally
 
 DOMAIN="${TEAMWORK_DOMAIN}"
 

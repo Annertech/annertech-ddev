@@ -5,7 +5,6 @@
 ## Description: Tag current timewarrior activity
 ## Usage: timew
 ## Example: "ddev timew"
-## Installed globally
 
 DOMAIN="${TEAMWORK_DOMAIN}"
 
