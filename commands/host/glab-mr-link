@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Opens MR for current branch in browser and copies link to clipboard
+## Usage: glab-mr-link [-o]
+## Example: "ddev glab-mr-link" or "ddev glab-mr-link -o"
+## Aliases: mr-link
+## Flags: -o (open in browser only)
+
+# Check for -o flag
+if [[ "$1" == "-o" ]]; then
+  glab mr view -w
+  exit 0
+fi
+
+# Get MR link from glab
+mr_link=$(glab mr view | grep -oP 'https://[^\s]+')
+
+if [[ -z "$mr_link" ]]; then
+  echo "Error: No merge request found for current branch."
+  exit 1
+fi
+
+# Copy to clipboard based on OS
+if command -v xclip &> /dev/null; then
+    echo "$mr_link" | xclip -selection clipboard
+    echo "Copied to clipboard: $mr_link"
+elif command -v pbcopy &> /dev/null; then
+    echo "$mr_link" | pbcopy
+    echo "Copied to clipboard: $mr_link"
+elif command -v wl-copy &> /dev/null; then
+    echo "$mr_link" | wl-copy
+    echo "Copied to clipboard: $mr_link"
+else
+    echo "Clipboard command not found. Please install xclip, wl-copy (Linux) or use pbcopy (macOS)."
+    # Display the link for manual copying
+    printf "$mr_link"
+    printf "\n\n"
+fi
