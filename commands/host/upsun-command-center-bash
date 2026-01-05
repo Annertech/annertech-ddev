@@ -31,6 +31,7 @@ OPTIONS=(
     "6. Disk Allocation Helper (beta)"
     "7. Log-checker (beta)"
     "8. Log-checker with goaccess (beta)"
+    "9. Backup Environment"
 )
 
 # Get current project ID from .ddev/config.yaml
@@ -206,6 +207,16 @@ run_log_checker_goaccess() {
         goaccess --log-format=COMBINED -
 }
 
+# Run backup
+run_backup() {
+    local project_id="$1"
+    local project_name="$2"
+    local environment_id="$3"
+    echo_green "${project_name} / ${environment_id} Selected"
+    echo_yellow "Creating backup..."
+    ddev exec upsun backup:create --project="${project_id}" -e "${environment_id}"
+}
+
 # Main function
 main() {
     # Banner
@@ -302,6 +313,15 @@ main() {
                 exit 0
             fi
             run_log_checker_goaccess "$project_id" "$project_name" "$env"
+            ;;
+        "Backup Environment")
+            local env
+            env=$(select_environment "$project_id")
+            if [[ -z "$env" ]]; then
+                echo_red "No environment selected... Exiting"
+                exit 0
+            fi
+            run_backup "$project_id" "$project_name" "$env"
             ;;
         *)
             echo_red "Unknown action: $action_label"
