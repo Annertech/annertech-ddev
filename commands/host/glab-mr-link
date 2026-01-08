@@ -6,7 +6,6 @@
 ## Usage: glab-mr-link [-o]
 ## Example: "ddev glab-mr-link" or "ddev glab-mr-link -o"
 ## Aliases: mr-link
-## Flags: -o (open in browser only)
 
 # Check for -o flag
 if [[ "$1" == "-o" ]]; then
