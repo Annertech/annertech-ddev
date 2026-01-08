@@ -13,8 +13,8 @@ if [[ "$1" == "-o" ]]; then
   exit 0
 fi
 
-# Get MR link from glab
-mr_link=$(glab mr view | grep -oP 'https://[^\s]+')
+# Get MR link from glab (first URL only)
+mr_link=$(glab mr view | grep -oP 'https://[^\s]+' | head -1)
 
 if [[ -z "$mr_link" ]]; then
   echo "Error: No merge request found for current branch."
