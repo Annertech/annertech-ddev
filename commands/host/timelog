@@ -3,9 +3,10 @@
 #annertech-ddev
 #teamwork-api
 
-## Description: Log time to a Teamwork task
+## Description: Log time to a Teamwork task (rounded)
 ## Usage: timelog [-v] [-b|-u] [-t task_id] <time> "<comment>"
 ## Example: ddev timelog 1h15m "Code review"
+## Example: ddev timelog $(timew summary $TASK_ID | tail -2 | head -1 | xargs)
 ## Example: ddev timelog -b 1h15m "Client work (billable)"
 ## Example: ddev timelog -u 30m "Internal meeting (unbillable)"
 ## Aliases: timelog, timeslip
@@ -47,13 +48,28 @@ done
 TIME_INPUT=$1
 COMMENT=$2
 
+# Round up to nearest 15-minute interval
+round_to_15min() {
+  local minutes=$1
+  local remainder=$((minutes % 15))
+
+  if [ $remainder -eq 0 ]; then
+    echo "$minutes"
+  else
+    echo $(( minutes + (15 - remainder) ))
+  fi
+}
+
 # Parse time input into total minutes
-# Supports: "1h15m", "75m", "1.25" (decimal hours), "75" (plain minutes)
+# Supports: "1h15m", "75m", "1.25" (decimal hours), "75" (plain minutes), "H:MM:SS" (timewarrior format)
 parse_time() {
   local input="$1"
   local total=0
 
-  if [[ "$input" =~ ^([0-9]+)h([0-9]+)m$ ]]; then
+  if [[ "$input" =~ ^([0-9]+):([0-9]+):([0-9]+)$ ]]; then
+    # Format: H:MM:SS (timewarrior format - ignores seconds)
+    total=$(( ${BASH_REMATCH[1]} * 60 + ${BASH_REMATCH[2]} ))
+  elif [[ "$input" =~ ^([0-9]+)h([0-9]+)m$ ]]; then
     # Format: 1h15m
     total=$(( ${BASH_REMATCH[1]} * 60 + ${BASH_REMATCH[2]} ))
   elif [[ "$input" =~ ^([0-9]+)h$ ]]; then
@@ -71,9 +87,12 @@ parse_time() {
     total=$input
   else
     echo "Invalid time format: $input"
-    echo "Supported formats: 1h15m, 75m, 1.25 (decimal hours), 75 (plain minutes)"
+    echo "Supported formats: 1h15m, 75m, 1.25 (decimal hours), 75 (plain minutes), H:MM:SS"
     exit 1
   fi
+
+  # Round up to nearest 15-minute interval
+  total=$(round_to_15min "$total")
 
   echo "$total"
 }
