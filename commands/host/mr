@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Quickly make an MR and prefill it
+## Usage: mr
+## Example: "ddev mr"
+
+#DOMAIN="${TEAMWORK_DOMAIN}"
+#
+#if [[ -z "$DOMAIN" ]]; then
+#  echo "Error: TEAMWORK_DOMAIN environment variable must be set."
+#  exit 1
+#fi
+#
+# Get the name of the active Git branch
+branch_name=$(git rev-parse --abbrev-ref HEAD)
+
+# Extract the task ID using regex
+if [[ $branch_name =~ T-([0-9]+) ]]; then
+    task_id="${BASH_REMATCH[1]}"
+else
+    echo "No task ID found in the branch name."
+fi
+
+if [[ $branch_name =~ __([^_]+)$ ]]; then
+    description="${BASH_REMATCH[1]}"
+else
+    echo "No description found in the branch name."
+fi
+
+git push origin $(git rev-parse --abbrev-ref HEAD)
+glab mr create --title "T-$task_id $description" --draft
