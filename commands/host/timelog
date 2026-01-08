@@ -3,7 +3,7 @@
 #annertech-ddev
 #teamwork-api
 
-## Description: Log time to a Teamwork task (rounds up to 15min intervals)
+## Description: Log time to a Teamwork task (rounded)
 ## Usage: timelog [-v] [-b|-u] [-t task_id] <time> "<comment>"
 ## Example: ddev timelog 1h15m "Code review"
 ## Example: ddev timelog $(timew summary $TASK_ID | tail -2 | head -1 | xargs)
