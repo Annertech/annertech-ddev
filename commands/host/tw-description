@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Update Teamwork task description
+## Usage: tw-description [-t task-id]
+## Example: "ddev tw-description" (uses task ID from branch)
+## Example: "ddev tw-description -t 18126193"
+
+set -eo pipefail
+
+# Color output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+echo_red() { echo -e "${RED}$1${NC}" >&2; }
+echo_green() { echo -e "${GREEN}$1${NC}"; }
+echo_yellow() { echo -e "${YELLOW}$1${NC}"; }
+
+TASK_ID_OVERRIDE=""
+
+# Parse flags
+while [[ "$1" == -* ]]; do
+  case "$1" in
+    -t)
+      TASK_ID_OVERRIDE="$2"
+      shift 2
+      ;;
+    *)
+      echo_red "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
+# Get Teamwork API key from environment
+TW_API_KEY="${TEAMWORK_API_KEY:-}"
+if [ -z "$TW_API_KEY" ]; then
+    echo_red "Error: TEAMWORK_API_KEY environment variable not set"
+    echo_yellow "Set it with: export TEAMWORK_API_KEY='your-api-key'"
+    exit 1
+fi
+
+# Use override if provided, otherwise extract from branch, otherwise prompt
+if [[ -n "$TASK_ID_OVERRIDE" ]]; then
+  TASK_ID="$TASK_ID_OVERRIDE"
+else
+  branch_name=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+  if [[ $branch_name =~ T-([0-9]+) ]]; then
+    TASK_ID="${BASH_REMATCH[1]}"
+    echo_yellow "Using task ID from branch: T-${TASK_ID}"
+  else
+    echo_yellow "No task ID found in branch name."
+    read -e -p "Enter task ID: " TASK_ID
+    if [[ -z "$TASK_ID" ]]; then
+      echo_red "Error: Task ID is required."
+      exit 1
+    fi
+  fi
+fi
+
+# Validate task ID is numeric
+if ! [[ "$TASK_ID" =~ ^[0-9]+$ ]]; then
+    echo_red "Error: Task ID must be numeric"
+    exit 1
+fi
+
+# Prompt for MR link
+echo_yellow "Enter MR link:"
+read -e -r MR_LINK
+if [ -z "$MR_LINK" ]; then
+    echo_red "Error: MR link is required"
+    exit 1
+fi
+
+# Prompt for deploy state/notes (multiline)
+echo_yellow "Enter deploy state (empty line to finish, or press Enter for 'Pending'):"
+DEPLOY_STATE=""
+while IFS= read -e -r line; do
+    if [ -z "$line" ]; then
+        if [ -z "$DEPLOY_STATE" ]; then
+            DEPLOY_STATE="Pending"
+        fi
+        break
+    fi
+    if [ -n "$DEPLOY_STATE" ]; then
+        DEPLOY_STATE="${DEPLOY_STATE}
+${line}"
+    else
+        DEPLOY_STATE="$line"
+    fi
+done
+
+# Prompt for test notes (multiline)
+echo_yellow "Enter test notes/plan (empty line to finish):"
+TEST_NOTES=""
+while IFS= read -e -r line; do
+    if [ -z "$line" ] && [ -n "$TEST_NOTES" ]; then
+        break
+    fi
+    if [ -n "$TEST_NOTES" ]; then
+        TEST_NOTES="${TEST_NOTES}
+${line}"
+    else
+        TEST_NOTES="$line"
+    fi
+done
+
+if [ -z "$TEST_NOTES" ]; then
+    echo_red "Error: Test notes are required"
+    exit 1
+fi
+
+# Get existing task description
+echo_yellow "Fetching existing task description..."
+
+# Check if jq is available
+if ! command -v jq &> /dev/null; then
+    echo_red "Error: jq is required for this command"
+    echo_yellow "Install with: apt-get install jq (or brew install jq on macOS)"
+    exit 1
+fi
+
+# Fetch the task
+TASK_RESPONSE=$(curl -s \
+    -u "${TW_API_KEY}:v" \
+    "https://projects.annertech.com/tasks/${TASK_ID}.json")
+
+# Debug: Check if we got a valid response
+if [ -z "$TASK_RESPONSE" ]; then
+    echo_red "Error: Failed to fetch task from API"
+    exit 1
+fi
+
+# Extract description - try different possible field names
+EXISTING_DESC=$(echo "$TASK_RESPONSE" | jq -r '.task.description // .["todo-item"].description // ""')
+
+if [ -z "$EXISTING_DESC" ] || [ "$EXISTING_DESC" == "null" ]; then
+    echo_yellow "No existing description found, creating new one."
+    EXISTING_DESC=""
+else
+    echo_yellow "Found existing description (${#EXISTING_DESC} characters)"
+    # Add separator if there's existing content
+    EXISTING_DESC="${EXISTING_DESC}
+
+---
+
+"
+fi
+
+# Build new section to append
+NEW_SECTION="## Deploy
+
+- MR: ${MR_LINK}
+
+#### State
+
+${DEPLOY_STATE}
+
+#### Test
+
+${TEST_NOTES}"
+
+# Combine existing and new
+FULL_DESCRIPTION="${EXISTING_DESC}${NEW_SECTION}"
+
+# Escape description for JSON
+DESCRIPTION_JSON=$(echo "$FULL_DESCRIPTION" | jq -Rs .)
+
+# Make API call
+echo_yellow "Updating task $TASK_ID..."
+RESPONSE=$(curl -s -w "\n%{http_code}" -X PUT \
+    -H "Content-Type: application/json" \
+    -u "${TW_API_KEY}:v" \
+    -d "{\"task\":{\"description\":${DESCRIPTION_JSON}}}" \
+    "https://projects.annertech.com/tasks/${TASK_ID}.json")
+
+HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+
+if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 204 ]; then
+    echo_green "✓ Task description updated successfully"
+    echo_green "https://projects.annertech.com/tasks/${TASK_ID}"
+else
+    echo_red "✗ Failed to update task (HTTP $HTTP_CODE)"
+    echo "$RESPONSE" | head -n-1
+    exit 1
+fi

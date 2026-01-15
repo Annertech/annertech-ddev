@@ -22,6 +22,7 @@ OPTIONS=(
     "1. Open Issue"
     "2. Post Comment"
     "3. Log Time"
+    "4. Update Description"
 )
 
 # Select action
@@ -132,6 +133,11 @@ main() {
             echo_green "Log Time to Task"
             echo ""
             ddev timelog
+            ;;
+        "Update Description")
+            echo_green "Update Task Description"
+            echo ""
+            ddev tw-description
             ;;
         *)
             echo_red "Unknown action: $action_label"
