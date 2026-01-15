@@ -28,10 +28,10 @@
 - No redundant code (e.g. commented out code, no longer in use)
 
 ### Accessibility
-- [ ] Pages under review pass AXE/Wave accessibility testing  
-  _See Knowledge [Accessibility section](https://knowledge.annertech.com/accessibility) for guidance on testing and implementation_
-- [ ] Interactive elements correctly implement ['aria' patterns](https://www.w3.org/TR/wai-aria-practices-1.2/#aria_ex)
-
+_See Knowledge [Accessibility section](https://knowledge.annertech.com/accessibility) for guidance on testing and implementation_
+- [ ] Work on this MR does not introduce new a11y issues
+- [ ] The pages affected were checked with SilkTide browser addon
+- [ ] I created new issues for pre-existing a11y issues unrelated to the work on this branch
 
 ---
 <sup><sub>
