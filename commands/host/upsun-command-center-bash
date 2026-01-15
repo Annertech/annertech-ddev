@@ -7,8 +7,8 @@
 # We'll chose which one will be maintained further.
 
 ## Description: Upsun Command Centre (ssh, uli, resume, activities, disk) - Bash version
-## Usage: upsun-command-center-bash
-## Example: "ddev upsun-command-center-bash"
+## Usage: upsun-command-center-bash [ACTION] [PROJECT] [ENVIRONMENT]
+## Example: "ddev upsun-command-center-bash" (interactive) or "ddev uccb run_log_checker_goaccess myproject main"
 ## Aliases: upbash, uccb
 
 # Colours
@@ -217,10 +217,33 @@ run_backup() {
     ddev exec upsun backup:create --project="${project_id}" -e "${environment_id}"
 }
 
+# Find project by name or ID
+find_project() {
+    local search_term="$1"
+    local projects
+    projects=$(ddev exec upsun project:list --no-header --columns=id,title --format=tsv --count=0)
+
+    # Try exact match on ID first
+    local match
+    match=$(echo "$projects" | grep "^${search_term}[[:space:]]" | head -n1)
+
+    # If no match, try case-insensitive match on title
+    if [[ -z "$match" ]]; then
+        match=$(echo "$projects" | grep -i "[[:space:]]${search_term}" | head -n1)
+    fi
+
+    echo "$match"
+}
+
 # Main function
 main() {
-    # Banner
-    echo_green "
+    local action_arg="$1"
+    local project_arg="$2"
+    local env_arg="$3"
+
+    # Show banner only in interactive mode
+    if [[ -z "$action_arg" ]]; then
+        echo_green "
 ██╗   ██╗██████╗ ███████╗██╗   ██╗███╗   ██╗
 ██║   ██║██╔══██╗██╔════╝██║   ██║████╗  ██║
 ██║   ██║██████╔╝███████╗██║   ██║██╔██╗ ██║
@@ -235,34 +258,63 @@ main() {
 ╚██████╗╚██████╔╝██║ ╚═╝ ██║██║ ╚═╝ ██║██║  ██║██║ ╚████║██████╔╝    ╚██████╗███████╗██║ ╚████║   ██║   ██║  ██║███████╗
  ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝      ╚═════╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚══════╝
 "
-    echo "                                      by Annertech and Bill Seremetis"
-    echo ""
-
-    # Select action
-    local action_selection
-    action_selection=$(select_action)
-    if [[ -z "$action_selection" ]]; then
-        echo_red "Nothing selected... Exiting"
-        exit 0
+        echo "                                      by Annertech and Bill Seremetis"
+        echo ""
     fi
 
-    # Extract action from selection (remove number prefix)
+    # Select or use provided action
     local action_label
-    action_label=$(echo "$action_selection" | sed 's/^[0-9]*\. //')
-
-    # Select project
-    local project_selection
-    project_selection=$(select_project)
-    if [[ -z "$project_selection" ]]; then
-        echo_red "Nothing selected... Exiting"
-        exit 0
+    if [[ -n "$action_arg" ]]; then
+        # Map function name to action label
+        case "$action_arg" in
+            run_ssh) action_label="SSH" ;;
+            run_uli) action_label="Drush ULI" ;;
+            run_resume) action_label="Resume Environment" ;;
+            run_activities) action_label="Activities" ;;
+            run_activity_in_progress) action_label="Running activity" ;;
+            run_disk_helper) action_label="Disk Allocation Helper (beta)" ;;
+            run_log_checker) action_label="Log-checker (beta)" ;;
+            run_log_checker_goaccess) action_label="Log-checker with goaccess (beta)" ;;
+            run_backup) action_label="Backup Environment" ;;
+            *)
+                echo_red "Unknown action: $action_arg"
+                echo_yellow "Available actions: run_ssh, run_uli, run_resume, run_activities, run_activity_in_progress, run_disk_helper, run_log_checker, run_log_checker_goaccess, run_backup"
+                exit 1
+                ;;
+        esac
+    else
+        local action_selection
+        action_selection=$(select_action)
+        if [[ -z "$action_selection" ]]; then
+            echo_red "Nothing selected... Exiting"
+            exit 0
+        fi
+        action_label=$(echo "$action_selection" | sed 's/^[0-9]*\. //')
     fi
 
-    # Parse project info
+    # Select or use provided project
     local project_id project_name
-    project_id=$(echo "$project_selection" | cut -f1 | sed 's/ (current)$//')
-    project_name=$(echo "$project_selection" | cut -f2 | sed 's/ (current)$//')
-    [[ -z "$project_name" ]] && project_name="$project_id"
+    if [[ -n "$project_arg" ]]; then
+        local project_selection
+        project_selection=$(find_project "$project_arg")
+        if [[ -z "$project_selection" ]]; then
+            echo_red "Project not found: $project_arg"
+            exit 1
+        fi
+        project_id=$(echo "$project_selection" | cut -f1)
+        project_name=$(echo "$project_selection" | cut -f2)
+        [[ -z "$project_name" ]] && project_name="$project_id"
+    else
+        local project_selection
+        project_selection=$(select_project)
+        if [[ -z "$project_selection" ]]; then
+            echo_red "Nothing selected... Exiting"
+            exit 0
+        fi
+        project_id=$(echo "$project_selection" | cut -f1 | sed 's/ (current)$//')
+        project_name=$(echo "$project_selection" | cut -f2 | sed 's/ (current)$//')
+        [[ -z "$project_name" ]] && project_name="$project_id"
+    fi
 
     # Execute selected action
     case "$action_label" in
@@ -271,10 +323,14 @@ main() {
             ;;
         "Drush ULI")
             local env
-            env=$(select_environment "$project_id")
-            if [[ -z "$env" ]]; then
-                echo_red "No environment selected... Exiting"
-                exit 0
+            if [[ -n "$env_arg" ]]; then
+                env="$env_arg"
+            else
+                env=$(select_environment "$project_id")
+                if [[ -z "$env" ]]; then
+                    echo_red "No environment selected... Exiting"
+                    exit 0
+                fi
             fi
             run_uli "$project_id" "$project_name" "$env"
             ;;
@@ -286,10 +342,14 @@ main() {
             ;;
         "Running activity")
             local env
-            env=$(select_environment "$project_id")
-            if [[ -z "$env" ]]; then
-                echo_red "No environment selected... Exiting"
-                exit 0
+            if [[ -n "$env_arg" ]]; then
+                env="$env_arg"
+            else
+                env=$(select_environment "$project_id")
+                if [[ -z "$env" ]]; then
+                    echo_red "No environment selected... Exiting"
+                    exit 0
+                fi
             fi
             run_activity_in_progress "$project_id" "$project_name" "$env"
             ;;
@@ -298,28 +358,40 @@ main() {
             ;;
         "Log-checker (beta)")
             local env
-            env=$(select_environment "$project_id")
-            if [[ -z "$env" ]]; then
-                echo_red "No environment selected... Exiting"
-                exit 0
+            if [[ -n "$env_arg" ]]; then
+                env="$env_arg"
+            else
+                env=$(select_environment "$project_id")
+                if [[ -z "$env" ]]; then
+                    echo_red "No environment selected... Exiting"
+                    exit 0
+                fi
             fi
             run_log_checker "$project_id" "$project_name" "$env"
             ;;
         "Log-checker with goaccess (beta)")
             local env
-            env=$(select_environment "$project_id")
-            if [[ -z "$env" ]]; then
-                echo_red "No environment selected... Exiting"
-                exit 0
+            if [[ -n "$env_arg" ]]; then
+                env="$env_arg"
+            else
+                env=$(select_environment "$project_id")
+                if [[ -z "$env" ]]; then
+                    echo_red "No environment selected... Exiting"
+                    exit 0
+                fi
             fi
             run_log_checker_goaccess "$project_id" "$project_name" "$env"
             ;;
         "Backup Environment")
             local env
-            env=$(select_environment "$project_id")
-            if [[ -z "$env" ]]; then
-                echo_red "No environment selected... Exiting"
-                exit 0
+            if [[ -n "$env_arg" ]]; then
+                env="$env_arg"
+            else
+                env=$(select_environment "$project_id")
+                if [[ -z "$env" ]]; then
+                    echo_red "No environment selected... Exiting"
+                    exit 0
+                fi
             fi
             run_backup "$project_id" "$project_name" "$env"
             ;;
@@ -330,4 +402,4 @@ main() {
     esac
 }
 
-main
+main "$@"
