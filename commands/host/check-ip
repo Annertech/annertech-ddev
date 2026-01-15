@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Check IP address reputation using AbuseIPDB API
+## Usage: check-ip <IP_ADDRESS>
+## Example: "ddev check-ip 192.168.1.1"
+
+# Check if IP parameter is provided
+if [ -z "$1" ]; then
+    echo "Usage: ddev check-ip <IP_ADDRESS>"
+    exit 1
+fi
+
+IP_ADDRESS="$1"
+
+# Check if API key is set
+if [ -z "$ABUSEIPDB_API_KEY" ]; then
+    echo "Error: ABUSEIPDB_API_KEY environment variable is not set"
+    echo "Set it with: export ABUSEIPDB_API_KEY=your_key_here"
+    exit 1
+fi
+
+# Make API request and parse response
+response=$(curl -sG https://api.abuseipdb.com/api/v2/check \
+  --data-urlencode "ipAddress=$IP_ADDRESS" \
+  -d maxAgeInDays=90 \
+  -d verbose \
+  -H "Key: $ABUSEIPDB_API_KEY" \
+  -H "Accept: application/json")
+
+# Parse and display results using jq
+echo "=========================================="
+echo "AbuseIPDB Report for: $IP_ADDRESS"
+echo "=========================================="
+echo ""
+
+echo "$response" | jq -r '
+  "Abuse Confidence Score: \(.data.abuseConfidenceScore)%",
+  "Number of Reports:      \(.data.totalReports)",
+  "Last Reported:          \(.data.lastReportedAt // "Never")",
+  "Whitelisted:            \(.data.isWhitelisted)",
+  "",
+  "Last Comment:",
+  "─────────────────────────────────────────",
+  (.data.reports[0].comment // "No comments available")
+'
+
+echo ""
+echo "=========================================="
