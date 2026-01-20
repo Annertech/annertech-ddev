@@ -154,6 +154,7 @@ fi
 NEW_SECTION="## Deploy
 
 - MR: ${MR_LINK}
+- Branch: \`${branch_name}\`
 
 #### State
 
