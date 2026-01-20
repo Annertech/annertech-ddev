@@ -60,8 +60,20 @@ fi
 
 # Prompt for comment if not provided
 if [[ -z "$COMMENT" ]]; then
-  echo "Enter comment:"
-  read -e COMMENT
+  echo "Enter comment (empty line to finish):"
+  COMMENT=""
+  while IFS= read -e -r line; do
+    if [[ -z "$line" ]] && [[ -n "$COMMENT" ]]; then
+      break
+    fi
+    if [[ -n "$COMMENT" ]]; then
+      COMMENT="${COMMENT}
+${line}"
+    else
+      COMMENT="$line"
+    fi
+  done
+
   if [[ -z "$COMMENT" ]]; then
     echo "Error: Comment cannot be empty."
     exit 1
