@@ -12,6 +12,7 @@ DDEV workflow.
 
 - Provides **host** commands:
 - - [`branch`](commands/host/branch): Creates an opinionated git branch name from a Teamwork ticket ID
+- - [`check-ip`](commands/host/check-ip): Check IP address reputation using AbuseIPDB API
 - - [`cloudflare`](commands/host/cloudflare): Shares the project with the outside world over a Cloudflare tunnel
 - - [`comment`](commands/host/comment): Post a comment to a Teamwork task
 - - [`devmode [on|off]`](commands/host/devmode): Adds custom settings.local.php file and allows easy toggle between production and development mode
@@ -23,12 +24,13 @@ DDEV workflow.
 - - [`protect [on|off|reset]`](commands/host/protect): Enable or disable basic auth on a nixsal hosted dev project - [see file](commands/host/protect)
 - - [`remote-db`](commands/host/remote-db): Get latest DB from live site
 - - [`tw` - `teamwork-operations`](commands/host/teamwork-operations): **Interactive** Teamwork Operations Centre (open-issue, comment, timelog).
+- - [`tw-description`](commands/host/tw-description): Update Teamwork task description with MR link and deploy/test notes
 - - [`tests`](commands/host/tests): Informs about available tests for current project
 - - [`timelog`](commands/host/timelog): Log time to a Teamwork task
 - - [`timew`](commands/host/timew): Tags current timewarrior tracking with Teamwork ID and project name
 - - [`travel-mode`](commands/host/travel-mode): Removes all DB dumps downloaded via `ddev pull`, also provides info on how to remove all DDEV projects and their databases
-- - [`uccb` - `upsun-command-center-bash`](commands/host/upsun-command-center-bash): **Interactive** Upsun Command Centre (bash version)
-- - _[`uccp` - `upsun-command-center-python`](commands/host/upsun-command-center-bash): **Interactive** Upsun Command Centre (python version)_
+- - [`uccb` - `upsun-command-center-bash`](commands/host/upsun-command-center-bash): Upsun Command Centre - interactive mode or with arguments
+- - _[`uccp` - `upsun-command-center-python`](commands/host/upsun-command-center-bash): **WIP** Interactive Upsun Command Centre (python version)_
 - Provides **web container** commands:
 - - [`behat`](commands/web/behat): Runs behat
 - - [`install-bruno`](commands/web/install-bruno): Prepare bruno configuration
@@ -114,9 +116,11 @@ if (isset($platformsh->branch)) {
     </code></pre>
 </details>
 
-## Teamwork Integration
+## External Service Integration
 
-Several commands integrate with Teamwork (`comment`, `timelog`, `open-issue`, `timew`). These require the following environment variables to be set on your host machine:
+### Teamwork Integration
+
+Several commands integrate with Teamwork (`comment`, `timelog`, `open-issue`, `timew`, `tw-description`). These require the following environment variables to be set on your host machine:
 
 ```bash
 export TEAMWORK_DOMAIN="projects.yourcompany.com"
@@ -124,6 +128,16 @@ export TEAMWORK_API_KEY="your_api_key_here"
 ```
 
 Add these to your `~/.bashrc` or `~/.zshrc` file.
+
+### IP Reputation Checking
+
+The `check-ip` command uses AbuseIPDB API and requires:
+
+```bash
+export ABUSEIPDB_API_KEY="your_api_key_here"
+```
+
+Add this to your `~/.bashrc` or `~/.zshrc` file.
 
 ## Tricks
 
