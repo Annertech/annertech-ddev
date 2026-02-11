@@ -11,6 +11,7 @@ DDEV workflow.
 ## Features
 
 - Provides **host** commands:
+- - [`ai` - `ai-prompts`](commands/host/ai-prompts): **Interactive** AI Prompts Operations Centre using CLI version of AI agents
 - - [`branch`](commands/host/branch): Creates an opinionated git branch name from a Teamwork ticket ID
 - - [`check-ip`](commands/host/check-ip): Check IP address reputation using AbuseIPDB API
 - - [`cloudflare`](commands/host/cloudflare): Shares the project with the outside world over a Cloudflare tunnel
@@ -138,6 +139,15 @@ export ABUSEIPDB_API_KEY="your_api_key_here"
 ```
 
 Add this to your `~/.bashrc` or `~/.zshrc` file.
+
+### AI Prompts
+
+The `ai-prompts` command provides interactive AI-powered workflows and requires at least one of:
+- [Gemini CLI](https://geminicli.com/) - `gemini` command
+- [GitHub Copilot CLI](https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli) - `copilot` command
+- [Claude Code](https://github.com/anthropics/claude-code) - `claude` command
+
+Install at least one of these tools on your host machine. The command will prompt you to select which AI agent to use when run.
 
 ## Tricks
 
