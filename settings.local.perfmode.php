@@ -26,6 +26,11 @@ $config['search_api.server.solr']['backend_config']['connector_config']['port'] 
 $config['search_api.server.solr']['backend_config']['connector_config']['path'] = '/';
 $config['search_api.server.solr']['backend_config']['connector_config']['core'] = 'dev';
 
+// Local SimpleSAML SP.
+$config['simplesamlphp_auth.settings']['auth_source'] = 'example-userpass';
+// Override goto url so that we don't land on the live site!
+$config['simplesamlphp_auth.settings']['logout_goto_url'] = 'https://' . $_SERVER['VIRTUAL_HOST'];
+
 // Set $settings['file_private_path'] if not set in settings.php.
 if (empty($settings['file_private_path'])) {
   $settings['file_private_path'] = '../private';
