@@ -26,3 +26,7 @@ fi
 
 # Run behat with the provided flags/arguments
 bin/behat "$@"
+
+# Create/update timestamp file
+cd ../..
+touch ${DDEV_APPROOT}/.ddev/.annertech_tests_timestamps

@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# Annertech's tests timestamps file
+TIMESTAMP_FILE=.ddev/.annertech_tests_timestamps
+
+# Check if the timestamp is more recent than 1 hour
+one_hour_ago=$(date -d '-1 hour' "+%s")
+last_test_run=$(date -r $TIMESTAMP_FILE "+%s")
+if [ $one_hour_ago -gt $last_test_run ];
+then
+	read -r -p "You haven't run tests recently. Do you want to run them now? [y/N] " response < /dev/tty
+  case "$response" in [yY][eE][sS]|[yY])
+        # Disallow the push
+        echo git push aborted. Run your testing suite and git push again
+        exit 1
+        ;;
+      *)
+        echo pushing...
+        ;;
+  esac
+fi
+
+# Allow the push.
+exit 0
