@@ -4,7 +4,7 @@
 ## Description: Configure multisite project for work on nixsal
 ## Usage: nixsal
 ## Example: "ddev nixsal"
-## ProjectTypes: drupal,drupal10
+## ProjectTypes: drupal10,drupal11
 
 # Check if $HOST is set and not empty
 if [ -z "$HOST" ]; then

@@ -6,7 +6,7 @@
 ## Usage: drupal-updater
 ## Example: "ddev drupal-updater -cugado" \n"ddev drupal-updater drupal/module-name --commit-steps" \n"ddev drupal-updater --all --with-core --commit-steps" \n"ddev drupal-updater --dry-run --omit-snapshot"
 ## Flags: [{"Name":"commit-steps","Shorthand":"g","Usage":"Create a git commit for each update step","Type":"bool"},{"Name":"with-core","Shorthand":"c", "Usage":"Include core updates in --all","Type":"bool"},{"Name":"all","Shorthand":"a","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot", "Shorthand": "o", "Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"update-changelog","Shorthand":"u","Usage":"Update the CHANGELOG.md with the latest changes","Type":"bool"},{"Name":"run-db-updates","Shorthand":"d","Usage":"Run database updates between module updates","Type":"bool"}]
-## ProjectTypes: drupal,drupal11,drupal10
+## ProjectTypes: drupal10,drupal11
 
 ## This script is brought to you by:
 ## - Valentin Zsigmond (drupal.org/u/vzsigmond)

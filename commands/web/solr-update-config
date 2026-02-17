@@ -5,7 +5,7 @@
 ## Description: Update SOLR config (config.zip), looks into Robo first to see if a project has a custom described action set for this.
 ## Usage: solr:update-config
 ## Example: "ddev solr:update-config"
-## ProjectTypes: drupal,drupal10
+## ProjectTypes: drupal10,drupal11
 
 if ./vendor/bin/robo | grep -q 'solr:update-conf'; then
   echo "Running via Robo (configuration found in project level)"
