@@ -16,6 +16,20 @@ fi
 # Get the name of the active Git branch
 branch_name=$(git rev-parse --abbrev-ref HEAD)
 
+# If no task ID in current branch, fall back to the previously checked-out branch
+if [[ ! $branch_name =~ T-([0-9]+) ]]; then
+    prev_branch=$(git rev-parse --abbrev-ref @{-1} 2>/dev/null)
+    if [[ -n "$prev_branch" && "$prev_branch" != "@{-1}" && $prev_branch =~ T-([0-9]+) ]]; then
+        task_id_prev="${BASH_REMATCH[1]}"
+        echo "No task ID in current branch. Found T-${task_id_prev} in previous branch: $prev_branch"
+        read -p "Continue with T-${task_id_prev}? (Y/n): " confirm
+        confirm=${confirm:-Y}
+        if [[ ! "$confirm" =~ ^[Nn] ]]; then
+            branch_name="$prev_branch"
+        fi
+    fi
+fi
+
 # Extract the task ID using regex
 if [[ $branch_name =~ T-([0-9]+) ]]; then
     task_id="${BASH_REMATCH[1]}"

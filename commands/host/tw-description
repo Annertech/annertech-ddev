@@ -52,11 +52,26 @@ else
     TASK_ID="${BASH_REMATCH[1]}"
     echo_yellow "Using task ID from branch: T-${TASK_ID}"
   else
-    echo_yellow "No task ID found in branch name."
-    read -e -p "Enter task ID: " TASK_ID
-    if [[ -z "$TASK_ID" ]]; then
-      echo_red "Error: Task ID is required."
-      exit 1
+    prev_branch=$(git rev-parse --abbrev-ref @{-1} 2>/dev/null)
+    if [[ -n "$prev_branch" && "$prev_branch" != "@{-1}" && $prev_branch =~ T-([0-9]+) ]]; then
+      TASK_ID="${BASH_REMATCH[1]}"
+      echo_yellow "No task ID in current branch. Found T-${TASK_ID} in previous branch: $prev_branch"
+      read -p "Continue with T-${TASK_ID}? (Y/n): " confirm
+      confirm=${confirm:-Y}
+      if [[ "$confirm" =~ ^[Nn] ]]; then
+        read -e -p "Enter task ID: " TASK_ID
+        if [[ -z "$TASK_ID" ]]; then
+          echo_red "Error: Task ID is required."
+          exit 1
+        fi
+      fi
+    else
+      echo_yellow "No task ID found in branch name."
+      read -e -p "Enter task ID: " TASK_ID
+      if [[ -z "$TASK_ID" ]]; then
+        echo_red "Error: Task ID is required."
+        exit 1
+      fi
     fi
   fi
 fi
