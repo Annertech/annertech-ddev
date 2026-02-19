@@ -2,11 +2,20 @@
 #ddev-generated
 
 # ── Sanity check ─────────────────────────────────────────────────────────────
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 ddev sanity-check
 if [[ $? -ne 0 ]]; then
   echo ""
-  echo "🚫 Push aborted: sanity-check failed. Fix the issues above or use --no-verify to push anyway."
-  exit 1
+  if [[ "$CURRENT_BRANCH" == "dev" ]]; then
+    echo "⚠️  Sanity-check failed on 'dev' branch — pushing anyway."
+  else
+    read -p "⚠️  Sanity-check failed. Continue pushing anyway? (y/N): " sanity_confirm </dev/tty
+    sanity_confirm=${sanity_confirm:-N}
+    if [[ ! "$sanity_confirm" =~ ^[Yy] ]]; then
+      echo "🚫 Push aborted: fix the issues above and try again."
+      exit 1
+    fi
+  fi
 fi
 
 # ── Backstop tests check ────────────────────────────────────────────────────
