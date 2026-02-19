@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Sanity-check Drupal and Upsun cache configuration
+## Usage: sanity-check
+## Example: "ddev sanity-check"
+## ProjectTypes: drupal10,drupal11
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+pass()  { echo -e "${GREEN}  ✓ $1${NC}"; }
+fail()  { echo -e "${RED}  ✗ $1${NC}"; ERRORS=$((ERRORS + 1)); }
+warn()  { echo -e "${YELLOW}  ! $1${NC}"; WARNINGS=$((WARNINGS + 1)); }
+title() { echo -e "\n── $1 ──"; }
+
+ERRORS=0
+WARNINGS=0
+APPROOT="${DDEV_APPROOT:-.}"
+BEHIND_CDN=false
+
+# ── Drupal: system.performance.yml ─────────────────────────────────────────
+title "Drupal: system.performance.yml"
+PERF_FILE=$(find "$APPROOT" -path "*/config/sync/system.performance.yml" ! -path "*/.git/*" 2>/dev/null | head -1)
+
+if [[ -z "$PERF_FILE" ]]; then
+  warn "system.performance.yml not found — skipping"
+else
+  if grep -q "preprocess: false" "$PERF_FILE"; then
+    fail "CSS/JS aggregation is DISABLED (preprocess: false)"
+  else
+    pass "CSS/JS aggregation is enabled"
+  fi
+
+  if grep -q "max_age: 0" "$PERF_FILE"; then
+    fail "Browser caching is DISABLED (max_age: 0)"
+  else
+    pass "Browser caching is enabled"
+  fi
+
+  if grep -q "gzip: true" "$PERF_FILE"; then
+    fail "AdvAgg GZIP is enabled (gzip: true) — conflicts with Upsun compression"
+  else
+    pass "AdvAgg GZIP is not enabled"
+  fi
+fi
+
+# ── Drupal: core.extension.yml ─────────────────────────────────────────────
+title "Drupal: core.extension.yml"
+EXT_FILE=$(find "$APPROOT" -path "*/config/sync/core.extension.yml" ! -path "*/.git/*" 2>/dev/null | head -1)
+
+if [[ -z "$EXT_FILE" ]]; then
+  warn "core.extension.yml not found — skipping"
+else
+  for mod in devel devel_php drush_endpoint; do
+    if grep -qE "^\s+${mod}:" "$EXT_FILE"; then
+      fail "Dev module '$mod' is ENABLED"
+    else
+      pass "Dev module '$mod' is not enabled"
+    fi
+  done
+
+  # CDN detection
+  CDN_NAME=""
+  for cdn_mod in fastly cloudflare; do
+    if grep -qE "^\s+${cdn_mod}:" "$EXT_FILE"; then
+      CDN_NAME="$cdn_mod"
+      BEHIND_CDN=true
+    fi
+  done
+  if $BEHIND_CDN; then
+    pass "CDN detected: $CDN_NAME — Upsun route cache must be disabled"
+  fi
+
+  # page_cache check only relevant for Upsun (Varnish handles page caching)
+  ENV_FILE="$APPROOT/.ddev/.env"
+  if [[ -f "$ENV_FILE" ]]; then
+    source "$ENV_FILE"
+    if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
+      if grep -qE "^\s+page_cache:" "$EXT_FILE"; then
+        fail "page_cache is ENABLED — Varnish on Upsun handles this; disable page_cache"
+      else
+        pass "page_cache is disabled (Varnish handles it)"
+      fi
+    fi
+  fi
+fi
+
+# ── Upsun: route cache ──────────────────────────────────────────────────────
+title "Upsun: cache configuration"
+ROUTES_FILE="$APPROOT/.platform/routes.yaml"
+
+if [[ ! -f "$ROUTES_FILE" ]]; then
+  warn "No .platform/routes.yaml found — skipping Upsun checks"
+else
+  if grep -qE "cache:" "$ROUTES_FILE"; then
+    if $BEHIND_CDN; then
+      if grep -qE "enabled:\s*false" "$ROUTES_FILE"; then
+        pass "Route cache is disabled (correct — project is behind a CDN)"
+      else
+        fail "Route cache must be DISABLED when behind a CDN (fastly/cloudflare detected)"
+      fi
+    else
+      if grep -qE "enabled:\s*true" "$ROUTES_FILE"; then
+        pass "Route cache is enabled"
+      elif grep -qE "enabled:\s*false" "$ROUTES_FILE"; then
+        fail "Route cache is DISABLED but no CDN module detected — should be enabled"
+      else
+        pass "Cache key found in routes.yaml"
+      fi
+    fi
+  else
+    warn "No 'cache:' key found in .platform/routes.yaml — route caching may not be configured"
+  fi
+fi
+
+# ── Summary ─────────────────────────────────────────────────────────────────
+echo ""
+if [[ $ERRORS -gt 0 ]]; then
+  echo -e "${RED}── $ERRORS error(s) found — caches are NOT properly configured ──${NC}"
+  exit 1
+elif [[ $WARNINGS -gt 0 ]]; then
+  echo -e "${YELLOW}── All checks passed with $WARNINGS warning(s) ──${NC}"
+else
+  echo -e "${GREEN}── All checks passed ──${NC}"
+fi
