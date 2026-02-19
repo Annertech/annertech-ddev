@@ -66,6 +66,30 @@ if [ -n "$STAGED_FILES" ]; then
 fi
 
 #
+# Abort commit if Upsun route cache is enabled while behind a CDN
+#
+EXT_FILE=$(find . -path "*/config/sync/core.extension.yml" ! -path "*/.git/*" 2>/dev/null | head -1)
+ROUTES_FILE=".platform/routes.yaml"
+if [[ -f "$EXT_FILE" && -f "$ROUTES_FILE" ]]; then
+    CDN_NAME=""
+    for cdn_mod in fastly cloudflare; do
+        if grep -qE "^\s+${cdn_mod}:" "$EXT_FILE"; then
+            CDN_NAME="$cdn_mod"
+        fi
+    done
+    if [[ -n "$CDN_NAME" ]]; then
+        if ! grep -qE "enabled:\s*false" "$ROUTES_FILE"; then
+            echo
+            echo "COMMIT REJECTED: CDN module '$CDN_NAME' is enabled but Upsun route cache is not disabled."
+            echo "Set 'enabled: false' under 'cache:' in .platform/routes.yaml."
+            echo "Use --no-verify to bypass this check."
+            echo
+            exit 1
+        fi
+    fi
+fi
+
+#
 # Abort commit if you are **committing** forbidden modules/files
 #
 STAGED_FILES=$(git diff --cached --name-only)
@@ -94,6 +118,30 @@ if [ -n "$STAGED_FILES" ]; then
   if [[ -z "$VERSION" ]]; then
     echo "It looks like you are using a development version of the annertech-ddev addon"
     echo "Please install a published version using: 'ddev add-on get annertech/annertech-ddev'"
+    exit 1
+  fi
+fi
+
+#
+# Abort commit if you are using an incompatible or unexpected ddev-drupal-solr addon
+#
+SOLR_MANIFEST_FILE=".ddev/addon-metadata/solr/manifest.yaml"
+STAGED_FILES=$(git diff --cached --name-only | grep -F "$SOLR_MANIFEST_FILE")
+
+if [ -n "$STAGED_FILES" ]; then
+  SOLR_VERSION=$(grep -E '^version:' "$SOLR_MANIFEST_FILE" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
+  SOLR_REPO=$(grep -E '^repository:' "$SOLR_MANIFEST_FILE" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
+
+  if [[ "$SOLR_REPO" != "ddev/ddev-drupal-solr" ]]; then
+    echo "COMMIT REJECTED: Unexpected Solr addon repository: '$SOLR_REPO'"
+    echo "Expected: 'ddev/ddev-drupal-solr'"
+    echo "Install the correct addon with: 'ddev add-on get ddev/ddev-drupal-solr --version v1.2.3'"
+    exit 1
+  fi
+
+  if [[ "$SOLR_VERSION" != "v1.2.3" ]]; then
+    echo "COMMIT REJECTED: ddev-drupal-solr version '$SOLR_VERSION' is not supported."
+    echo "Only v1.2.3 is compatible. Install it with: 'ddev add-on get ddev/ddev-drupal-solr --version v1.2.3'"
     exit 1
   fi
 fi
