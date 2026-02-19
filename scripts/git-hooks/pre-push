@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+# ── Sanity check ─────────────────────────────────────────────────────────────
+ddev sanity-check
+if [[ $? -ne 0 ]]; then
+  echo ""
+  echo "🚫 Push aborted: sanity-check failed. Fix the issues above or use --no-verify to push anyway."
+  exit 1
+fi
+
+# ── Backstop tests check ────────────────────────────────────────────────────
+if [ -f "tests/backstop/backstop.json" ]; then
+  BASE_DIR="tests/backstop/backstop_data/bitmaps_test"
+  TODAY=$(date +%Y%m%d)
+  MATCH=$(find "$BASE_DIR" -maxdepth 1 -type d -name "${TODAY}-*" 2>/dev/null)
+
+  if [ -z "$MATCH" ]; then
+    echo ""
+    echo "=================================================================================================="
+    echo "⚠️  No Backstop test folder found for today ($TODAY) in $BASE_DIR"
+    echo "Did you run Backstop and other tests?"
+    echo "=================================================================================================="
+    echo ""
+    read -p "Continue pushing without Backstop tests? (y/N): " backstop_confirm </dev/tty
+    backstop_confirm=${backstop_confirm:-N}
+    if [[ ! "$backstop_confirm" =~ ^[Yy] ]]; then
+      echo "🚫 Push aborted. Run Backstop and other tests or use --no-verify to skip this check."
+      exit 1
+    fi
+  fi
+fi
+
+exit 0
