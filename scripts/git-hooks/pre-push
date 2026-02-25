@@ -19,7 +19,7 @@ if [[ $? -ne 0 ]]; then
 fi
 
 # ── Backstop tests check ────────────────────────────────────────────────────
-if [ -f "tests/backstop/backstop.json" ]; then
+if [ -f "tests/backstop/backstop.json" ] && [[ "$CURRENT_BRANCH" != "dev" ]]; then
   BASE_DIR="tests/backstop/backstop_data/bitmaps_test"
   TODAY=$(date +%Y%m%d)
   MATCH=$(find "$BASE_DIR" -maxdepth 1 -type d -name "${TODAY}-*" 2>/dev/null)

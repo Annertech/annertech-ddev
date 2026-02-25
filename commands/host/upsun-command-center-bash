@@ -9,7 +9,7 @@
 ## Description: Upsun Command Centre (ssh, uli, resume, activities, disk) - Bash version
 ## Usage: upsun-command-center-bash [ACTION] [PROJECT] [ENVIRONMENT]
 ## Example: "ddev upsun-command-center-bash" (interactive) or "ddev uccb run_log_checker_goaccess myproject main"
-## Aliases: upbash, uccb
+## Aliases: uptools, uptool, platform-ulitool, ulitool, platform-resume, ucc, ucc
 
 # Colours
 RED='\033[0;31m'

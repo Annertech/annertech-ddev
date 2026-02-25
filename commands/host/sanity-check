@@ -2,7 +2,7 @@
 #ddev-generated
 #annertech-ddev
 
-## Description: Sanity-check Drupal and Upsun cache configuration
+## Description: Sanity-check Drupal and Upsun configuration
 ## Usage: sanity-check
 ## Example: "ddev sanity-check"
 ## ProjectTypes: drupal10,drupal11
@@ -38,9 +38,9 @@ else
   fi
 
   if grep -q "gzip: true" "$PERF_FILE"; then
-    fail "AdvAgg GZIP is enabled (gzip: true) — conflicts with Upsun compression"
+    fail "Legacy GZIP setting is configured (gzip: true) — conflicts with Upsun/Fastly config"
   else
-    pass "AdvAgg GZIP is not enabled"
+    pass "Legacy GZIP is not set"
   fi
 fi
 
@@ -71,15 +71,15 @@ else
     pass "CDN detected: $CDN_NAME — Upsun route cache must be disabled"
   fi
 
-  # page_cache check only relevant for Upsun (Varnish handles page caching)
+  # page_cache check only relevant for Upsun
   ENV_FILE="$APPROOT/.ddev/.env"
   if [[ -f "$ENV_FILE" ]]; then
     source "$ENV_FILE"
     if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
       if grep -qE "^\s+page_cache:" "$EXT_FILE"; then
-        fail "page_cache is ENABLED — Varnish on Upsun handles this; disable page_cache"
+        fail "page_cache is ENABLED — Upsun handles this; disable page_cache module"
       else
-        pass "page_cache is disabled (Varnish handles it)"
+        pass "page_cache is disabled (Upsun handles it)"
       fi
     fi
   fi
@@ -118,7 +118,7 @@ title "DDEV addon: ddev-drupal-solr"
 SOLR_MANIFEST="$APPROOT/.ddev/addon-metadata/solr/manifest.yaml"
 
 if [[ ! -f "$SOLR_MANIFEST" ]]; then
-  warn "ddev-drupal-solr manifest not found — skipping"
+  pass "ddev-drupal-solr not installed — project does not use Solr"
 else
   SOLR_VERSION=$(grep -E '^version:' "$SOLR_MANIFEST" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
   SOLR_REPO=$(grep -E '^repository:' "$SOLR_MANIFEST" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
@@ -138,10 +138,47 @@ else
   fi
 fi
 
+# ── Drupal: SimpleI environment indicator ───────────────────────────────────
+ANNER_ENV_FILE="$APPROOT/.ddev/.env.anner"
+if [[ -f "$ANNER_ENV_FILE" ]]; then
+  source "$ANNER_ENV_FILE"
+fi
+
+if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
+  title "Drupal: SimpleI environment indicator (settings.platformsh.php)"
+  SIMPLEI_FILE="$APPROOT/web/sites/default/settings.platformsh.php"
+
+  if [[ -n "$EXT_FILE" ]]; then
+    if grep -qE "^\s+simplei:" "$EXT_FILE"; then
+      pass "simplei module is enabled"
+    else
+      fail "simplei module is NOT enabled"
+    fi
+  fi
+
+  if [[ ! -f "$SIMPLEI_FILE" ]]; then
+    warn "web/sites/default/settings.platformsh.php not found — skipping SimpleI checks"
+  else
+    if ! grep -q "simple_environment_indicator" "$SIMPLEI_FILE"; then
+      warn "No SimpleI configuration found in settings.platform.php"
+    else
+      SIMPLEI_OK=true
+      grep -qE "['\"]#8B0000 LIVE['\"]" "$SIMPLEI_FILE" || SIMPLEI_OK=false
+      grep -qE "['\"]#59590D STAGE['\"]" "$SIMPLEI_FILE" || SIMPLEI_OK=false
+      grep -qE "['\"]#005B94 DEV['\"]" "$SIMPLEI_FILE" || SIMPLEI_OK=false
+      if $SIMPLEI_OK; then
+        pass "SimpleI environment indicator colors are correct"
+      else
+        fail "SimpleI environment indicator colors are missing or incorrect — expected #8B0000 LIVE, #59590D STAGE, #005B94 DEV"
+      fi
+    fi
+  fi
+fi
+
 # ── Summary ─────────────────────────────────────────────────────────────────
 echo ""
 if [[ $ERRORS -gt 0 ]]; then
-  echo -e "${RED}── $ERRORS error(s) found — caches are NOT properly configured ──${NC}"
+  echo -e "${RED}── $ERRORS error(s) found ──${NC}"
   exit 1
 elif [[ $WARNINGS -gt 0 ]]; then
   echo -e "${YELLOW}── All checks passed with $WARNINGS warning(s) ──${NC}"
