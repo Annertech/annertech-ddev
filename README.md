@@ -24,6 +24,7 @@ DDEV workflow.
 - - [`open-issue`](commands/host/open-issue): Opens teamwork issue for current branch
 - - [`protect [on|off|reset]`](commands/host/protect): Enable or disable basic auth on a nixsal hosted dev project - [see file](commands/host/protect)
 - - [`remote-db`](commands/host/remote-db): Get latest DB from live site
+- - [`sanity-check`](commands/host/sanity-check): Sanity-check project settings, configs etc
 - - [`tw` - `teamwork-operations`](commands/host/teamwork-operations): **Interactive** Teamwork Operations Centre (open-issue, comment, timelog).
 - - [`tw-description`](commands/host/tw-description): Update Teamwork task description with MR link and deploy/test notes
 - - [`tests`](commands/host/tests): Informs about available tests for current project
