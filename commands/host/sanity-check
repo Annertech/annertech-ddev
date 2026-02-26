@@ -175,6 +175,30 @@ if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
   fi
 fi
 
+# ── PHP version: DDEV vs Upsun ──────────────────────────────────────────────
+title "PHP version: DDEV vs Upsun"
+DDEV_CONFIG="$APPROOT/.ddev/config.yaml"
+APP_YAML=$(find "$APPROOT" -maxdepth 2 -name ".platform.app.yaml" ! -path "*/.git/*" 2>/dev/null | head -1)
+
+if [[ ! -f "$DDEV_CONFIG" ]]; then
+  warn ".ddev/config.yaml not found — skipping PHP version check"
+elif [[ -z "$APP_YAML" ]]; then
+  : # Not an Upsun project — skip silently
+else
+  DDEV_PHP=$(grep -E '^php_version:' "$DDEV_CONFIG" | sed 's/php_version:[[:space:]]*//' | tr -d '"' | xargs)
+  UPSUN_PHP=$(grep -E '^[[:space:]]*type:' "$APP_YAML" | grep 'php:' | sed 's/.*php:\([0-9.]*\).*/\1/' | xargs)
+
+  if [[ -z "$DDEV_PHP" ]]; then
+    warn "php_version not set in .ddev/config.yaml — skipping PHP version check"
+  elif [[ -z "$UPSUN_PHP" ]]; then
+    : # No php type found in app yaml — skip
+  elif [[ "$DDEV_PHP" == "$UPSUN_PHP" ]]; then
+    pass "PHP version matches: $DDEV_PHP"
+  else
+    fail "PHP version mismatch — DDEV: $DDEV_PHP, Upsun: $UPSUN_PHP"
+  fi
+fi
+
 # ── Summary ─────────────────────────────────────────────────────────────────
 echo ""
 if [[ $ERRORS -gt 0 ]]; then
