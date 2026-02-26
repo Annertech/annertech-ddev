@@ -168,6 +168,29 @@ alias xd='ddev xdebug disable'
 alias xt='status=$(ddev xdebug status) &&  if [ "$status" == "xdebug enabled" ]; then ddev xdebug off; else ddev xdebug on; fi' 
 ```
 
+### git and tig
+
+#### git
+
+**linked-log (`git llog`):** Link `git log` commits to teamwork cards:
+```
+git config --global alias.llog '!f() { git log --color=always --pretty=format:"%Cred%h%Creset %Creset%s%Creset %Cgreen(%cr) %C(bold blue)<%an>%Creset" "$@" | sed -E "s|T-([0-9]+)|\x1b[36mT-\1\x1b[0m (\x1b[37mhttps://projects.annertech.com/app/tasks/\1\x1b[0m)|g" | less -FRX; }; f'
+```
+
+#### tig
+
+**Link commits to cards:** Open card of selected commit by pressing `o` in your keyboard:
+
+`~/.tigrc`
+
+```
+# Open ticket in browser (cross-platform)
+bind main o @sh -c "git log -1 --format='%s' '%(commit)' | grep -oP 'T-\\d+' | sed 's/T-//' | xargs -I{} sh -c 'xdg-open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || start \"https://projects.annertech.com/app/tasks/{}\"'"
+bind diff o @sh -c "git log -1 --format='%s' '%(commit)' | grep -oP 'T-\\d+' | sed 's/T-//' | xargs -I{} sh -c 'xdg-open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || start \"https://projects.annertech.com/app/tasks/{}\"'"
+```
+
+
+
 ## Common Problems and How-To Fix Them
 
 ### commit-msg hook is ignored
