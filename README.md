@@ -31,7 +31,7 @@ DDEV workflow.
 - - [`timelog`](commands/host/timelog): Log time to a Teamwork task
 - - [`timew`](commands/host/timew): Tags current timewarrior tracking with Teamwork ID and project name
 - - [`travel-mode`](commands/host/travel-mode): Removes all DB dumps downloaded via `ddev pull`, also provides info on how to remove all DDEV projects and their databases
-- - [`uccb` - `upsun-command-center-bash`](commands/host/upsun-command-center-bash): Upsun Command Centre - interactive mode or with arguments
+- - [`ucc` - `upsun-command-center-bash`](commands/host/upsun-command-center-bash): Upsun Command Centre - interactive mode or with arguments
 - - _[`uccp` - `upsun-command-center-python`](commands/host/upsun-command-center-bash): **WIP** Interactive Upsun Command Centre (python version)_
 - Provides **web container** commands:
 - - [`behat`](commands/web/behat): Runs behat
