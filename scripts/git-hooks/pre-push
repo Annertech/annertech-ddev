@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 #ddev-generated
 
+# ── Composer validate ────────────────────────────────────────────────────────
+ddev composer validate --no-check-all --no-check-publish 2>&1
+if [[ $? -ne 0 ]]; then
+  echo ""
+  echo "🚫 Push aborted: fix composer.json/lock issues above before pushing."
+  exit 1
+fi
+
 # ── Sanity check ─────────────────────────────────────────────────────────────
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 ddev sanity-check
