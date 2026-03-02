@@ -90,42 +90,61 @@ if [ -z "$MR_LINK" ]; then
     exit 1
 fi
 
-# Prompt for deploy state/notes (multiline)
-echo_yellow "Enter deploy state (empty line to finish, or press Enter for 'Pending'):"
-DEPLOY_STATE=""
-while IFS= read -e -r line; do
-    if [ -z "$line" ]; then
-        if [ -z "$DEPLOY_STATE" ]; then
-            DEPLOY_STATE="Pending"
-        fi
-        break
-    fi
-    if [ -n "$DEPLOY_STATE" ]; then
-        DEPLOY_STATE="${DEPLOY_STATE}
-${line}"
-    else
-        DEPLOY_STATE="$line"
-    fi
+# Prompt for deploy state/notes - pre-fill default checklist items for inline editing
+echo_yellow "Edit deploy checklist (arrow keys to edit, clear a line to remove it, empty line to finish):"
+DEPLOY_ITEMS=()
+for default_item in "* [ ] Merge Dev" "* [ ] Merge Production"; do
+    read -e -i "$default_item" -r line
+    [ -n "$line" ] && DEPLOY_ITEMS+=("$line")
 done
+echo_yellow "Add more items (empty line to finish):"
+while IFS= read -r line; do
+    [ -z "$line" ] && break
+    DEPLOY_ITEMS+=("$line")
+done
+DEPLOY_STATE=$(printf '%s\n' "${DEPLOY_ITEMS[@]}")
 
 # Prompt for test notes (multiline)
-echo_yellow "Enter test notes/plan (empty line to finish):"
 TEST_NOTES=""
-while IFS= read -e -r line; do
-    if [ -z "$line" ] && [ -n "$TEST_NOTES" ]; then
-        break
-    fi
-    if [ -n "$TEST_NOTES" ]; then
-        TEST_NOTES="${TEST_NOTES}
+while [ -z "$TEST_NOTES" ]; do
+    echo_yellow "Enter test notes/plan (empty line to finish):"
+    while IFS= read -r line; do
+        if [ -z "$line" ]; then
+            break
+        fi
+        if [ -n "$TEST_NOTES" ]; then
+            TEST_NOTES="${TEST_NOTES}
 ${line}"
-    else
-        TEST_NOTES="$line"
+        else
+            TEST_NOTES="$line"
+        fi
+    done
+    if [ -z "$TEST_NOTES" ]; then
+        echo_red "Test notes are required, please enter at least one line."
     fi
 done
 
-if [ -z "$TEST_NOTES" ]; then
-    echo_red "Error: Test notes are required"
-    exit 1
+# Fetch Dev URL if upstream provider is platform or upsun
+UPSUN_DEV_URL=""
+ENV_FILE=".ddev/.env.anner"
+if [ -f "$ENV_FILE" ]; then
+    DEV_UPSTREAM_PROVIDER=$(grep -E '^DEV_UPSTREAM_PROVIDER=' "$ENV_FILE" | cut -d= -f2 | tr -d '"' | tr -d "'" || true)
+    if [[ "$DEV_UPSTREAM_PROVIDER" == "platform" || "$DEV_UPSTREAM_PROVIDER" == "upsun" ]]; then
+        read -e -r -p "$(echo -e "${YELLOW}Include Dev environment URL in test notes? [Y/n]: ${NC}")" include_url
+        include_url="${include_url:-Y}"
+        if [[ "$include_url" =~ ^[Yy]$ ]]; then
+            echo_yellow "Fetching Dev environment URL..."
+            UPSUN_DEV_URL=$(ddev exec upsun url -1 -e dev 2>/dev/null || echo "")
+            if [ -n "$UPSUN_DEV_URL" ]; then
+                echo_green "Found Dev URL: ${UPSUN_DEV_URL}"
+                TEST_NOTES="Dev URL: ${UPSUN_DEV_URL}
+
+${TEST_NOTES}"
+            else
+                echo_yellow "No Dev URL found, skipping."
+            fi
+        fi
+    fi
 fi
 
 # Get existing task description
@@ -166,7 +185,7 @@ else
 fi
 
 # Build new section to append
-NEW_SECTION="## Deploy
+NEW_SECTION="## Deployment
 
 - MR: ${MR_LINK}
 - Branch: \`${branch_name}\`
