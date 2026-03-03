@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Configure SAML with DDEV and a local SP (service provider)
+## Usage: configure-local-saml
+## Example: "ddev configure-local-saml"
+
+cp .ddev/scripts/local-saml/simplesaml.conf .ddev/nginx/
+
+mkdir -p sso/config
+mkdir -p sso/log
+cp --no-clobber .ddev/scripts/local-saml/config/acl.php sso/config/
+cp --no-clobber .ddev/scripts/local-saml/config/authsources.php sso/config/
+cp --no-clobber .ddev/scripts/local-saml/config/config.php sso/config/
