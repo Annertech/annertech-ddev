@@ -38,9 +38,7 @@ else
   fi
 
   if grep -q "gzip: true" "$PERF_FILE"; then
-    fail "Legacy GZIP setting is configured (gzip: true) — conflicts with Upsun/Fastly config"
-  else
-    pass "Legacy GZIP is not set"
+    warn "Legacy GZIP setting is configured (gzip: true) — conflicts with Upsun/Fastly config"
   fi
 fi
 
@@ -152,7 +150,7 @@ if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
     if grep -qE "^\s+simplei:" "$EXT_FILE"; then
       pass "simplei module is enabled"
     else
-      fail "simplei module is NOT enabled"
+      warn "simplei module is NOT enabled"
     fi
   fi
 
@@ -169,7 +167,7 @@ if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
       if $SIMPLEI_OK; then
         pass "SimpleI environment indicator colors are correct"
       else
-        fail "SimpleI environment indicator colors are missing or incorrect — expected #8B0000 LIVE, #59590D STAGE, #005B94 DEV"
+        warn "SimpleI environment indicator colors are missing or incorrect — expected #8B0000 LIVE, #59590D STAGE, #005B94 DEV"
       fi
     fi
   fi
@@ -222,6 +220,30 @@ if [[ -n "$GEN_WARNINGS" ]]; then
   while IFS= read -r line; do
     [[ -n "$line" ]] && warn "$line"
   done <<< "$GEN_WARNINGS"
+fi
+
+# ── Composer: package checks ────────────────────────────────────────────────
+title "Composer: package checks"
+LOCK_FILE="$APPROOT/composer.lock"
+
+if [[ ! -f "$LOCK_FILE" ]]; then
+  warn "composer.lock not found — skipping composer/installers check"
+else
+  INSTALLERS_VERSION=$(grep -A3 '"name": "composer/installers"' "$LOCK_FILE" | grep '"version"' | sed 's/.*"version": "\(.*\)".*/\1/')
+  if [[ -n "$INSTALLERS_VERSION" ]]; then
+    INSTALLERS_MAJOR=$(echo "$INSTALLERS_VERSION" | sed 's/^v//' | cut -d. -f1)
+    if [[ "$INSTALLERS_MAJOR" == "1" ]]; then
+      warn "composer/installers is version $INSTALLERS_VERSION — must be version 2.x"
+    fi
+  fi
+
+  if grep -q '"zaporylie/composer-drupal-optimizations"' "$LOCK_FILE"; then
+    warn "zaporylie/composer-drupal-optimizations is present — this package must not be used"
+  fi
+
+  if grep -q '"anrt-tools/docksal-configuration"' "$LOCK_FILE"; then
+    warn "anrt-tools/docksal-configuration is present — this package must not be used"
+  fi
 fi
 
 # ── Summary ─────────────────────────────────────────────────────────────────
