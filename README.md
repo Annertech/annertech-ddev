@@ -165,7 +165,18 @@ alias robo='ddev robo'
 
 alias xe='ddev xdebug enable'
 alias xd='ddev xdebug disable'
-alias xt='status=$(ddev xdebug status) &&  if [ "$status" == "xdebug enabled" ]; then ddev xdebug off; else ddev xdebug on; fi' 
+alias xt='status=$(ddev xdebug status) &&  if [ "$status" == "xdebug enabled" ]; then ddev xdebug off; else ddev xdebug on; fi'
+
+# Tailscale
+alias exit-node-on='tailscale set --exit-node="your.exit.node.ts.net"'
+alias exit-node-off='tailscale set --exit-node=""'
+
+# TeamWork
+export TEAMWORK_DOMAIN=_DOMAIN_
+export TEAMWORK_API_KEY=_KEY_
+alias t-snt='/path/to/annertech-ddev/commands/host/timelog -u -t _TICKET_ID_ 15 "SNT"'
+alias t-scrum='/path/to/annertech-ddev/commands/host/timelog -u -t _TICKET_ID_ 15 "Scrum"'
+alias t-retro='/path/to/annertech-ddev/commands/host/timelog -u -t _TICKET_ID_ 60 "Retro"'
 ```
 
 ### git and tig
@@ -179,7 +190,8 @@ git config --global alias.llog '!f() { git log --color=always --pretty=format:"%
 
 #### tig
 
-**Link commits to cards:** Open card of selected commit by pressing `o` in your keyboard:
+- **Link commits to cards:** Open card of selected commit by pressing `o` in your keyboard:
+- Copy commit hash with `y` (yank)
 
 `~/.tigrc`
 
@@ -187,6 +199,9 @@ git config --global alias.llog '!f() { git log --color=always --pretty=format:"%
 # Open ticket in browser (cross-platform)
 bind main o @sh -c "git log -1 --format='%s' '%(commit)' | grep -oP 'T-\\d+' | sed 's/T-//' | xargs -I{} sh -c 'xdg-open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || start \"https://projects.annertech.com/app/tasks/{}\"'"
 bind diff o @sh -c "git log -1 --format='%s' '%(commit)' | grep -oP 'T-\\d+' | sed 's/T-//' | xargs -I{} sh -c 'xdg-open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || start \"https://projects.annertech.com/app/tasks/{}\"'"
+
+# Copy commit hash to clipboard (cross-platform)
+bind main y @sh -c "echo -n '%(commit)' | xclip -selection clipboard 2>/dev/null || echo -n '%(commit)' | pbcopy 2>/dev/null || echo -n '%(commit)' | clip.exe 2>/dev/null
 ```
 
 
