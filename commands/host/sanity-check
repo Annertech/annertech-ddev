@@ -237,11 +237,11 @@ else
     fi
   fi
 
-  if grep -q '"zaporylie/composer-drupal-optimizations"' "$LOCK_FILE"; then
+  if grep -q '"name": "zaporylie/composer-drupal-optimizations"' "$LOCK_FILE"; then
     warn "zaporylie/composer-drupal-optimizations is present — this package must not be used"
   fi
 
-  if grep -q '"anrt-tools/docksal-configuration"' "$LOCK_FILE"; then
+  if grep -q '"name": "anrt-tools/docksal-configuration"' "$LOCK_FILE"; then
     warn "anrt-tools/docksal-configuration is present — this package must not be used"
   fi
 fi
