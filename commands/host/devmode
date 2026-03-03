@@ -12,14 +12,14 @@ case $@ in
     echo -e "Configuring environment for \e[1;0;41m caching and performance \e[0m"
     echo -e "CSS/JS aggregation enabled, Twig debug settings disabled."
     cp "${DDEV_APPROOT}/.ddev/settings.local.perfmode.php" "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
-    ddev exec drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => FALSE, 'twig_debug' => FALSE, 'twig_cache_disable' => FALSE]);";
+    ddev exec drush status --fields=db-status | grep 'Connected' &>/dev/null && ddev exec drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => FALSE, 'twig_debug' => FALSE, 'twig_cache_disable' => FALSE]);";
     ddev exec drush cache:rebuild;
     ;;
   on)
     echo -e "Configuring environment for \e[1;0;45m development \e[0m"
     echo -e "CSS/JS aggregation disabled, Twig debug settings enabled."
     cp "${DDEV_APPROOT}/.ddev/settings.local.devmode.php" "${DDEV_APPROOT}/${DDEV_DOCROOT}/sites/default/settings.local.php"
-    ddev exec drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);";
+    ddev exec drush status --fields=db-status | grep 'Connected' &>/dev/null && ddev exec drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);";
     ddev exec drush cache:rebuild;
     ;;
   *)
