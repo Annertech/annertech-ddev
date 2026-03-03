@@ -246,6 +246,29 @@ else
   fi
 fi
 
+# ── Composer: security audit ────────────────────────────────────────────────
+title "Composer: security audit"
+
+AUDIT_OUTPUT=$(ddev composer audit 2>&1)
+AUDIT_EXIT=$?
+
+# Exit codes: 0=clean, 1=abandoned only, 2=vulnerabilities, 3=both
+if [[ $AUDIT_EXIT -eq 0 ]]; then
+  pass "No security vulnerabilities found"
+else
+  VULN_LINE=$(echo "$AUDIT_OUTPUT" | grep -oE "Found [0-9]+ security vulnerability advisory affecting [0-9]+ package")
+  if [[ -n "$VULN_LINE" ]]; then
+    VULN_COUNT=$(echo "$VULN_LINE" | grep -oE "^Found [0-9]+" | grep -oE "[0-9]+")
+    fail "$VULN_COUNT security vulnerability advisory/advisories found — run 'ddev composer audit' for details"
+  fi
+
+  ABAND_LINE=$(echo "$AUDIT_OUTPUT" | grep -oE "Found [0-9]+ abandoned package")
+  if [[ -n "$ABAND_LINE" ]]; then
+    ABAND_COUNT=$(echo "$ABAND_LINE" | grep -oE "[0-9]+")
+    warn "$ABAND_COUNT abandoned package(s) found — run 'ddev composer audit' for details"
+  fi
+fi
+
 # ── Summary ─────────────────────────────────────────────────────────────────
 echo ""
 if [[ $ERRORS -gt 0 ]]; then
