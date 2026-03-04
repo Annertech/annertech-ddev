@@ -7,20 +7,30 @@
 ## Example: "ddev sanity-check"
 ## ProjectTypes: drupal10,drupal11
 
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'; BOLD='\033[1m'
 pass()  { echo -e "${GREEN}  ✓ $1${NC}"; }
 fail()  { echo -e "${RED}  ✗ $1${NC}"; ERRORS=$((ERRORS + 1)); }
 warn()  { echo -e "${YELLOW}  ! $1${NC}"; WARNINGS=$((WARNINGS + 1)); }
 title() { echo -e "\n── $1 ──"; }
+group() { echo -e "\n${BOLD}$1${NC}"; }
 
 ERRORS=0
 WARNINGS=0
 APPROOT="${DDEV_APPROOT:-.}"
 BEHIND_CDN=false
 LOCK_FILE="$APPROOT/composer.lock"
+DDEV_CONFIG="$APPROOT/.ddev/config.yaml"
+APP_YAML=$(find "$APPROOT" -maxdepth 2 -name ".platform.app.yaml" ! -path "*/.git/*" 2>/dev/null | head -1)
+SERVICES_FILE="$APPROOT/.platform/services.yaml"
+ROUTES_FILE="$APPROOT/.platform/routes.yaml"
 
-# ── Drupal: supported version ────────────────────────────────────────────────
-title "Drupal: supported version"
+[[ -f "$APPROOT/.ddev/.env" ]] && source "$APPROOT/.ddev/.env"
+[[ -f "$APPROOT/.ddev/.env.anner" ]] && source "$APPROOT/.ddev/.env.anner"
+
+# ════════════════════════════════════════════════════════════════════════════
+group "DRUPAL"
+# ════════════════════════════════════════════════════════════════════════════
+
 
 if [[ ! -f "$LOCK_FILE" ]]; then
   warn "composer.lock not found — skipping Drupal version check"
@@ -49,8 +59,7 @@ else
   fi
 fi
 
-# ── Drupal: system.performance.yml ─────────────────────────────────────────
-title "Drupal: system.performance.yml"
+
 PERF_FILE=$(find "$APPROOT" -path "*/config/sync/system.performance.yml" ! -path "*/.git/*" 2>/dev/null | head -1)
 
 if [[ -z "$PERF_FILE" ]]; then
@@ -73,8 +82,7 @@ else
   fi
 fi
 
-# ── Drupal: core.extension.yml ─────────────────────────────────────────────
-title "Drupal: core.extension.yml"
+
 EXT_FILE=$(find "$APPROOT" -path "*/config/sync/core.extension.yml" ! -path "*/.git/*" 2>/dev/null | head -1)
 
 if [[ -z "$EXT_FILE" ]]; then
@@ -88,7 +96,6 @@ else
     fi
   done
 
-  # CDN detection
   CDN_NAME=""
   for cdn_mod in fastly cloudflare; do
     if grep -qE "^\s+${cdn_mod}:" "$EXT_FILE"; then
@@ -99,82 +106,10 @@ else
   if $BEHIND_CDN; then
     pass "CDN detected: $CDN_NAME — Upsun route cache must be disabled"
   fi
-
-  # page_cache check only relevant for Upsun
-  ENV_FILE="$APPROOT/.ddev/.env"
-  if [[ -f "$ENV_FILE" ]]; then
-    source "$ENV_FILE"
-    if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
-      if grep -qE "^\s+page_cache:" "$EXT_FILE"; then
-        fail "page_cache is ENABLED — Upsun handles this; disable page_cache module"
-      else
-        pass "page_cache is disabled (Upsun handles it)"
-      fi
-    fi
-  fi
-fi
-
-# ── Upsun: route cache ──────────────────────────────────────────────────────
-title "Upsun: cache configuration"
-ROUTES_FILE="$APPROOT/.platform/routes.yaml"
-
-if [[ ! -f "$ROUTES_FILE" ]]; then
-  warn "No .platform/routes.yaml found — skipping Upsun checks"
-else
-  if grep -qE "cache:" "$ROUTES_FILE"; then
-    if $BEHIND_CDN; then
-      if grep -qE "enabled:\s*false" "$ROUTES_FILE"; then
-        pass "Route cache is disabled (correct — project is behind a CDN)"
-      else
-        fail "Route cache must be DISABLED when behind a CDN (fastly/cloudflare detected)"
-      fi
-    else
-      if grep -qE "enabled:\s*true" "$ROUTES_FILE"; then
-        pass "Route cache is enabled"
-      elif grep -qE "enabled:\s*false" "$ROUTES_FILE"; then
-        fail "Route cache is DISABLED but no CDN module detected — should be enabled"
-      else
-        pass "Cache key found in routes.yaml"
-      fi
-    fi
-  else
-    warn "No 'cache:' key found in .platform/routes.yaml — route caching may not be configured"
-  fi
-fi
-
-# ── DDEV addon: ddev-drupal-solr ────────────────────────────────────────────
-title "DDEV addon: ddev-drupal-solr"
-SOLR_MANIFEST="$APPROOT/.ddev/addon-metadata/solr/manifest.yaml"
-
-if [[ ! -f "$SOLR_MANIFEST" ]]; then
-  pass "ddev-drupal-solr not installed — project does not use Solr"
-else
-  SOLR_VERSION=$(grep -E '^version:' "$SOLR_MANIFEST" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
-  SOLR_REPO=$(grep -E '^repository:' "$SOLR_MANIFEST" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
-
-  if [[ "$SOLR_REPO" == "ddev/ddev-drupal-solr" ]]; then
-    pass "ddev-drupal-solr repository is correct"
-  else
-    fail "ddev-drupal-solr repository is '$SOLR_REPO' — expected 'ddev/ddev-drupal-solr'"
-    warn "Install the correct addon with: 'ddev add-on get ddev/ddev-drupal-solr --version v1.2.3'"
-  fi
-
-  if [[ "$SOLR_VERSION" == "v1.2.3" ]]; then
-    pass "ddev-drupal-solr version is v1.2.3"
-  else
-    fail "ddev-drupal-solr version '$SOLR_VERSION' is not supported — only v1.2.3 is compatible"
-    warn "Install the correct version with: 'ddev add-on get ddev/ddev-drupal-solr --version v1.2.3'"
-  fi
 fi
 
 # ── Drupal: SimpleI environment indicator ───────────────────────────────────
-ANNER_ENV_FILE="$APPROOT/.ddev/.env.anner"
-if [[ -f "$ANNER_ENV_FILE" ]]; then
-  source "$ANNER_ENV_FILE"
-fi
-
 if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
-  title "Drupal: SimpleI environment indicator (settings.platformsh.php)"
   SIMPLEI_FILE="$APPROOT/web/sites/default/settings.platformsh.php"
 
   if [[ -n "$EXT_FILE" ]]; then
@@ -189,7 +124,7 @@ if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
     warn "web/sites/default/settings.platformsh.php not found — skipping SimpleI checks"
   else
     if ! grep -q "simple_environment_indicator" "$SIMPLEI_FILE"; then
-      warn "No SimpleI configuration found in settings.platform.php"
+      warn "No SimpleI configuration found in settings.platformsh.php"
     else
       SIMPLEI_OK=true
       grep -qE "['\"]#8B0000 LIVE['\"]" "$SIMPLEI_FILE" || SIMPLEI_OK=false
@@ -204,58 +139,10 @@ if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
   fi
 fi
 
-# ── DDEV vs Upsun: version checks ───────────────────────────────────────────
-title "DDEV vs Upsun: version checks"
-DDEV_CONFIG="$APPROOT/.ddev/config.yaml"
-APP_YAML=$(find "$APPROOT" -maxdepth 2 -name ".platform.app.yaml" ! -path "*/.git/*" 2>/dev/null | head -1)
-SERVICES_FILE="$APPROOT/.platform/services.yaml"
+# ════════════════════════════════════════════════════════════════════════════
+group "COMPOSER"
+# ════════════════════════════════════════════════════════════════════════════
 
-if [[ ! -f "$DDEV_CONFIG" ]]; then
-  warn ".ddev/config.yaml not found — skipping version checks"
-else
-  # PHP version check (Upsun projects only)
-  if [[ -n "$APP_YAML" ]]; then
-    DDEV_PHP=$(grep -E '^php_version:' "$DDEV_CONFIG" | sed 's/php_version:[[:space:]]*//' | tr -d '"' | xargs)
-    UPSUN_PHP=$(grep -E '^[[:space:]]*type:' "$APP_YAML" | grep 'php:' | sed 's/.*php:\([0-9.]*\).*/\1/' | xargs)
-
-    if [[ -z "$DDEV_PHP" ]]; then
-      warn "php_version not set in .ddev/config.yaml — skipping PHP version check"
-    elif [[ -z "$UPSUN_PHP" ]]; then
-      : # No php type found in app yaml — skip
-    elif [[ "$DDEV_PHP" == "$UPSUN_PHP" ]]; then
-      pass "PHP version matches: $DDEV_PHP"
-    else
-      fail "PHP version mismatch — DDEV: $DDEV_PHP, Upsun: $UPSUN_PHP"
-    fi
-  fi
-
-  # Database version check (all projects)
-  DDEV_DB_VERSION=$(grep -A2 '^database:' "$DDEV_CONFIG" | grep 'version:' | sed 's/.*version:[[:space:]]*//' | tr -d '"' | xargs)
-
-  if [[ -z "$DDEV_DB_VERSION" ]]; then
-    warn "database.version not set in .ddev/config.yaml — skipping database version check"
-  else
-    DB_MIN="10.11"
-    if [[ "$(printf '%s\n' "$DB_MIN" "$DDEV_DB_VERSION" | sort -V | head -1)" != "$DB_MIN" ]]; then
-      warn "Database version $DDEV_DB_VERSION is below required minimum $DB_MIN"
-    else
-      pass "Database version $DDEV_DB_VERSION meets minimum ($DB_MIN)"
-    fi
-
-    # Upsun: check DDEV matches services.yaml
-    if [[ -n "$APP_YAML" && -f "$SERVICES_FILE" ]]; then
-      UPSUN_DB_VERSION=$(grep -E 'type:.*mysql:|type:.*mariadb:' "$SERVICES_FILE" | head -1 | sed 's/.*:\([0-9.]*\).*/\1/' | xargs)
-      if [[ -n "$UPSUN_DB_VERSION" ]]; then
-        if [[ "$DDEV_DB_VERSION" != "$UPSUN_DB_VERSION" ]]; then
-          fail "Database version mismatch — DDEV: $DDEV_DB_VERSION, Upsun: $UPSUN_DB_VERSION"
-        fi
-      fi
-    fi
-  fi
-fi
-
-# ── Composer: validate ──────────────────────────────────────────────────────
-title "Composer: validate"
 
 COMPOSER_OUTPUT=$(ddev composer validate --no-check-all --no-check-publish 2>&1)
 COMPOSER_EXIT=$?
@@ -279,8 +166,6 @@ if [[ -n "$GEN_WARNINGS" ]]; then
   done <<< "$GEN_WARNINGS"
 fi
 
-# ── Composer: package checks ────────────────────────────────────────────────
-title "Composer: package checks"
 
 if [[ ! -f "$LOCK_FILE" ]]; then
   warn "composer.lock not found — skipping composer/installers check"
@@ -302,8 +187,6 @@ else
   fi
 fi
 
-# ── Composer: security audit ────────────────────────────────────────────────
-title "Composer: security audit"
 
 AUDIT_OUTPUT=$(ddev composer audit 2>&1)
 AUDIT_EXIT=$?
@@ -324,6 +207,119 @@ else
     warn "$ABAND_COUNT abandoned package(s) found — run 'ddev composer audit' for details"
   fi
 fi
+
+# ════════════════════════════════════════════════════════════════════════════
+group "DDEV"
+# ════════════════════════════════════════════════════════════════════════════
+
+
+if [[ ! -f "$DDEV_CONFIG" ]]; then
+  warn ".ddev/config.yaml not found — skipping DDEV version checks"
+else
+  DDEV_DB_VERSION=$(grep -A2 '^database:' "$DDEV_CONFIG" | grep 'version:' | sed 's/.*version:[[:space:]]*//' | tr -d '"' | xargs)
+
+  if [[ -z "$DDEV_DB_VERSION" ]]; then
+    warn "database.version not set in .ddev/config.yaml — skipping database version check"
+  else
+    DB_MIN="10.11"
+    if [[ "$(printf '%s\n' "$DB_MIN" "$DDEV_DB_VERSION" | sort -V | head -1)" != "$DB_MIN" ]]; then
+      warn "Database version $DDEV_DB_VERSION is below required minimum $DB_MIN"
+    else
+      pass "Database version $DDEV_DB_VERSION meets minimum ($DB_MIN)"
+    fi
+  fi
+fi
+
+
+SOLR_MANIFEST="$APPROOT/.ddev/addon-metadata/solr/manifest.yaml"
+
+if [[ ! -f "$SOLR_MANIFEST" ]]; then
+  pass "ddev-drupal-solr not installed — project does not use Solr"
+else
+  SOLR_VERSION=$(grep -E '^version:' "$SOLR_MANIFEST" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
+  SOLR_REPO=$(grep -E '^repository:' "$SOLR_MANIFEST" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
+
+  if [[ "$SOLR_REPO" == "ddev/ddev-drupal-solr" ]]; then
+    pass "ddev-drupal-solr repository is correct"
+  else
+    fail "ddev-drupal-solr repository is '$SOLR_REPO' — expected 'ddev/ddev-drupal-solr'"
+    warn "Install the correct addon with: 'ddev add-on get ddev/ddev-drupal-solr --version v1.2.3'"
+  fi
+
+  if [[ "$SOLR_VERSION" == "v1.2.3" ]]; then
+    pass "ddev-drupal-solr version is v1.2.3"
+  else
+    fail "ddev-drupal-solr version '$SOLR_VERSION' is not supported — only v1.2.3 is compatible"
+    warn "Install the correct version with: 'ddev add-on get ddev/ddev-drupal-solr --version v1.2.3'"
+  fi
+fi
+
+# ════════════════════════════════════════════════════════════════════════════
+if [[ -n "$APP_YAML" ]]; then
+group "UPSUN"
+# ════════════════════════════════════════════════════════════════════════════
+
+if [[ ! -f "$DDEV_CONFIG" ]]; then
+  warn "Upsun: .ddev/config.yaml not found — skipping version checks"
+else
+  DDEV_PHP=$(grep -E '^php_version:' "$DDEV_CONFIG" | sed 's/php_version:[[:space:]]*//' | tr -d '"' | xargs)
+  UPSUN_PHP=$(grep -E '^[[:space:]]*type:' "$APP_YAML" | grep 'php:' | sed 's/.*php:\([0-9.]*\).*/\1/' | xargs)
+
+  if [[ -z "$DDEV_PHP" ]]; then
+    warn "Upsun: php_version not set in .ddev/config.yaml — skipping PHP version check"
+  elif [[ -n "$UPSUN_PHP" ]]; then
+    if [[ "$DDEV_PHP" == "$UPSUN_PHP" ]]; then
+      pass "PHP $DDEV_PHP matches between DDEV and Upsun"
+    else
+      fail "PHP version mismatch — DDEV: $DDEV_PHP, Upsun: $UPSUN_PHP"
+    fi
+  fi
+
+  if [[ -f "$SERVICES_FILE" && -n "$DDEV_DB_VERSION" ]]; then
+    UPSUN_DB_VERSION=$(grep -E 'type:.*mysql:|type:.*mariadb:' "$SERVICES_FILE" | head -1 | sed 's/.*:\([0-9.]*\).*/\1/' | xargs)
+    if [[ -n "$UPSUN_DB_VERSION" ]]; then
+      if [[ "$DDEV_DB_VERSION" == "$UPSUN_DB_VERSION" ]]; then
+        pass "Database $DDEV_DB_VERSION matches between DDEV and Upsun"
+      else
+        fail "Database version mismatch — DDEV: $DDEV_DB_VERSION, Upsun: $UPSUN_DB_VERSION"
+      fi
+    fi
+  fi
+fi
+
+if [[ ! -f "$ROUTES_FILE" ]]; then
+  warn "Upsun: .platform/routes.yaml not found — skipping cache check"
+else
+  if grep -qE "cache:" "$ROUTES_FILE"; then
+    if $BEHIND_CDN; then
+      if grep -qE "enabled:\s*false" "$ROUTES_FILE"; then
+        pass "Upsun route cache is disabled (correct — project is behind a CDN)"
+      else
+        fail "Upsun route cache must be DISABLED when behind a CDN (fastly/cloudflare detected)"
+      fi
+    else
+      if grep -qE "enabled:\s*true" "$ROUTES_FILE"; then
+        pass "Upsun route cache is enabled"
+      elif grep -qE "enabled:\s*false" "$ROUTES_FILE"; then
+        fail "Upsun route cache is DISABLED but no CDN module detected — should be enabled"
+      else
+        pass "Upsun route cache key found in routes.yaml"
+      fi
+    fi
+  else
+    warn "Upsun: no 'cache:' key found in .platform/routes.yaml — route caching may not be configured"
+  fi
+fi
+
+if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" && -n "$EXT_FILE" ]]; then
+  if grep -qE "^\s+page_cache:" "$EXT_FILE"; then
+    fail "page_cache module is ENABLED — Upsun handles page caching; disable it"
+  else
+    pass "Drupal page_cache module is disabled (Upsun handles anonymous caches)"
+  fi
+fi
+
+fi # end Upsun checks
 
 # ── Summary ─────────────────────────────────────────────────────────────────
 echo ""
