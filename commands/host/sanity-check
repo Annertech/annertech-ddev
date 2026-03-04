@@ -173,27 +173,53 @@ if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
   fi
 fi
 
-# ── PHP version: DDEV vs Upsun ──────────────────────────────────────────────
-title "PHP version: DDEV vs Upsun"
+# ── DDEV vs Upsun: version checks ───────────────────────────────────────────
+title "DDEV vs Upsun: version checks"
 DDEV_CONFIG="$APPROOT/.ddev/config.yaml"
 APP_YAML=$(find "$APPROOT" -maxdepth 2 -name ".platform.app.yaml" ! -path "*/.git/*" 2>/dev/null | head -1)
+SERVICES_FILE="$APPROOT/.platform/services.yaml"
 
 if [[ ! -f "$DDEV_CONFIG" ]]; then
-  warn ".ddev/config.yaml not found — skipping PHP version check"
-elif [[ -z "$APP_YAML" ]]; then
-  : # Not an Upsun project — skip silently
+  warn ".ddev/config.yaml not found — skipping version checks"
 else
-  DDEV_PHP=$(grep -E '^php_version:' "$DDEV_CONFIG" | sed 's/php_version:[[:space:]]*//' | tr -d '"' | xargs)
-  UPSUN_PHP=$(grep -E '^[[:space:]]*type:' "$APP_YAML" | grep 'php:' | sed 's/.*php:\([0-9.]*\).*/\1/' | xargs)
+  # PHP version check (Upsun projects only)
+  if [[ -n "$APP_YAML" ]]; then
+    DDEV_PHP=$(grep -E '^php_version:' "$DDEV_CONFIG" | sed 's/php_version:[[:space:]]*//' | tr -d '"' | xargs)
+    UPSUN_PHP=$(grep -E '^[[:space:]]*type:' "$APP_YAML" | grep 'php:' | sed 's/.*php:\([0-9.]*\).*/\1/' | xargs)
 
-  if [[ -z "$DDEV_PHP" ]]; then
-    warn "php_version not set in .ddev/config.yaml — skipping PHP version check"
-  elif [[ -z "$UPSUN_PHP" ]]; then
-    : # No php type found in app yaml — skip
-  elif [[ "$DDEV_PHP" == "$UPSUN_PHP" ]]; then
-    pass "PHP version matches: $DDEV_PHP"
+    if [[ -z "$DDEV_PHP" ]]; then
+      warn "php_version not set in .ddev/config.yaml — skipping PHP version check"
+    elif [[ -z "$UPSUN_PHP" ]]; then
+      : # No php type found in app yaml — skip
+    elif [[ "$DDEV_PHP" == "$UPSUN_PHP" ]]; then
+      pass "PHP version matches: $DDEV_PHP"
+    else
+      fail "PHP version mismatch — DDEV: $DDEV_PHP, Upsun: $UPSUN_PHP"
+    fi
+  fi
+
+  # Database version check (all projects)
+  DDEV_DB_VERSION=$(grep -A2 '^database:' "$DDEV_CONFIG" | grep 'version:' | sed 's/.*version:[[:space:]]*//' | tr -d '"' | xargs)
+
+  if [[ -z "$DDEV_DB_VERSION" ]]; then
+    warn "database.version not set in .ddev/config.yaml — skipping database version check"
   else
-    fail "PHP version mismatch — DDEV: $DDEV_PHP, Upsun: $UPSUN_PHP"
+    DB_MIN="10.11"
+    if [[ "$(printf '%s\n' "$DB_MIN" "$DDEV_DB_VERSION" | sort -V | head -1)" != "$DB_MIN" ]]; then
+      warn "Database version $DDEV_DB_VERSION is below required minimum $DB_MIN"
+    else
+      pass "Database version $DDEV_DB_VERSION meets minimum ($DB_MIN)"
+    fi
+
+    # Upsun: check DDEV matches services.yaml
+    if [[ -n "$APP_YAML" && -f "$SERVICES_FILE" ]]; then
+      UPSUN_DB_VERSION=$(grep -E 'type:.*mysql:|type:.*mariadb:' "$SERVICES_FILE" | head -1 | sed 's/.*:\([0-9.]*\).*/\1/' | xargs)
+      if [[ -n "$UPSUN_DB_VERSION" ]]; then
+        if [[ "$DDEV_DB_VERSION" != "$UPSUN_DB_VERSION" ]]; then
+          fail "Database version mismatch — DDEV: $DDEV_DB_VERSION, Upsun: $UPSUN_DB_VERSION"
+        fi
+      fi
+    fi
   fi
 fi
 
