@@ -11,7 +11,7 @@ fi
 
 # ── Sanity check ─────────────────────────────────────────────────────────────
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-ddev sanity-check
+ddev sanity-check -s
 if [[ $? -ne 0 ]]; then
   echo ""
   if [[ "$CURRENT_BRANCH" == "dev" ]]; then
