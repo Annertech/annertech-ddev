@@ -241,8 +241,8 @@ else
   SOLR_VERSION=$(grep -E '^version:' "$SOLR_MANIFEST" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
   SOLR_REPO=$(grep -E '^repository:' "$SOLR_MANIFEST" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
 
-  if [[ "$SOLR_REPO" == "ddev/ddev-drupal-solr" ]]; then
-    pass "ddev-drupal-solr repository is correct"
+  if [[ "$SOLR_REPO" == "ddev/ddev-drupal-solr" || "$SOLR_REPO" == "ddev/ddev-drupal9-solr" ]]; then
+    pass "ddev-drupal-solr repository is correct ($SOLR_REPO)"
   else
     fail "ddev-drupal-solr repository is '$SOLR_REPO' — expected 'ddev/ddev-drupal-solr'"
     warn "Install the correct addon with: 'ddev add-on get ddev/ddev-drupal-solr --version v1.2.3'"
