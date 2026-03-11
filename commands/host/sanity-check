@@ -244,7 +244,7 @@ else
   if [[ "$SOLR_REPO" == "ddev/ddev-drupal-solr" || "$SOLR_REPO" == "ddev/ddev-drupal9-solr" ]]; then
     pass "ddev-drupal-solr repository is correct ($SOLR_REPO)"
   else
-    fail "ddev-drupal-solr repository is '$SOLR_REPO' — expected 'ddev/ddev-drupal-solr'"
+    fail "ddev-drupal-solr repository is '$SOLR_REPO' — expected 'ddev/ddev-drupal-solr' or 'ddev/ddev-drupal9-solr'"
     warn "Install the correct addon with: 'ddev add-on get ddev/ddev-drupal-solr --version v1.2.3'"
   fi
 
