@@ -257,7 +257,7 @@ else
 fi
 
 # ════════════════════════════════════════════════════════════════════════════
-if [[ -n "$APP_YAML" ]]; then
+if [[ -n "$APP_YAML" ]] && [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" || "$DDEV_UPSTREAM_PROVIDER" == "upsun" ]]; then
 group "UPSUN"
 # ════════════════════════════════════════════════════════════════════════════
 
