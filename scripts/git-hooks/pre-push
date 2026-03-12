@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 #ddev-generated
 
+# ── Skip all checks when pushing a tag ───────────────────────────────────────
+# Check stdin refs from git
+PUSH_REFS=$(cat)
+if echo "$PUSH_REFS" | grep -q 'refs/tags/'; then
+  exit 0
+fi
+# Fallback: check parent git process was invoked with --tags (Linux)
+if tr '\0' '\n' < /proc/$PPID/cmdline 2>/dev/null | grep -qxF -- '--tags'; then
+  exit 0
+fi
+
 # ── Composer validate ────────────────────────────────────────────────────────
 ddev composer validate --no-check-all --no-check-publish 2>&1
 if [[ $? -ne 0 ]]; then
