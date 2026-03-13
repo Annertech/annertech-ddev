@@ -218,17 +218,20 @@ group "DDEV"
 if [[ ! -f "$DDEV_CONFIG" ]]; then
   warn ".ddev/config.yaml not found — skipping DDEV version checks"
 else
+  DDEV_DB_TYPE=$(grep -A2 '^database:' "$DDEV_CONFIG" | grep 'type:' | sed 's/.*type:[[:space:]]*//' | tr -d '"' | xargs)
   DDEV_DB_VERSION=$(grep -A2 '^database:' "$DDEV_CONFIG" | grep 'version:' | sed 's/.*version:[[:space:]]*//' | tr -d '"' | xargs)
 
   if [[ -z "$DDEV_DB_VERSION" ]]; then
     warn "database.version not set in .ddev/config.yaml — skipping database version check"
-  else
+  elif [[ "$DDEV_DB_TYPE" == "mariadb" ]]; then
     DB_MIN="10.11"
     if [[ "$(printf '%s\n' "$DB_MIN" "$DDEV_DB_VERSION" | sort -V | head -1)" != "$DB_MIN" ]]; then
-      warn "Database version $DDEV_DB_VERSION is below required minimum $DB_MIN"
+      warn "Database version $DDEV_DB_TYPE:$DDEV_DB_VERSION is below required minimum $DB_MIN"
     else
-      pass "Database version $DDEV_DB_VERSION meets minimum ($DB_MIN)"
+      pass "Database version $DDEV_DB_TYPE:$DDEV_DB_VERSION meets minimum ($DB_MIN)"
     fi
+  else
+    pass "Database $DDEV_DB_TYPE:$DDEV_DB_VERSION"
   fi
 fi
 
@@ -277,13 +280,13 @@ else
     fi
   fi
 
-  if [[ -f "$SERVICES_FILE" && -n "$DDEV_DB_VERSION" ]]; then
-    UPSUN_DB_VERSION=$(grep -E 'type:.*mysql:|type:.*mariadb:' "$SERVICES_FILE" | head -1 | sed 's/.*:\([0-9.]*\).*/\1/' | xargs)
+  if [[ -f "$SERVICES_FILE" && -n "$DDEV_DB_VERSION" && -n "$DDEV_DB_TYPE" ]]; then
+    UPSUN_DB_VERSION=$(grep -E "type:.*${DDEV_DB_TYPE}:" "$SERVICES_FILE" | head -1 | sed 's/.*:\([0-9.]*\).*/\1/' | xargs)
     if [[ -n "$UPSUN_DB_VERSION" ]]; then
       if [[ "$DDEV_DB_VERSION" == "$UPSUN_DB_VERSION" ]]; then
-        pass "Database $DDEV_DB_VERSION matches between DDEV and Upsun"
+        pass "Database $DDEV_DB_TYPE:$DDEV_DB_VERSION matches between DDEV and Upsun"
       else
-        fail "Database version mismatch — DDEV: $DDEV_DB_VERSION, Upsun: $UPSUN_DB_VERSION"
+        fail "Database version mismatch — DDEV: $DDEV_DB_TYPE:$DDEV_DB_VERSION, Upsun: $DDEV_DB_TYPE:$UPSUN_DB_VERSION"
       fi
     fi
   fi
