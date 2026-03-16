@@ -15,6 +15,8 @@
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+CYAN='\033[1;36m'
+BOLD='\033[1m'
 NC='\033[0m'
 
 echo_red() { echo -e "${RED}$1${NC}" >&2; }
@@ -228,6 +230,18 @@ run_fastly_api_token() {
     ddev exec upsun ssh --project="${project_id}" -e "${environment_id}" -- "env | grep -i fastly"
 }
 
+# Print equivalent non-interactive command
+print_command() {
+    local action="$1"
+    local project="$2"
+    local env="$3"
+    local cmd="ddev ucc ${action} ${project}"
+    [[ -n "$env" ]] && cmd="${cmd} ${env}"
+    echo -e "${BOLD}Equivalent command:${NC}"
+    echo -e "${RED}${BOLD}${cmd}${NC}"
+    echo ""
+}
+
 # Find project by name or ID
 find_project() {
     local search_term="$1"
@@ -331,6 +345,7 @@ main() {
     # Execute selected action
     case "$action_label" in
         "SSH")
+            print_command "run_ssh" "$project_id"
             run_ssh "$project_id" "$project_name"
             ;;
         "Drush ULI")
@@ -344,12 +359,15 @@ main() {
                     exit 0
                 fi
             fi
+            print_command "run_uli" "$project_id" "$env"
             run_uli "$project_id" "$project_name" "$env"
             ;;
         "Resume Environment")
+            print_command "run_resume" "$project_id"
             run_resume "$project_id" "$project_name"
             ;;
         "Activities")
+            print_command "run_activities" "$project_id"
             run_activities "$project_id" "$project_name"
             ;;
         "Running activity")
@@ -363,9 +381,11 @@ main() {
                     exit 0
                 fi
             fi
+            print_command "run_activity_in_progress" "$project_id" "$env"
             run_activity_in_progress "$project_id" "$project_name" "$env"
             ;;
         "Disk Allocation Helper (beta)")
+            print_command "run_disk_helper" "$project_id"
             run_disk_helper "$project_id" "$project_name"
             ;;
         "Log-checker (beta)")
@@ -379,6 +399,7 @@ main() {
                     exit 0
                 fi
             fi
+            print_command "run_log_checker" "$project_id" "$env"
             run_log_checker "$project_id" "$project_name" "$env"
             ;;
         "Log-checker with goaccess (beta)")
@@ -392,6 +413,7 @@ main() {
                     exit 0
                 fi
             fi
+            print_command "run_log_checker_goaccess" "$project_id" "$env"
             run_log_checker_goaccess "$project_id" "$project_name" "$env"
             ;;
         "Backup Environment")
@@ -405,6 +427,7 @@ main() {
                     exit 0
                 fi
             fi
+            print_command "run_backup" "$project_id" "$env"
             run_backup "$project_id" "$project_name" "$env"
             ;;
         "Fastly API Token")
@@ -418,6 +441,7 @@ main() {
                     exit 0
                 fi
             fi
+            print_command "run_fastly_api_token" "$project_id" "$env"
             run_fastly_api_token "$project_id" "$project_name" "$env"
             ;;
         *)
