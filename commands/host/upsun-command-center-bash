@@ -107,9 +107,10 @@ select_environment() {
 run_resume() {
     local project_id="$1"
     local project_name="$2"
-    echo_green "${project_name} Selected"
+    local environment_id="$3"
+    echo_green "${project_name} / ${environment_id} Selected"
     echo_yellow "Starting resume process..."
-    ddev exec upsun environment:resume --project="${project_id}"
+    ddev exec upsun environment:resume --project="${project_id}" -e "${environment_id}"
 }
 
 # Run ULI
@@ -363,8 +364,18 @@ main() {
             run_uli "$project_id" "$project_name" "$env"
             ;;
         "Resume Environment")
-            print_command "run_resume" "$project_id"
-            run_resume "$project_id" "$project_name"
+            local env
+            if [[ -n "$env_arg" ]]; then
+                env="$env_arg"
+            else
+                env=$(select_environment "$project_id")
+                if [[ -z "$env" ]]; then
+                    echo_red "No environment selected... Exiting"
+                    exit 0
+                fi
+            fi
+            print_command "run_resume" "$project_id" "$env"
+            run_resume "$project_id" "$project_name" "$env"
             ;;
         "Activities")
             print_command "run_activities" "$project_id"
