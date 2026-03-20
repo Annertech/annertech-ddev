@@ -16,6 +16,7 @@ if [ ! -d "${BACKSTOP_DATA}/html_report" ]; then
   exit 1
 fi
 
+rm -rf "${DEST}"
 cp -r "${BACKSTOP_DATA}" "${DEST}"
 echo "Report available at: ${DDEV_PRIMARY_URL}/sites/default/files/backstop_data/html_report/index.html"
 echo "Report will be removed in 5 minutes."
