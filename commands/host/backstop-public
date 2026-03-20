@@ -18,3 +18,5 @@ fi
 
 cp -r "${BACKSTOP_DATA}" "${DEST}"
 echo "Report available at: ${DDEV_PRIMARY_URL}/sites/default/files/backstop_data/html_report/index.html"
+echo "Report will be removed in 5 minutes."
+(sleep 300 && rm -rf "${DEST}") &
