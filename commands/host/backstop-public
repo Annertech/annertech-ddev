@@ -7,14 +7,14 @@
 ## Example: "ddev backstop-public"
 ## ProjectTypes: drupal10,drupal11
 
-REPORT_DIR="${DDEV_APPROOT}/tests/backstop/backstop_data/html_report"
-DEST="${DDEV_APPROOT}/web/sites/default/files/backstop_report"
+BACKSTOP_DATA="${DDEV_APPROOT}/tests/backstop/backstop_data"
+DEST="${DDEV_APPROOT}/web/sites/default/files/backstop_data"
 
-if [ ! -d "${REPORT_DIR}" ]; then
-  echo "Report directory not found: ${REPORT_DIR}"
+if [ ! -d "${BACKSTOP_DATA}/html_report" ]; then
+  echo "Report directory not found: ${BACKSTOP_DATA}/html_report"
   echo "Run BackstopJS first to generate a report."
   exit 1
 fi
 
-cp -r "${REPORT_DIR}" "${DEST}"
-echo "Report available at: ${DDEV_PRIMARY_URL}/sites/default/files/backstop_report/index.html"
+cp -r "${BACKSTOP_DATA}" "${DEST}"
+echo "Report available at: ${DDEV_PRIMARY_URL}/sites/default/files/backstop_data/html_report/index.html"
