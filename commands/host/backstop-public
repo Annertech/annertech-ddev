@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Copy BackstopJS HTML report into the web root to serve it via the web server
+## Usage: backstop-public
+## Example: "ddev backstop-public"
+## ProjectTypes: drupal10,drupal11
+
+REPORT_DIR="${DDEV_APPROOT}/tests/backstop/backstop_data/html_report"
+DEST="${DDEV_APPROOT}/web/sites/default/files/backstop_report"
+
+if [ ! -d "${REPORT_DIR}" ]; then
+  echo "Report directory not found: ${REPORT_DIR}"
+  echo "Run BackstopJS first to generate a report."
+  exit 1
+fi
+
+cp -r "${REPORT_DIR}" "${DEST}"
+echo "Report available at: ${DDEV_PRIMARY_URL}/sites/default/files/backstop_report/index.html"
