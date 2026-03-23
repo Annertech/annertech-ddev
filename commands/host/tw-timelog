@@ -4,12 +4,12 @@
 #teamwork-api
 
 ## Description: Log time to a Teamwork task (rounded)
-## Usage: timelog [-v] [-b|-u] [-t task_id] <time> "<comment>"
-## Example: ddev timelog 1h15m "Code review"
-## Example: ddev timelog $(timew summary $TASK_ID | tail -2 | head -1 | xargs)
-## Example: ddev timelog -b 1h15m "Client work (billable)"
-## Example: ddev timelog -u 30m "Internal meeting (unbillable)"
-## Aliases: timelog, timeslip
+## Usage: tw-timelog [-v] [-b|-u] [-t task_id] <time> "<comment>"
+## Example: ddev tw-timelog 1h15m "Code review"
+## Example: ddev tw-timelog $(timew summary $TASK_ID | tail -2 | head -1 | xargs)
+## Example: ddev tw-timelog -b 1h15m "Client work (billable)"
+## Example: ddev tw-timelog -u 30m "Internal meeting (unbillable)"
+## Aliases: tw-timelog, timelog, timeslip
 
 VERBOSE=false
 TASK_ID_OVERRIDE=""

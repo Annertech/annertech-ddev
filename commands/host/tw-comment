@@ -4,10 +4,10 @@
 #teamwork-api
 
 ## Description: Post a comment to a Teamwork task
-## Usage: comment [-v] [-t task_id] "<comment>"
-## Example: ddev comment "Fixed the issue"
-## Example: ddev comment -t 12345678 "Comment on specific task"
-## Aliases: comment
+## Usage: tw-comment [-v] [-t task_id] "<comment>"
+## Example: ddev tw-comment "Fixed the issue"
+## Example: ddev tw-comment -t 12345678 "Comment on specific task"
+## Aliases: tw-comment, comment
 
 VERBOSE=false
 TASK_ID_OVERRIDE=""
