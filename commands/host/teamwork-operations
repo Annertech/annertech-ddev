@@ -2,7 +2,7 @@
 #ddev-generated
 #annertech-ddev
 
-## Description: Teamwork Operations Centre (open-issue, comment, timelog)
+## Description: Teamwork Operations Centre (open-issue, comment, timelog, new card)
 ## Usage: teamwork-operations
 ## Example: "ddev teamwork-operations"
 ## Aliases: tw
@@ -23,6 +23,7 @@ OPTIONS=(
     "2. Post Comment"
     "3. Log Time"
     "4. Update Description"
+    "5. New Card"
 )
 
 # Select action
@@ -62,6 +63,7 @@ main() {
         BRANCH_OPTIONS=(
             "1. Create a new branch with a task ID"
             "2. Go to previous branch (git checkout -)"
+            "3. Create a new card"
             "0. Exit"
         )
 
@@ -90,11 +92,16 @@ main() {
                 branch_name=$(git rev-parse --abbrev-ref HEAD)
                 if [[ $branch_name =~ T-([0-9]+) ]]; then
                     echo_green "Now on branch with task: T-${BASH_REMATCH[1]}"
+                    echo_green "Branch: ${branch_name}"
                 else
                     echo_yellow "Previous branch (${branch_name}) also has no task ID."
                     echo_yellow "You'll need to enter task IDs manually."
                 fi
                 echo ""
+                ;;
+            3)
+                ddev tw-new
+                exit 0
                 ;;
             0)
                 echo_red "Exiting."
@@ -127,17 +134,22 @@ main() {
         "Post Comment")
             echo_green "Post Comment to Task"
             echo ""
-            ddev comment
+            ddev tw-comment
             ;;
         "Log Time")
             echo_green "Log Time to Task"
             echo ""
-            ddev timelog
+            ddev tw-timelog
             ;;
         "Update Description")
             echo_green "Update Task Description"
             echo ""
             ddev tw-description
+            ;;
+        "New Card")
+            echo_green "Create New Teamwork Card"
+            echo ""
+            ddev tw-new
             ;;
         *)
             echo_red "Unknown action: $action_label"
