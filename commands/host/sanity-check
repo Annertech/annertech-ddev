@@ -16,6 +16,14 @@ warn()  { echo -e "${YELLOW}  ! $1${NC}"; WARNINGS=$((WARNINGS + 1)); }
 title() { echo -e "\n── $1 ──"; }
 group() { echo -e "\n${BOLD}$1${NC}"; }
 
+# ── Version constraints ──────────────────────────────────────────────────────
+PHP_MIN="8.3"
+DB_MIN_MARIADB="10.11"
+REDIS_REQUIRED_VERSION="8"
+SOLR_REQUIRED_VERSION="v1.2.3"
+CONFIG_READER_MIN=3
+# ─────────────────────────────────────────────────────────────────────────────
+
 ERRORS=0
 WARNINGS=0
 APPROOT="${DDEV_APPROOT:-.}"
@@ -205,8 +213,8 @@ else
     CONFIG_READER_VERSION=$(grep -A3 '"name": "platformsh/config-reader"' "$LOCK_FILE" | grep '"version"' | sed 's/.*"version": "\(.*\)".*/\1/')
     if [[ -n "$CONFIG_READER_VERSION" ]]; then
       CONFIG_READER_MAJOR=$(echo "$CONFIG_READER_VERSION" | sed 's/^v//' | cut -d. -f1)
-      if [[ "$CONFIG_READER_MAJOR" -lt 3 ]]; then
-        fail "platformsh/config-reader is version $CONFIG_READER_VERSION — upgrade to 3.x required"
+      if [[ "$CONFIG_READER_MAJOR" -lt "$CONFIG_READER_MIN" ]]; then
+        fail "platformsh/config-reader is version $CONFIG_READER_VERSION — upgrade to ${CONFIG_READER_MIN}.x required"
       else
         pass "platformsh/config-reader $CONFIG_READER_VERSION is up to date"
       fi
@@ -243,11 +251,10 @@ else
   if [[ -z "$DDEV_DB_VERSION" ]]; then
     warn "database.version not set in .ddev/config.yaml — skipping database version check"
   elif [[ "$DDEV_DB_TYPE" == "mariadb" ]]; then
-    DB_MIN="10.11"
-    if [[ "$(printf '%s\n' "$DB_MIN" "$DDEV_DB_VERSION" | sort -V | head -1)" != "$DB_MIN" ]]; then
-      warn "Database version $DDEV_DB_TYPE:$DDEV_DB_VERSION is below required minimum $DB_MIN"
+    if [[ "$(printf '%s\n' "$DB_MIN_MARIADB" "$DDEV_DB_VERSION" | sort -V | head -1)" != "$DB_MIN_MARIADB" ]]; then
+      warn "Database version $DDEV_DB_TYPE:$DDEV_DB_VERSION is below required minimum $DB_MIN_MARIADB"
     else
-      pass "Database version $DDEV_DB_TYPE:$DDEV_DB_VERSION meets minimum ($DB_MIN)"
+      pass "Database version $DDEV_DB_TYPE:$DDEV_DB_VERSION meets minimum ($DB_MIN_MARIADB)"
     fi
   else
     pass "Database $DDEV_DB_TYPE:$DDEV_DB_VERSION"
@@ -267,14 +274,14 @@ else
     pass "ddev-drupal-solr repository is correct ($SOLR_REPO)"
   else
     fail "ddev-drupal-solr repository is '$SOLR_REPO' — expected 'ddev/ddev-drupal-solr' or 'ddev/ddev-drupal9-solr'"
-    warn "Install the correct addon with: 'ddev add-on get ddev/ddev-drupal-solr --version v1.2.3'"
+    warn "Install the correct addon with: 'ddev add-on get ddev/ddev-drupal-solr --version $SOLR_REQUIRED_VERSION'"
   fi
 
-  if [[ "$SOLR_VERSION" == "v1.2.3" ]]; then
-    pass "ddev-drupal-solr version is v1.2.3"
+  if [[ "$SOLR_VERSION" == "$SOLR_REQUIRED_VERSION" ]]; then
+    pass "ddev-drupal-solr version is $SOLR_REQUIRED_VERSION"
   else
-    fail "ddev-drupal-solr version '$SOLR_VERSION' is not supported — only v1.2.3 is compatible"
-    warn "Install the correct version with: 'ddev add-on get ddev/ddev-drupal-solr --version v1.2.3'"
+    fail "ddev-drupal-solr version '$SOLR_VERSION' is not supported — only $SOLR_REQUIRED_VERSION is compatible"
+    warn "Install the correct version with: 'ddev add-on get ddev/ddev-drupal-solr --version $SOLR_REQUIRED_VERSION'"
   fi
 fi
 
@@ -297,6 +304,11 @@ else
     else
       fail "PHP version mismatch — DDEV: $DDEV_PHP, Upsun: $UPSUN_PHP"
     fi
+
+    PHP_MIN="8.3"
+    if [[ "$(printf '%s\n' "$PHP_MIN" "$UPSUN_PHP" | sort -V | head -1)" != "$PHP_MIN" ]]; then
+      warn "PHP $UPSUN_PHP in .platform.app.yaml is below minimum supported version ($PHP_MIN)"
+    fi
   fi
 
   if [[ -f "$SERVICES_FILE" && -n "$DDEV_DB_VERSION" && -n "$DDEV_DB_TYPE" ]]; then
@@ -306,6 +318,17 @@ else
         pass "Database $DDEV_DB_TYPE:$DDEV_DB_VERSION matches between DDEV and Upsun"
       else
         fail "Database version mismatch — DDEV: $DDEV_DB_TYPE:$DDEV_DB_VERSION, Upsun: $DDEV_DB_TYPE:$UPSUN_DB_VERSION"
+      fi
+    fi
+  fi
+
+  if [[ -f "$SERVICES_FILE" ]]; then
+    UPSUN_REDIS_VERSION=$(grep -E "type:.*redis:" "$SERVICES_FILE" | head -1 | sed 's/.*redis:\([0-9.]*\).*/\1/' | xargs)
+    if [[ -n "$UPSUN_REDIS_VERSION" ]]; then
+      if [[ "$(printf '%s\n' "$REDIS_REQUIRED_VERSION" "$UPSUN_REDIS_VERSION" | sort -V | head -1)" != "$REDIS_REQUIRED_VERSION" ]]; then
+        fail "Redis version $UPSUN_REDIS_VERSION in services.yaml is below required version ($REDIS_REQUIRED_VERSION)"
+      else
+        pass "Redis $UPSUN_REDIS_VERSION meets required version ($REDIS_REQUIRED_VERSION)"
       fi
     fi
   fi
