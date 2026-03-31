@@ -33,8 +33,9 @@ OPTIONS=(
     "6. Disk Allocation Helper (beta)"
     "7. Log-checker (beta)"
     "8. Log-checker with goaccess (beta)"
-    "9. Backup Environment"
-    "10. Fastly API Token"
+    "9. Download access.log (for local advanced forensics)"
+    "10. Backup Environment"
+    "11. Fastly API Token"
 )
 
 # Get current project ID from .ddev/config.yaml
@@ -211,6 +212,29 @@ run_log_checker_goaccess() {
         goaccess --log-format=COMBINED -
 }
 
+# Download access.log locally
+run_download_access_log() {
+    local project_id="$1"
+    local project_name="$2"
+    local environment_id="$3"
+    echo_green "${project_name} / ${environment_id} Selected"
+    local date_str
+    date_str=$(date +%Y%m%d)
+    local filename="${date_str}_${project_name}_${environment_id}_access.log"
+    filename="${filename// /_}"
+    filename="${filename//[\[\]()]/}"
+    echo_yellow "Resolving SSH endpoint..."
+    local ssh_host
+    ssh_host=$(ddev exec upsun ssh --project="${project_id}" -e "${environment_id}" --pipe 2>/dev/null)
+    if [[ -z "$ssh_host" ]]; then
+        echo_red "Failed to get SSH endpoint"
+        return 1
+    fi
+    echo_yellow "Downloading access.log to ${filename}..."
+    scp "${ssh_host}:/var/log/access.log" "${filename}"
+    echo_green "Saved to ${filename}"
+}
+
 # Run backup
 run_backup() {
     local project_id="$1"
@@ -301,11 +325,12 @@ main() {
             run_disk_helper) action_label="Disk Allocation Helper (beta)" ;;
             run_log_checker) action_label="Log-checker (beta)" ;;
             run_log_checker_goaccess) action_label="Log-checker with goaccess (beta)" ;;
+            run_download_access_log) action_label="Download access.log" ;;
             run_backup) action_label="Backup Environment" ;;
             run_fastly_api_token) action_label="Fastly API Token" ;;
             *)
                 echo_red "Unknown action: $action_arg"
-                echo_yellow "Available actions: run_ssh, run_uli, run_resume, run_activities, run_activity_in_progress, run_disk_helper, run_log_checker, run_log_checker_goaccess, run_backup, run_fastly_api_token"
+                echo_yellow "Available actions: run_ssh, run_uli, run_resume, run_activities, run_activity_in_progress, run_disk_helper, run_log_checker, run_log_checker_goaccess, run_download_access_log, run_backup, run_fastly_api_token"
                 exit 1
                 ;;
         esac
@@ -426,6 +451,20 @@ main() {
             fi
             print_command "run_log_checker_goaccess" "$project_id" "$env"
             run_log_checker_goaccess "$project_id" "$project_name" "$env"
+            ;;
+        "Download access.log (for local advanced forensics)")
+            local env
+            if [[ -n "$env_arg" ]]; then
+                env="$env_arg"
+            else
+                env=$(select_environment "$project_id")
+                if [[ -z "$env" ]]; then
+                    echo_red "No environment selected... Exiting"
+                    exit 0
+                fi
+            fi
+            print_command "run_download_access_log" "$project_id" "$env"
+            run_download_access_log "$project_id" "$project_name" "$env"
             ;;
         "Backup Environment")
             local env
