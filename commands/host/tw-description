@@ -104,25 +104,21 @@ while IFS= read -r line; do
 done
 DEPLOY_STATE=$(printf '%s\n' "${DEPLOY_ITEMS[@]}")
 
-# Prompt for test notes (multiline)
+# Prompt for test notes (multiline, optional)
 TEST_NOTES=""
-while [ -z "$TEST_NOTES" ]; do
-    echo_yellow "Enter test notes/plan (empty line to finish):"
-    while IFS= read -r line; do
-        if [ -z "$line" ]; then
-            break
-        fi
-        if [ -n "$TEST_NOTES" ]; then
-            TEST_NOTES="${TEST_NOTES}
+echo_yellow "Enter test notes/plan (empty line to finish, leave blank to skip):"
+while IFS= read -r line; do
+    [ -z "$line" ] && break
+    if [ -n "$TEST_NOTES" ]; then
+        TEST_NOTES="${TEST_NOTES}
 ${line}"
-        else
-            TEST_NOTES="$line"
-        fi
-    done
-    if [ -z "$TEST_NOTES" ]; then
-        echo_red "Test notes are required, please enter at least one line."
+    else
+        TEST_NOTES="$line"
     fi
 done
+if [ -z "$TEST_NOTES" ]; then
+    TEST_NOTES="_no test notes provided_"
+fi
 
 # Fetch Dev URL if upstream provider is platform or upsun
 UPSUN_DEV_URL=""
@@ -185,16 +181,21 @@ else
 fi
 
 # Build new section to append
-NEW_SECTION="## Deployment
+NEW_SECTION="## Deployment Notes ($(date +%Y-%m-%d))
 
-- MR: ${MR_LINK}
-- Branch: \`${branch_name}\`
+**MR: ${MR_LINK}**
+
+#### Branch
+
+\`\`\`
+${branch_name}
+\`\`\`
 
 #### State
 
 ${DEPLOY_STATE}
 
-#### Test
+#### Test / Code Review Notes
 
 ${TEST_NOTES}"
 
