@@ -86,10 +86,6 @@ else
   else
     pass "Browser caching is enabled"
   fi
-
-  if grep -q "gzip: true" "$PERF_FILE"; then
-    warn "Legacy GZIP setting is configured (gzip: true) — conflicts with Upsun/Fastly config"
-  fi
 fi
 
 
