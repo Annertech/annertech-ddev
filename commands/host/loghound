@@ -1,0 +1,1009 @@
+#!/usr/bin/env python3
+#ddev-generated
+#annertech-ddev
+
+## Description: Fast offline Apache access log forensics (5xx, botnets, floods, crawlers, spikes)
+## Usage: loghound <file> [file...] [--since ISO] [--until ISO] [--focus 5xx|4xx|botnet|flood|spike] [--json] [--top N]
+## Example: "ddev loghound access.log" or "ddev loghound access.log.gz --focus 5xx"
+
+# SPDX-License-Identifier: GPL-2.0-only
+"""loghound — fast offline Apache access log forensics.
+
+First-line-of-defense triage tool for security teams. Streams
+Apache Combined Log Format files, surfaces 5xx incidents, botnet clusters,
+floods, crawlers, and traffic spikes, and emits ready-to-paste block lists.
+
+Stdlib only. No regex on the parser hot path.
+"""
+
+from __future__ import annotations
+
+import argparse
+import bz2
+import glob as _glob
+import gzip
+import io
+import json
+import os
+import statistics
+import sys
+from collections import Counter, defaultdict
+from datetime import datetime, timezone
+from typing import Iterable, Iterator
+
+# ---------------------------------------------------------------------------
+# Parsing
+# ---------------------------------------------------------------------------
+
+MONTHS = {
+    b"Jan": 1, b"Feb": 2, b"Mar": 3, b"Apr": 4, b"May": 5, b"Jun": 6,
+    b"Jul": 7, b"Aug": 8, b"Sep": 9, b"Oct": 10, b"Nov": 11, b"Dec": 12,
+}
+MONTHS_S = {k.decode(): v for k, v in MONTHS.items()}
+
+
+def parse_apache_time(ts: str) -> int:
+    # ts looks like: 30/Mar/2026:04:25:55 +0000
+    # Manual parse — strptime is the bottleneck on ~1M lines.
+    try:
+        day = int(ts[0:2])
+        mon = MONTHS_S[ts[3:6]]
+        year = int(ts[7:11])
+        hh = int(ts[12:14])
+        mm = int(ts[15:17])
+        ss = int(ts[18:20])
+        # Timezone offset like +0000 or -0500
+        sign = 1 if ts[21] == "+" else -1
+        tz_h = int(ts[22:24])
+        tz_m = int(ts[24:26])
+        offset = sign * (tz_h * 3600 + tz_m * 60)
+        # datetime → epoch (UTC) without pulling tzinfo per call.
+        epoch = int(datetime(year, mon, day, hh, mm, ss, tzinfo=timezone.utc).timestamp())
+        return epoch - offset
+    except (ValueError, KeyError, IndexError):
+        raise ValueError(f"bad timestamp: {ts!r}")
+
+
+def parse_line(line: str):
+    """Return (ip, epoch, method, path, status, size, referer, ua) or None.
+
+    Hot path. No regex. Returns None for malformed lines.
+    """
+    try:
+        sp = line.find(" ")
+        if sp < 0:
+            return None
+        ip = line[:sp]
+
+        lb = line.find("[", sp)
+        rb = line.find("]", lb)
+        if lb < 0 or rb < 0:
+            return None
+        epoch = parse_apache_time(line[lb + 1:rb])
+
+        # Request quoted string
+        q1 = line.find('"', rb)
+        q2 = line.find('"', q1 + 1)
+        if q1 < 0 or q2 < 0:
+            return None
+        request = line[q1 + 1:q2]
+        # Split into method / path / proto without allocating extras.
+        s1 = request.find(" ")
+        s2 = request.rfind(" ")
+        if s1 < 0:
+            method = request
+            path = ""
+        else:
+            method = request[:s1]
+            path = request[s1 + 1:s2] if s2 > s1 else request[s1 + 1:]
+
+        # status, size after the closing request quote
+        rest = line[q2 + 2:]
+        try:
+            sp1 = rest.find(" ")
+            status = int(rest[:sp1])
+            sp2 = rest.find(" ", sp1 + 1)
+            size_tok = rest[sp1 + 1:sp2]
+            size = 0 if size_tok == "-" else int(size_tok)
+        except (ValueError, IndexError):
+            return None
+
+        # Referer + UA: last two "..." in line.
+        # rfind from end — UA is the last quoted, referer the second-last.
+        end = len(line)
+        # Strip trailing newline / whitespace
+        while end > 0 and line[end - 1] in "\r\n ":
+            end -= 1
+        if end == 0 or line[end - 1] != '"':
+            return (ip, epoch, method, path, status, size, "-", "-")
+        ua_q2 = end - 1
+        ua_q1 = line.rfind('"', 0, ua_q2)
+        ref_q2 = line.rfind('"', 0, ua_q1)
+        ref_q1 = line.rfind('"', 0, ref_q2) if ref_q2 > 0 else -1
+        ua = line[ua_q1 + 1:ua_q2] if ua_q1 >= 0 else "-"
+        referer = line[ref_q1 + 1:ref_q2] if ref_q1 >= 0 and ref_q2 > 0 else "-"
+        return (ip, epoch, method, path, status, size, referer, ua)
+    except Exception:
+        return None
+
+
+def open_log(path: str):
+    if path == "-":
+        return sys.stdin
+    if path.endswith(".gz"):
+        return io.TextIOWrapper(gzip.open(path, "rb"), encoding="utf-8", errors="replace")
+    if path.endswith(".bz2"):
+        return io.TextIOWrapper(bz2.open(path, "rb"), encoding="utf-8", errors="replace")
+    return open(path, "r", encoding="utf-8", errors="replace")
+
+
+# ---------------------------------------------------------------------------
+# Aggregation
+# ---------------------------------------------------------------------------
+
+CRAWLER_UA_TOKENS = (
+    "Googlebot", "Bingbot", "bingbot", "Slurp", "DuckDuckBot", "Baiduspider",
+    "YandexBot", "Sogou", "Exabot", "facebookexternalhit", "facebookcatalog",
+    "ia_archiver", "AhrefsBot", "SemrushBot", "MJ12bot", "DotBot", "PetalBot",
+    "GPTBot", "ClaudeBot", "anthropic-ai", "CCBot", "PerplexityBot", "Bytespider",
+    "Applebot", "LinkedInBot", "TwitterBot", "Twitterbot", "WhatsApp",
+    "TelegramBot", "DiscordBot", "DataForSeoBot", "SeznamBot", "BLEXBot",
+)
+
+
+def subnet24(ip: str) -> str:
+    # Cheap /24 grouping for IPv4. IPv6 → /48 by colons.
+    if "." in ip:
+        i = ip.rfind(".")
+        return ip[:i] + ".0/24" if i > 0 else ip
+    parts = ip.split(":")
+    if len(parts) >= 3:
+        return ":".join(parts[:3]) + "::/48"
+    return ip
+
+
+def subnet16(ip: str) -> str:
+    if "." in ip:
+        a = ip.find(".")
+        b = ip.find(".", a + 1)
+        return ip[:b] + ".0.0/16" if b > 0 else ip
+    parts = ip.split(":")
+    if len(parts) >= 2:
+        return ":".join(parts[:2]) + "::/32"
+    return ip
+
+
+class Aggregator:
+    def __init__(self, top: int = 20):
+        self.top = top
+        self.lines = 0
+        self.malformed = 0
+        self.first_ts: int | None = None
+        self.last_ts: int | None = None
+
+        self.status_total: Counter[int] = Counter()
+        # per-hour bucket -> Counter of status class (2,3,4,5)
+        self.hour_class: dict[int, Counter[int]] = defaultdict(Counter)
+        self.hour_total: Counter[int] = Counter()
+
+        # 5xx detail: status -> structures
+        self.fivexx_ip: dict[int, Counter[str]] = defaultdict(Counter)
+        self.fivexx_path: dict[int, Counter[str]] = defaultdict(Counter)
+        self.fivexx_ua: dict[int, Counter[str]] = defaultdict(Counter)
+        self.fivexx_ref: dict[int, Counter[str]] = defaultdict(Counter)
+        self.fivexx_minute: dict[int, Counter[int]] = defaultdict(Counter)
+        self.fivexx_first: dict[int, int] = {}
+        self.fivexx_last: dict[int, int] = {}
+
+        # 404 detail
+        self.fourxx_path: Counter[str] = Counter()
+        self.fourxx_ip: Counter[str] = Counter()
+
+        # IP totals + per-minute (for flood detection)
+        self.ip_total: Counter[str] = Counter()
+        self.ip_minute: dict[str, Counter[int]] = defaultdict(Counter)
+        self.ip_paths: dict[str, set[str]] = defaultdict(set)
+        self.ip_uas: dict[str, set[str]] = defaultdict(set)
+        self.ip_has_referer: dict[str, bool] = defaultdict(bool)
+
+        # Crawlers (declared)
+        self.crawler_hits: Counter[str] = Counter()
+        # Per-IP crawler tag: ip -> crawler name (first match wins)
+        self.ip_crawler: dict[str, str] = {}
+
+    def feed(self, rec) -> None:
+        ip, epoch, _method, path, status, _size, referer, ua = rec
+        self.lines += 1
+        if self.first_ts is None or epoch < self.first_ts:
+            self.first_ts = epoch
+        if self.last_ts is None or epoch > self.last_ts:
+            self.last_ts = epoch
+
+        self.status_total[status] += 1
+        hour = epoch - (epoch % 3600)
+        cls = status // 100
+        self.hour_class[hour][cls] += 1
+        self.hour_total[hour] += 1
+
+        self.ip_total[ip] += 1
+        minute = epoch // 60
+        self.ip_minute[ip][minute] += 1
+
+        # Bound the per-IP path/UA sets to keep memory in check on huge logs.
+        if len(self.ip_paths[ip]) < 1000:
+            self.ip_paths[ip].add(path)
+        if len(self.ip_uas[ip]) < 16:
+            self.ip_uas[ip].add(ua)
+        if referer and referer != "-":
+            self.ip_has_referer[ip] = True
+
+        if 500 <= status < 600:
+            self.fivexx_ip[status][ip] += 1
+            self.fivexx_path[status][path] += 1
+            self.fivexx_ua[status][ua] += 1
+            self.fivexx_ref[status][referer] += 1
+            self.fivexx_minute[status][minute] += 1
+            self.fivexx_first[status] = min(self.fivexx_first.get(status, epoch), epoch)
+            self.fivexx_last[status] = max(self.fivexx_last.get(status, epoch), epoch)
+
+        if status == 404:
+            self.fourxx_path[path] += 1
+            self.fourxx_ip[ip] += 1
+
+        # Declared crawler check (substring match — cheap and good enough)
+        for tok in CRAWLER_UA_TOKENS:
+            if tok in ua:
+                self.crawler_hits[tok] += 1
+                if ip not in self.ip_crawler:
+                    self.ip_crawler[ip] = tok
+                break
+
+
+# ---------------------------------------------------------------------------
+# Detections derived from aggregates
+# ---------------------------------------------------------------------------
+
+def crawler_fraction_for_ips(ips: list[str], agg: Aggregator) -> float:
+    """Return fraction of IPs (0.0–1.0) tagged as declared crawlers."""
+    if not ips:
+        return 0.0
+    return sum(1 for ip in ips if ip in agg.ip_crawler) / len(ips)
+
+
+def error_rate_for_ips(ips: list[str], agg: Aggregator) -> float:
+    """Return 5xx / total request ratio across the given IPs."""
+    total = sum(agg.ip_total.get(ip, 0) for ip in ips)
+    if not total:
+        return 0.0
+    fivexx_codes = [s for s in agg.status_total if 500 <= s < 600]
+    errs = sum(
+        agg.fivexx_ip[code].get(ip, 0)
+        for ip in ips
+        for code in fivexx_codes
+    )
+    return errs / total
+
+def detect_floods(agg: Aggregator, rpm_threshold: int, sustained_minutes: int) -> list[dict]:
+    """Return IPs whose req/min exceeded threshold for >= sustained_minutes minutes."""
+    out = []
+    for ip, minutes in agg.ip_minute.items():
+        if not minutes:
+            continue
+        offending = [(m, c) for m, c in minutes.items() if c >= rpm_threshold]
+        if len(offending) < sustained_minutes:
+            continue
+        peak_min, peak_rpm = max(minutes.items(), key=lambda kv: kv[1])
+        out.append({
+            "ip": ip,
+            "total_requests": agg.ip_total[ip],
+            "peak_rpm": peak_rpm,
+            "peak_minute_utc": datetime.fromtimestamp(peak_min * 60, tz=timezone.utc).isoformat(),
+            "minutes_over_threshold": len(offending),
+        })
+    out.sort(key=lambda d: d["peak_rpm"], reverse=True)
+    return out
+
+
+def detect_subnet_clusters(agg: Aggregator, min_ips: int, min_requests: int) -> list[dict]:
+    by_24: dict[str, list[int]] = defaultdict(list)  # subnet -> [requests per ip]
+    by_24_ips: dict[str, set[str]] = defaultdict(set)
+    for ip, count in agg.ip_total.items():
+        s = subnet24(ip)
+        by_24[s].append(count)
+        by_24_ips[s].add(ip)
+    out = []
+    for s, counts in by_24.items():
+        n_ips = len(by_24_ips[s])
+        total = sum(counts)
+        if n_ips >= min_ips and total >= min_requests:
+            out.append({
+                "subnet": s,
+                "ip_count": n_ips,
+                "total_requests": total,
+                "sample_ips": sorted(by_24_ips[s])[:5],
+            })
+    out.sort(key=lambda d: d["total_requests"], reverse=True)
+    return out
+
+
+def derive_ip_ranges(ips: list[str], min_ips: int = 3) -> tuple[list[str], list[str]]:
+    """Group IPs by /24; return (ranges, lone_ips).
+
+    A /24 with >= min_ips members is emitted as a CIDR range; the rest are
+    returned as individual IPs to be blocked at /32.
+    """
+    by_24: dict[str, list[str]] = defaultdict(list)
+    for ip in ips:
+        by_24[subnet24(ip)].append(ip)
+    ranges, lone = [], []
+    for sn, members in by_24.items():
+        if len(members) >= min_ips:
+            ranges.append(sn)
+        else:
+            lone.extend(members)
+    ranges.sort()
+    lone.sort()
+    return ranges, lone
+
+
+def detect_undeclared_crawlers(agg: Aggregator, min_distinct_paths: int = 500) -> list[dict]:
+    out = []
+    for ip, paths in agg.ip_paths.items():
+        if len(paths) < min_distinct_paths:
+            continue
+        uas = agg.ip_uas[ip]
+        # If declared, skip (already in declared crawler bucket).
+        if any(any(tok in ua for tok in CRAWLER_UA_TOKENS) for ua in uas):
+            continue
+        out.append({
+            "ip": ip,
+            "distinct_paths_seen": len(paths),  # capped at 1000
+            "total_requests": agg.ip_total[ip],
+            "had_any_referer": agg.ip_has_referer.get(ip, False),
+            "user_agents": sorted(uas)[:3],
+        })
+    out.sort(key=lambda d: d["distinct_paths_seen"], reverse=True)
+    return out
+
+
+def detect_traffic_spikes(agg: Aggregator, business_start: int, business_end: int, multiplier: float) -> list[dict]:
+    if not agg.hour_total:
+        return []
+    counts = list(agg.hour_total.values())
+    baseline = statistics.median(counts) or 1
+    out = []
+    for hour, total in sorted(agg.hour_total.items()):
+        dt = datetime.fromtimestamp(hour, tz=timezone.utc)
+        if total >= baseline * multiplier and business_start <= dt.hour < business_end:
+            out.append({
+                "hour_utc": dt.isoformat(),
+                "requests": total,
+                "baseline_median": baseline,
+                "multiple_of_baseline": round(total / baseline, 1),
+            })
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Reporting
+# ---------------------------------------------------------------------------
+
+class Style:
+    def __init__(self, color: bool):
+        self.color = color
+
+    def h(self, s):  # section header
+        return f"\033[1;36m{s}\033[0m" if self.color else s
+
+    def warn(self, s):
+        return f"\033[1;33m{s}\033[0m" if self.color else s
+
+    def bad(self, s):
+        return f"\033[1;31m{s}\033[0m" if self.color else s
+
+    def dim(self, s):
+        return f"\033[2m{s}\033[0m" if self.color else s
+
+    def link(self, url: str, label: str | None = None) -> str:
+        """Return a clickable OSC 8 hyperlink in color mode, plain URL otherwise."""
+        if self.color and label:
+            return f"\033]8;;{url}\033\\{label}\033]8;;\033\\"
+        return url
+
+
+def fmt_int(n: int) -> str:
+    return f"{n:,}"
+
+
+def fmt_ts(epoch: int | None) -> str:
+    if epoch is None:
+        return "n/a"
+    return datetime.fromtimestamp(epoch, tz=timezone.utc).isoformat()
+
+
+def render_table(rows: list[tuple], headers: tuple[str, ...], out) -> None:
+    if not rows:
+        out.write("  (none)\n")
+        return
+    widths = [len(h) for h in headers]
+    str_rows = []
+    for r in rows:
+        sr = tuple(str(c) for c in r)
+        str_rows.append(sr)
+        for i, c in enumerate(sr):
+            if len(c) > widths[i]:
+                widths[i] = min(len(c), 80)
+    fmt = "  " + "  ".join("{:<" + str(w) + "}" for w in widths) + "\n"
+    out.write(fmt.format(*headers))
+    out.write("  " + "  ".join("-" * w for w in widths) + "\n")
+    for sr in str_rows:
+        truncated = tuple(c[:80] for c in sr)
+        out.write(fmt.format(*truncated))
+
+
+def render_report(agg: Aggregator, args, out, style: Style) -> dict:
+    """Print human report; also build & return the JSON shape."""
+    js: dict = {}
+
+    # ---------- Header
+    out.write(style.h("=" * 78) + "\n")
+    out.write(style.h("LOGHOUND  —  Apache access log forensics report") + "\n")
+    out.write(style.h("=" * 78) + "\n")
+    out.write(f"Lines parsed     : {fmt_int(agg.lines)}\n")
+    out.write(f"Malformed        : {fmt_int(agg.malformed)}\n")
+    out.write(f"Time range (UTC) : {fmt_ts(agg.first_ts)}  →  {fmt_ts(agg.last_ts)}\n")
+    js["meta"] = {
+        "lines": agg.lines,
+        "malformed": agg.malformed,
+        "first_ts": fmt_ts(agg.first_ts),
+        "last_ts": fmt_ts(agg.last_ts),
+    }
+
+    focus = args.focus
+
+    # ---------- Status overview
+    if not focus or focus == "5xx":
+        out.write("\n" + style.h("Status code totals") + "\n")
+        rows = [(s, fmt_int(c)) for s, c in agg.status_total.most_common()]
+        render_table(rows, ("status", "count"), out)
+        js["status_totals"] = dict(agg.status_total)
+
+    # ---------- 5xx deep dive (most important)
+    fivexx_codes = sorted(s for s in agg.status_total if 500 <= s < 600)
+    if fivexx_codes and (not focus or focus == "5xx"):
+        out.write("\n" + style.bad("=== 5xx DEEP DIVE  (downtime / server failures) ===") + "\n")
+        js["fivexx"] = {}
+        for code in fivexx_codes:
+            n = agg.status_total[code]
+            out.write("\n" + style.bad(f"HTTP {code}  ({fmt_int(n)} requests)") + "\n")
+            first_e = agg.fivexx_first.get(code)
+            last_e = agg.fivexx_last.get(code)
+            peak_min, peak_n = (None, 0)
+            if agg.fivexx_minute[code]:
+                peak_min, peak_n = max(agg.fivexx_minute[code].items(), key=lambda kv: kv[1])
+            out.write(f"  window : {fmt_ts(first_e)}  →  {fmt_ts(last_e)}\n")
+            if peak_min:
+                out.write(f"  peak   : {fmt_ts(peak_min * 60)}  ({fmt_int(peak_n)} req in 1 min)\n")
+            out.write(style.dim("\n  Top client IPs:\n"))
+            render_table(
+                [
+                    (ip, fmt_int(c),
+                     style.link(f"https://www.abuseipdb.com/check/{ip}"))
+                    for ip, c in agg.fivexx_ip[code].most_common(args.top)
+                ],
+                ("ip", "hits", "check"),
+                out,
+            )
+            out.write(style.dim("\n  Top request paths:\n"))
+            render_table(
+                [(p, fmt_int(c)) for p, c in agg.fivexx_path[code].most_common(args.top)],
+                ("path", "hits"),
+                out,
+            )
+            out.write(style.dim("\n  Top user agents:\n"))
+            render_table(
+                [(ua, fmt_int(c)) for ua, c in agg.fivexx_ua[code].most_common(args.top)],
+                ("user-agent", "hits"),
+                out,
+            )
+            out.write(style.dim("\n  Top referers:\n"))
+            render_table(
+                [(r, fmt_int(c)) for r, c in agg.fivexx_ref[code].most_common(args.top)],
+                ("referer", "hits"),
+                out,
+            )
+            js["fivexx"][str(code)] = {
+                "count": n,
+                "window_start": fmt_ts(first_e),
+                "window_end": fmt_ts(last_e),
+                "peak_minute_utc": fmt_ts(peak_min * 60) if peak_min else None,
+                "peak_minute_count": peak_n,
+                "top_ips": agg.fivexx_ip[code].most_common(args.top),
+                "top_paths": agg.fivexx_path[code].most_common(args.top),
+                "top_user_agents": agg.fivexx_ua[code].most_common(args.top),
+                "top_referers": agg.fivexx_ref[code].most_common(args.top),
+            }
+
+    # ---------- 404
+    if not focus or focus == "4xx":
+        if agg.fourxx_path:
+            out.write("\n" + style.h("=== 404 SCAN ===") + "\n")
+            out.write(style.dim("\n  Top missing paths:\n"))
+            render_table(
+                [(p, fmt_int(c)) for p, c in agg.fourxx_path.most_common(args.top)],
+                ("path", "hits"),
+                out,
+            )
+            out.write(style.dim("\n  Top IPs hitting 404s:\n"))
+            render_table(
+                [(ip, fmt_int(c)) for ip, c in agg.fourxx_ip.most_common(args.top)],
+                ("ip", "hits"),
+                out,
+            )
+            js["fourxx"] = {
+                "top_paths": agg.fourxx_path.most_common(args.top),
+                "top_ips": agg.fourxx_ip.most_common(args.top),
+            }
+
+    # ---------- Botnet / subnet clustering
+    if not focus or focus == "botnet":
+        clusters = detect_subnet_clusters(agg, args.subnet_min_ips, args.subnet_min_requests)
+        out.write("\n" + style.warn("=== BOTNET / SUBNET CLUSTERS  (≥ "
+                                    f"{args.subnet_min_ips} IPs, ≥ "
+                                    f"{fmt_int(args.subnet_min_requests)} reqs) ===") + "\n")
+        rows = [(c["subnet"], c["ip_count"], fmt_int(c["total_requests"]),
+                 ", ".join(c["sample_ips"])) for c in clusters[:args.top]]
+        render_table(rows, ("subnet", "#ips", "requests", "sample"), out)
+        js["botnet_clusters"] = clusters[:args.top]
+
+    # ---------- Floods
+    if not focus or focus == "flood":
+        floods = detect_floods(agg, args.flood_rpm, args.flood_sustained)
+        out.write("\n" + style.warn(f"=== IP FLOODS  (≥ {args.flood_rpm} req/min for ≥ "
+                                    f"{args.flood_sustained} min) ===") + "\n")
+        rows = [(f["ip"], fmt_int(f["total_requests"]), f["peak_rpm"],
+                 f["minutes_over_threshold"], f["peak_minute_utc"])
+                for f in floods[:args.top]]
+        render_table(rows, ("ip", "total", "peak rpm", "min>thr", "peak minute"), out)
+        js["floods"] = floods[:args.top]
+
+    # ---------- Crawlers
+    if not focus:
+        out.write("\n" + style.h("=== DECLARED CRAWLERS ===") + "\n")
+        render_table(
+            [(name, fmt_int(c)) for name, c in agg.crawler_hits.most_common(args.top)],
+            ("crawler", "hits"),
+            out,
+        )
+        undeclared = detect_undeclared_crawlers(agg)
+        out.write("\n" + style.warn("=== SUSPICIOUS / UNDECLARED CRAWLERS  (browser UA, "
+                                    "≥ 500 distinct paths) ===") + "\n")
+        rows = [(u["ip"], u["distinct_paths_seen"], fmt_int(u["total_requests"]),
+                 "yes" if u["had_any_referer"] else "no",
+                 (u["user_agents"][0] if u["user_agents"] else "")[:60])
+                for u in undeclared[:args.top]]
+        render_table(rows, ("ip", "paths", "total", "ref?", "ua"), out)
+        js["declared_crawlers"] = dict(agg.crawler_hits)
+        js["suspicious_crawlers"] = undeclared[:args.top]
+
+    # ---------- Traffic spikes
+    if not focus or focus == "spike":
+        spikes = detect_traffic_spikes(
+            agg, args.business_start, args.business_end, args.spike_multiplier
+        )
+        out.write("\n" + style.h(f"=== TRAFFIC SPIKES  (business hours "
+                                 f"{args.business_start:02d}:00–"
+                                 f"{args.business_end:02d}:00 UTC, "
+                                 f"≥ {args.spike_multiplier}× median) ===") + "\n")
+        out.write(style.dim("  Heuristic: e.g. mid-day spikes often indicate email "
+                            "campaigns or promotions.\n"))
+        rows = [(s["hour_utc"], fmt_int(s["requests"]),
+                 fmt_int(s["baseline_median"]), s["multiple_of_baseline"])
+                for s in spikes]
+        render_table(rows, ("hour", "requests", "median", "x median"), out)
+        js["traffic_spikes"] = spikes
+
+    # ---------- Hourly histogram
+    if not focus:
+        out.write("\n" + style.h("=== HOURLY REQUEST HISTOGRAM ===") + "\n")
+        hist_rows = []
+        max_total = max(agg.hour_total.values()) if agg.hour_total else 1
+        for hour in sorted(agg.hour_total):
+            total = agg.hour_total[hour]
+            cls = agg.hour_class[hour]
+            bar_len = int(40 * total / max_total)
+            hist_rows.append((
+                datetime.fromtimestamp(hour, tz=timezone.utc).strftime("%Y-%m-%d %H:%M"),
+                fmt_int(total),
+                fmt_int(cls.get(2, 0)),
+                fmt_int(cls.get(3, 0)),
+                fmt_int(cls.get(4, 0)),
+                fmt_int(cls.get(5, 0)),
+                "█" * bar_len,
+            ))
+        render_table(hist_rows, ("hour", "total", "2xx", "3xx", "4xx", "5xx", ""), out)
+
+    # ---------- Suggested block lists (CIDR)
+    if not focus or focus in ("botnet", "flood"):
+        floods = detect_floods(agg, args.flood_rpm, args.flood_sustained)
+        flood_by_ip = {f["ip"]: f for f in floods}
+        clusters = detect_subnet_clusters(agg, args.subnet_min_ips, args.subnet_min_requests)
+        cluster_by_subnet = {c["subnet"]: c for c in clusters[:args.top]}
+        block_subnets = list(cluster_by_subnet.keys())
+        candidate_ips: list[str] = [f["ip"] for f in floods[:args.top]]
+        for code in fivexx_codes:
+            for ip, _ in agg.fivexx_ip[code].most_common(args.top):
+                if ip not in candidate_ips:
+                    candidate_ips.append(ip)
+
+        subnet_set = set(block_subnets)
+        leftover_ips = [ip for ip in candidate_ips if subnet24(ip) not in subnet_set]
+        derived_ranges, lone_ips = derive_ip_ranges(leftover_ips, min_ips=3)
+
+        # Severity scoring: combines volume + how many 5xx errors that source
+        # caused (errors weighted heavier than benign hits).
+        def ip_severity(ip: str) -> tuple[int, int, int]:
+            total = agg.ip_total.get(ip, 0)
+            errs = sum(agg.fivexx_ip[c].get(ip, 0) for c in fivexx_codes)
+            peak = flood_by_ip[ip]["peak_rpm"] if ip in flood_by_ip else 0
+            return total + errs * 4, errs, peak
+
+        def subnet_severity(sn: str) -> tuple[int, int, int]:
+            c = cluster_by_subnet.get(sn)
+            if not c:
+                # Derived range — sum from members
+                members = [ip for ip in leftover_ips if subnet24(ip) == sn]
+                total = sum(agg.ip_total.get(ip, 0) for ip in members)
+                errs = sum(
+                    sum(agg.fivexx_ip[code].get(ip, 0) for code in fivexx_codes)
+                    for ip in members
+                )
+                return total + errs * 4, errs, len(members)
+            errs = 0
+            for code in fivexx_codes:
+                for ip, n in agg.fivexx_ip[code].items():
+                    if subnet24(ip) == sn:
+                        errs += n
+            return c["total_requests"] + errs * 4, errs, c["ip_count"]
+
+        # Compute global max severity for normalised bars.
+        all_scores: list[int] = []
+        for sn in block_subnets + derived_ranges:
+            all_scores.append(subnet_severity(sn)[0])
+        for ip in lone_ips:
+            all_scores.append(ip_severity(ip)[0])
+        max_score = max(all_scores) if all_scores else 1
+
+        def severity_label(score: int) -> str:
+            ratio = score / max_score if max_score else 0
+            if ratio >= 0.66:
+                return style.bad("CRIT")
+            if ratio >= 0.33:
+                return style.warn("HIGH")
+            return style.dim("MED ")
+
+        def bar(score: int, width: int = 24) -> str:
+            n = int(round(width * score / max_score)) if max_score else 0
+            return "█" * n + style.dim("·" * (width - n))
+
+        # Helpers: annotate and filter known good actors.
+        # A subnet/IP is a "likely false positive" when:
+        #   - more than half its IPs are tagged as declared crawlers, OR
+        #   - its error rate is below 2% AND it is not a flood offender.
+        # These are still shown in the detailed table (with a warning tag) so
+        # analysts can see them, but excluded from the copy-paste block.
+        CRAWLER_ERR_FLOOR = 0.02   # 2 % error rate
+        CRAWLER_FRAC_FLOOR = 0.50  # 50 % of IPs must be crawler-tagged
+
+        def subnet_ips(sn: str) -> list[str]:
+            c = cluster_by_subnet.get(sn)
+            if c:
+                return [ip for ip in agg.ip_total if subnet24(ip) == sn]
+            return [ip for ip in leftover_ips if subnet24(ip) == sn]
+
+        def is_false_positive_subnet(sn: str) -> tuple[bool, str]:
+            ips = subnet_ips(sn)
+            cfrac = crawler_fraction_for_ips(ips, agg)
+            erate = error_rate_for_ips(ips, agg)
+            if cfrac >= CRAWLER_FRAC_FLOOR:
+                names = {agg.ip_crawler[ip] for ip in ips if ip in agg.ip_crawler}
+                return True, f"crawler:{','.join(sorted(names)[:2])}"
+            if erate < CRAWLER_ERR_FLOOR:
+                return True, f"low-err:{erate:.1%}"
+            return False, ""
+
+        def is_false_positive_ip(ip: str) -> tuple[bool, str]:
+            if ip in agg.ip_crawler:
+                return True, f"crawler:{agg.ip_crawler[ip]}"
+            total = agg.ip_total.get(ip, 0)
+            errs = sum(agg.fivexx_ip[c].get(ip, 0) for c in fivexx_codes)
+            erate = errs / total if total else 0
+            if erate < CRAWLER_ERR_FLOOR:
+                return True, f"low-err:{erate:.1%}"
+            return False, ""
+
+        out.write("\n" + style.h("=== SUGGESTED BLOCK LIST  (CIDR — review before applying) ===") + "\n")
+
+        def render_subnet_block(title: str, subnets: list[str]):
+            out.write(style.dim(f"\n  {title}\n"))
+            out.write(f"    {'sev':<5} {'cidr':<22} {'reqs':>9} {'5xx':>7} {'#ips':>5}  bar  note\n")
+            scored = sorted(subnets, key=lambda s: subnet_severity(s)[0], reverse=True)
+            for sn in scored:
+                score, errs, n_ips = subnet_severity(sn)
+                if sn in cluster_by_subnet:
+                    total_reqs = cluster_by_subnet[sn]["total_requests"]
+                else:
+                    members = [ip for ip in leftover_ips if subnet24(ip) == sn]
+                    total_reqs = sum(agg.ip_total.get(ip, 0) for ip in members)
+                fp, fp_note = is_false_positive_subnet(sn)
+                note = style.dim(f"[{fp_note}]") if fp else ""
+                out.write(
+                    f"    {severity_label(score)}  {sn:<22} "
+                    f"{fmt_int(total_reqs):>9} {fmt_int(errs):>7} {n_ips:>5}  "
+                    f"{bar(score)}  {note}\n"
+                )
+
+        if block_subnets:
+            render_subnet_block("Detected subnet clusters:", block_subnets)
+        if derived_ranges:
+            render_subnet_block("Derived IP ranges (≥ 3 IPs share a /24):", derived_ranges)
+        if lone_ips:
+            out.write(style.dim("\n  Individual IPs (not part of a detected range):\n"))
+            out.write(f"    {'sev':<5} {'cidr':<22} {'reqs':>9} {'5xx':>7} {'rpm':>5}  bar  note\n")
+            scored_ips = sorted(lone_ips, key=lambda i: ip_severity(i)[0], reverse=True)
+            for ip in scored_ips:
+                score, errs, peak = ip_severity(ip)
+                total = agg.ip_total.get(ip, 0)
+                fp, fp_note = is_false_positive_ip(ip)
+                note = style.dim(f"[{fp_note}]") if fp else ""
+                ratio = score / max_score if max_score else 0
+                if ratio >= 0.33:  # CRIT or HIGH — add AbuseIPDB link
+                    abuse_url = f"https://www.abuseipdb.com/check/{ip}"
+                    note = (note + "  " if note else "") + style.link(abuse_url, "abuseipdb")
+                out.write(
+                    f"    {severity_label(score)}  {ip + '/32':<22} "
+                    f"{fmt_int(total):>9} {fmt_int(errs):>7} {peak:>5}  "
+                    f"{bar(score)}  {note}\n"
+                )
+        if not (block_subnets or derived_ranges or lone_ips):
+            out.write("  (none)\n")
+
+        # Plain CIDR list — top offenders only, false positives excluded.
+        top_cidrs: list[str] = []
+        all_cidrs_scored: list[tuple[int, str]] = []
+        for sn in block_subnets + derived_ranges:
+            if not is_false_positive_subnet(sn)[0]:
+                all_cidrs_scored.append((subnet_severity(sn)[0], sn))
+        for ip in lone_ips:
+            if not is_false_positive_ip(ip)[0]:
+                all_cidrs_scored.append((ip_severity(ip)[0], ip + "/32"))
+        all_cidrs_scored.sort(reverse=True)
+        if all_cidrs_scored:
+            top_threshold = all_cidrs_scored[0][0] * 0.33  # CRIT+HIGH band
+            top_cidrs = [cidr for score, cidr in all_cidrs_scored if score >= top_threshold]
+            top_cidrs = top_cidrs[:max(1, args.top)]
+        skipped_fp = (len(block_subnets) + len(derived_ranges) + len(lone_ips)) - len([
+            1 for sn in block_subnets + derived_ranges if not is_false_positive_subnet(sn)[0]
+        ]) - len([1 for ip in lone_ips if not is_false_positive_ip(ip)[0]])
+        fp_note = f"  ({skipped_fp} likely false positive(s) excluded — see table above)\n" if skipped_fp else ""
+        out.write(style.dim(f"\n  Copy-paste — top {len(top_cidrs)} offender(s) (CIDR per line):\n"))
+        if fp_note:
+            out.write(style.dim(fp_note))
+        for cidr in top_cidrs:
+            out.write(f"    {cidr}\n")
+
+        js["suggested_block"] = {
+            "subnets": [
+                {"cidr": sn, "severity_score": subnet_severity(sn)[0],
+                 "fivexx_hits": subnet_severity(sn)[1]}
+                for sn in block_subnets
+            ],
+            "derived_ranges": [
+                {"cidr": sn, "severity_score": subnet_severity(sn)[0],
+                 "fivexx_hits": subnet_severity(sn)[1]}
+                for sn in derived_ranges
+            ],
+            "ips": [
+                {"cidr": ip + "/32", "severity_score": ip_severity(ip)[0],
+                 "fivexx_hits": ip_severity(ip)[1],
+                 "total_requests": agg.ip_total.get(ip, 0)}
+                for ip in lone_ips
+            ],
+        }
+
+    # ---------- Executive summary
+    if not focus:
+        summary = build_summary(agg, args)
+        out.write("\n" + style.h("=== EXECUTIVE SUMMARY ===") + "\n")
+        out.write(summary + "\n")
+        js["executive_summary"] = summary
+
+    return js
+
+
+def build_summary(agg: Aggregator, args) -> str:
+    total = agg.lines
+    fivexx_total = sum(c for s, c in agg.status_total.items() if 500 <= s < 600)
+    fourxx_total = sum(c for s, c in agg.status_total.items() if 400 <= s < 500)
+    twoxx_total = sum(c for s, c in agg.status_total.items() if 200 <= s < 300)
+    floods = detect_floods(agg, args.flood_rpm, args.flood_sustained)
+    clusters = detect_subnet_clusters(agg, args.subnet_min_ips, args.subnet_min_requests)
+
+    lines = []
+
+    # --- Overview
+    lines.append("## Overview\n")
+    lines.append(f"- **Period (UTC):** {fmt_ts(agg.first_ts)} → {fmt_ts(agg.last_ts)}")
+    lines.append(f"- **Total requests:** {fmt_int(total)}")
+    lines.append(f"- **Successful (2xx):** {fmt_int(twoxx_total)} ({twoxx_total * 100 / total:.1f}%)")
+    if fivexx_total:
+        lines.append(f"- **Server errors (5xx):** {fmt_int(fivexx_total)} ({fivexx_total * 100 / total:.1f}%) ⚠")
+    if fourxx_total:
+        lines.append(f"- **Client errors (4xx):** {fmt_int(fourxx_total)} ({fourxx_total * 100 / total:.1f}%)")
+
+    # --- Incident detail
+    if fivexx_total:
+        worst = max(
+            (s for s in agg.status_total if 500 <= s < 600),
+            key=lambda s: agg.status_total[s],
+        )
+        first_e = agg.fivexx_first.get(worst)
+        last_e = agg.fivexx_last.get(worst)
+        peak_min, peak_n = (None, 0)
+        if agg.fivexx_minute[worst]:
+            peak_min, peak_n = max(agg.fivexx_minute[worst].items(), key=lambda kv: kv[1])
+
+        lines.append("\n## Incident\n")
+        lines.append(f"- **Dominant error:** HTTP {worst} "
+                     f"({fmt_int(agg.status_total[worst])} hits, "
+                     f"{agg.status_total[worst] * 100 / total:.1f}% of traffic)")
+        if first_e and last_e:
+            lines.append(f"- **Window:** {fmt_ts(first_e)} → {fmt_ts(last_e)}")
+        if peak_min:
+            lines.append(f"- **Peak minute:** {fmt_ts(peak_min * 60)} "
+                         f"({fmt_int(peak_n)} req in that minute)")
+
+        top_ip, top_ip_n = next(iter(agg.fivexx_ip[worst].most_common(1)), (None, 0))
+        if top_ip:
+            lines.append(f"- **Top offending IP:** {top_ip} ({fmt_int(top_ip_n)} hits)")
+
+    # --- Threats
+    threat_lines = []
+    if clusters:
+        top = clusters[0]
+        threat_lines.append(
+            f"- **Largest botnet cluster:** `{top['subnet']}` — "
+            f"{top['ip_count']} IPs, {fmt_int(top['total_requests'])} requests"
+        )
+        if len(clusters) > 1:
+            threat_lines.append(f"- **Other suspicious subnets:** {len(clusters) - 1} additional cluster(s) detected")
+    if floods:
+        threat_lines.append(
+            f"- **IP floods:** {len(floods)} IP(s) exceeded {args.flood_rpm} req/min "
+            f"(top: `{floods[0]['ip']}` @ {floods[0]['peak_rpm']} rpm)"
+        )
+    if threat_lines:
+        lines.append("\n## Threats\n")
+        lines.extend(threat_lines)
+
+    # --- Action
+    lines.append("\n## Action required\n")
+    lines.append("- Review the **Suggested block list** section and apply the CIDRs to your CDN / WAF firewall after verification.")
+    lines.append("- Cross-reference botnet IPs against the 5xx deep dive before blocking to avoid false positives.")
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+def iter_records(paths: Iterable[str], agg: Aggregator,
+                 since: int | None, until: int | None) -> None:
+    for path in paths:
+        with open_log(path) as f:
+            for line in f:
+                rec = parse_line(line)
+                if rec is None:
+                    agg.malformed += 1
+                    continue
+                if since is not None and rec[1] < since:
+                    continue
+                if until is not None and rec[1] > until:
+                    continue
+                agg.feed(rec)
+
+
+def parse_iso(s: str | None) -> int | None:
+    if not s:
+        return None
+    dt = datetime.fromisoformat(s)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return int(dt.timestamp())
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(
+        prog="loghound",
+        description="Fast offline Apache access log forensics. Stdlib only.",
+    )
+    p.add_argument("files", nargs="*", help="log files (.log, .gz, .bz2, or - for stdin)")
+    p.add_argument("--since", help="ISO8601 lower bound, UTC if naive")
+    p.add_argument("--until", help="ISO8601 upper bound, UTC if naive")
+    p.add_argument("--top", type=int, default=20, help="rows per table (default 20)")
+    p.add_argument("--flood-rpm", type=int, default=60,
+                   help="req/min threshold for flood (default 60)")
+    p.add_argument("--flood-sustained", type=int, default=2,
+                   help="minutes >= flood-rpm required to flag (default 2)")
+    p.add_argument("--subnet-min-ips", type=int, default=5,
+                   help="distinct IPs in /24 to flag a cluster (default 5)")
+    p.add_argument("--subnet-min-requests", type=int, default=100,
+                   help="min requests across the /24 to flag (default 100)")
+    p.add_argument("--spike-multiplier", type=float, default=3.0,
+                   help="× median req/hour to flag a spike (default 3.0)")
+    p.add_argument("--business-start", type=int, default=9, help="UTC hour, default 9")
+    p.add_argument("--business-end", type=int, default=17, help="UTC hour, default 17")
+    p.add_argument("--focus", choices=("5xx", "4xx", "botnet", "flood", "spike"),
+                   help="run one module only (faster reporting, same parse)")
+    p.add_argument("--json", action="store_true", help="emit JSON only on stdout")
+    p.add_argument("--json-out", metavar="PATH", help="also write JSON to PATH")
+    p.add_argument("--quiet", action="store_true", help="suppress narrative summary")
+    p.add_argument("--no-color", action="store_true")
+    args = p.parse_args(argv)
+
+    if not args.files:
+        candidates = sorted(_glob.glob("*access.log") + _glob.glob("*access.log.gz") + _glob.glob("*access.log.bz2"))
+        if not candidates:
+            p.error("no *access.log files found in the current directory — pass a file explicitly")
+        if len(candidates) == 1:
+            args.files = candidates
+        else:
+            sys.stderr.write("Available log files:\n")
+            for i, name in enumerate(candidates, 1):
+                sys.stderr.write(f"  [{i}] {name}\n")
+            sys.stderr.write("Select file(s) [1]: ")
+            try:
+                raw = input().strip() or "1"
+            except (EOFError, KeyboardInterrupt):
+                return 1
+            selected = []
+            for token in raw.split():
+                if "-" in token:
+                    lo, _, hi = token.partition("-")
+                    selected.extend(range(int(lo), int(hi) + 1))
+                else:
+                    selected.append(int(token))
+            try:
+                args.files = [candidates[i - 1] for i in selected]
+            except IndexError:
+                p.error("selection out of range")
+
+    since = parse_iso(args.since)
+    until = parse_iso(args.until)
+
+    agg = Aggregator(top=args.top)
+    iter_records(args.files, agg, since, until)
+
+    color = (not args.no_color) and sys.stdout.isatty() and not args.json
+    style = Style(color=color)
+
+    # Build report into a buffer so we can swallow it under --json.
+    buf = io.StringIO()
+    js = render_report(agg, args, buf, style)
+
+    if args.json:
+        json.dump(js, sys.stdout, default=str, indent=2)
+        sys.stdout.write("\n")
+    else:
+        sys.stdout.write(buf.getvalue())
+
+    if args.json_out:
+        with open(args.json_out, "w", encoding="utf-8") as f:
+            json.dump(js, f, default=str, indent=2)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
