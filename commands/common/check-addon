@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+set -euo pipefail
+
+bold=$(tput bold)
+normal=$(tput sgr0)
+
+if [ "$#" -lt 1 ]; then
+  echo "❌ Usage: ddev check-addon <repository> [reason]" >&2
+  exit 2
+fi
+
+REPO="$1"
+REASON="${2:-}"
+ADDON_NAME="${REPO##*/}"
+
+ADDON_METADATA_BASE="${DDEV_APPROOT}/.ddev/addon-metadata"
+MANIFEST="${ADDON_METADATA_BASE}/${ADDON_NAME}/manifest.yaml"
+
+# ---------------------------------------------------------------------------
+# Success path: already installed
+# ---------------------------------------------------------------------------
+if [ -f "${MANIFEST}" ]; then
+  echo "installed"
+  exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# Missing add-on (human output)
+# ---------------------------------------------------------------------------
+echo >&2
+echo "❌ Required DDEV add-on not installed: ${REPO}" >&2
+# echo "   Add-on : ${REPO}" >&2
+
+if [ -n "${REASON}" ]; then
+  echo ""
+  echo "   ${bold}Add-on is needed to run ${REASON}${normal}" >&2
+fi
+
+echo >&2
+
+# ---------------------------------------------------------------------------
+# Non-interactive (CI, automation)
+# ---------------------------------------------------------------------------
+if [ "${DDEV_NONINTERACTIVE:-false}" = "true" ]; then
+  echo "⚙️  Non-interactive mode detected; installing automatically…" >&2
+  if ddev add-on get "${REPO}"; then
+    echo "installed"
+    exit 0
+  else
+    echo "❌ Failed to install ${REPO}" >&2
+    exit 1
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Interactive
+# ---------------------------------------------------------------------------
+read -r -p "Install ${REPO} now? [Y/n] " reply
+
+if [[ "${reply}" =~ ^[Nn]$ ]]; then
+  echo >&2
+  echo "⚠️  Skipping add-on installation at user request." >&2
+  if [ -n "${REASON}" ]; then
+    echo "   ${REASON} will not be available." >&2
+  fi
+  echo "not-installed"
+  exit 0
+fi
+
+if ddev add-on get "${REPO}"; then
+  echo "installed"
+  exit 0
+else
+  echo "❌ Failed to install ${REPO}" >&2
+  exit 1
+fi
