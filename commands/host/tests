@@ -4,58 +4,83 @@
 
 ## Description: Informs you about available test suites in current project
 ## Usage: tests
-## Example: "ddev tests"
+## Example: ddev tests
 
-underline=`tput smul`
-nounderline=`tput rmul`
-bold=`tput bold`
-normal=`tput sgr0`
+set -euo pipefail
 
+underline=$(tput smul)
+nounderline=$(tput rmul)
+bold=$(tput bold)
+normal=$(tput sgr0)
+
+echo
+
+# ---------------------------------------------------------------------------
 # Backstop
+# ---------------------------------------------------------------------------
 if [ -f "${DDEV_APPROOT}/tests/backstop/backstop.json" ]; then
-  echo
-  echo "${bold}Backstop:${normal}"
-  echo "  ddev backstop reference"
-  echo "  ddev backstop test"
-  echo "  ddev backstop-results"
+  backstop_addon="$(
+    ddev check-addon \
+    ddev/ddev-backstopjs \
+    "Backstop tests"
+  )"
+
+  if [ "${backstop_addon}" = "installed" ]; then
+    echo "${bold}Backstop:${normal}"
+    echo "  ddev backstop reference"
+    echo "  ddev backstop test"
+    echo "  ddev backstop-results"
+    echo
+  fi
 fi
 
+# ---------------------------------------------------------------------------
 # Behat
+# ---------------------------------------------------------------------------
 if [ -f "${DDEV_APPROOT}/tests/behat/behat.yml" ]; then
-  echo
   echo "${bold}Behat:${normal}"
   echo "  ddev ssh"
   echo "  cd tests/behat"
   echo "  bin/behat"
+  echo
 fi
 
+# ---------------------------------------------------------------------------
 # Bruno
-# @todo: check for postman?
-# @todo: run them with DDEV?
+# ---------------------------------------------------------------------------
 if [ -f "${DDEV_APPROOT}/tests/bruno/bruno/bruno.json" ]; then
-  echo
   echo "${bold}Bruno:${normal}"
   echo "  Runs outside DDEV, see https://www.usebruno.com/"
+  echo
 fi
 
+# ---------------------------------------------------------------------------
 # Cypress
-if [ -f "cypress.config.js" ]; then
-  echo
-  echo "${bold}Cypress:${normal}"
-  echo "  ddev cypress-run"
-  echo "  ddev cypress-run --headed"
-  echo "  ddev cypress-open"
-  echo
-  echo "If getting X related errors run xhost **first!**"
-  # First, ensure xhost allows connections
-  echo "xhost +local:"
+# ---------------------------------------------------------------------------
+if [ -f "${DDEV_APPROOT}/cypress.config.js" ]; then
+  cypress_addon="$(
+    ddev check-addon \
+      ddev/ddev-cypress \
+      "Cypress tests"
+  )"
+
+  if [ "${cypress_addon}" = "installed" ]; then
+    echo "${bold}Cypress:${normal}"
+    echo "  ddev cypress-run"
+    echo "  ddev cypress-run --headed"
+    echo "  ddev cypress-open"
+    echo
+    echo "If getting X related errors run xhost ${bold}first${normal}!"
+    echo "  xhost +local:"
+    echo
+  fi
 fi
 
+# ---------------------------------------------------------------------------
 # PHPUnit
+# ---------------------------------------------------------------------------
 if [ -f "${DDEV_APPROOT}/vendor/bin/phpunit" ]; then
-  echo
   echo "${bold}PHPUnit:${normal}"
   echo "  ddev phpunit"
+  echo
 fi
-
-echo
