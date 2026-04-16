@@ -223,6 +223,8 @@ run_download_access_log() {
     local filename="${date_str}_${project_name}_${environment_id}_access.log.gz"
     filename="${filename// /_}"
     filename="${filename//[\[\]()]/}"
+    mkdir -p logs
+    filename="logs/${filename}"
     echo_yellow "Resolving SSH endpoint..."
     local ssh_host
     ssh_host=$(ddev exec upsun ssh --project="${project_id}" -e "${environment_id}" --pipe 2>/dev/null)

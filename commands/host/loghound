@@ -1069,9 +1069,9 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
 
     if not args.files:
-        candidates = sorted(_glob.glob("*access.log") + _glob.glob("*access.log.gz") + _glob.glob("*access.log.bz2"))
+        candidates = sorted(_glob.glob("logs/*access.log") + _glob.glob("logs/*access.log.gz") + _glob.glob("logs/*access.log.bz2"))
         if not candidates:
-            p.error("no *access.log files found in the current directory — pass a file explicitly")
+            p.error("no *access.log files found in logs/ — pass a file explicitly or run ddev ucc to download one")
         if len(candidates) == 1:
             args.files = candidates
         else:
