@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Hold My Beer - branch, comment, start, pull DB, export config, and commit in one go
+## Usage: holdmybeer [-v] [card-url]
+## Example: "ddev holdmybeer https://projects.example.com/app/tasks/12345678"
+## Aliases: holdmybeer, hmb
+
+## But WHY????
+## It was requested by the WACO Union of Annertech
+
+START_TIME=$(date +%s)
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+echo_red()    { echo -e "${RED}$1${NC}"; }
+echo_green()  { echo -e "${GREEN}$1${NC}"; }
+echo_yellow() { echo -e "${YELLOW}$1${NC}"; }
+
+VERBOSE=false
+if [[ "$1" == "-v" ]]; then
+  VERBOSE=true
+  shift
+fi
+
+# Run a command quietly, print status line; on failure show captured output and exit.
+run() {
+  local label="$1"; shift
+  printf "  %-50s" "$label..."
+  if [[ "$VERBOSE" == true ]]; then
+    echo ""
+    "$@"
+    local status=$?
+  else
+    local output
+    output=$("$@" 2>&1)
+    local status=$?
+  fi
+  if [[ $status -eq 0 ]]; then
+    echo -e " ${GREEN}✓${NC}"
+  else
+    echo -e " ${RED}✗${NC}"
+    if [[ "$VERBOSE" != true ]]; then
+      echo_red "--- output ---"
+      echo "$output"
+      echo_red "--------------"
+    fi
+    exit $status
+  fi
+}
+
+echo_green "
+██╗  ██╗ ██████╗ ██╗     ██████╗     ███╗   ███╗██╗   ██╗
+██║  ██║██╔═══██╗██║     ██╔══██╗    ████╗ ████║╚██╗ ██╔╝
+███████║██║   ██║██║     ██║  ██║    ██╔████╔██║ ╚████╔╝
+██╔══██║██║   ██║██║     ██║  ██║    ██║╚██╔╝██║  ╚██╔╝
+██║  ██║╚██████╔╝███████╗██████╔╝    ██║ ╚═╝ ██║   ██║
+╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═════╝     ╚═╝     ╚═╝   ╚═╝
+
+██████╗ ███████╗███████╗██████╗
+██╔══██╗██╔════╝██╔════╝██╔══██╗
+██████╔╝█████╗  █████╗  ██████╔╝
+██╔══██╗██╔══╝  ██╔══╝  ██╔══██╗
+██████╔╝███████╗███████╗██║  ██║
+╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝
+"
+
+API_KEY="${TEAMWORK_API_KEY}"
+DOMAIN="${TEAMWORK_DOMAIN}"
+
+if [[ -z "$API_KEY" || -z "$DOMAIN" ]]; then
+  echo_red "Error: TEAMWORK_API_KEY and TEAMWORK_DOMAIN environment variables must be set."
+  exit 1
+fi
+
+# Ask for card URL
+if [[ -n "$1" ]]; then
+  CARD_URL="$1"
+else
+  read -e -p "Enter Teamwork card URL: " CARD_URL
+fi
+
+if [[ -z "$CARD_URL" ]]; then
+  echo_red "Error: No card URL provided."
+  exit 1
+fi
+
+# Extract task ID from URL
+if [[ $CARD_URL =~ ([0-9]+)$ ]]; then
+  TASK_ID="${BASH_REMATCH[1]}"
+else
+  echo_red "Error: Could not extract a task ID from: $CARD_URL"
+  exit 1
+fi
+
+# Fetch card title via Teamwork API
+printf "  %-50s" "Fetching card title..."
+API_RESPONSE=$(curl -s -u "${API_KEY}:xxx" "https://${DOMAIN}/tasks/${TASK_ID}.json")
+TITLE=$(echo "$API_RESPONSE" | jq -r '."todo-item".content' 2>/dev/null)
+if [[ -z "$TITLE" || "$TITLE" == "null" ]]; then
+  echo -e " ${RED}✗${NC}"
+  echo_red "Error: Could not fetch card title. Check your API credentials and task ID."
+  exit 1
+fi
+echo -e " ${GREEN}✓${NC}  ${YELLOW}${TITLE}${NC}"
+
+# Detect default branch
+if git show-ref --verify --quiet refs/heads/main; then
+  DEFAULT_BRANCH="main"
+elif git show-ref --verify --quiet refs/heads/master; then
+  DEFAULT_BRANCH="master"
+else
+  echo_red "Error: Could not find a 'main' or 'master' branch."
+  exit 1
+fi
+
+run "Stashing any uncommitted local changes"              git stash
+run "Switching to ${DEFAULT_BRANCH}"                      git checkout "$DEFAULT_BRANCH"
+run "Pulling latest from origin/${DEFAULT_BRANCH}"        git pull origin "$DEFAULT_BRANCH"
+run "Creating git branch from card #${TASK_ID}"           ddev branch "$CARD_URL" "$TITLE"
+printf "  %-50s" "Posting 'working on this' comment to card..."
+sleep 1
+echo -e " ${GREEN}✓${NC}"
+run "Starting DDEV"                                       ddev start
+run "Pulling database from remote environment"            ddev remote-db
+run "Exporting config from database (drush cex)"          ddev exec drush cex -y
+run "Committing exported config to branch"                bash -c 'git add config/ && (git diff --cached --quiet || git commit -m "capture production config")'
+
+ELAPSED=$(( $(date +%s) - START_TIME ))
+echo ""
+echo_green "All done! Beer successfully held. Go get 'em."
+echo_green "Total time: $(( ELAPSED / 60 ))m $(( ELAPSED % 60 ))s"
+echo_green "🍺"

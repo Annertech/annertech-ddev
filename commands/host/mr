@@ -6,6 +6,8 @@
 ## Usage: mr
 ## Example: "ddev mr"
 
+set -e # Prevent MR creation if git push fails
+
 #DOMAIN="${TEAMWORK_DOMAIN}"
 #
 #if [[ -z "$DOMAIN" ]]; then

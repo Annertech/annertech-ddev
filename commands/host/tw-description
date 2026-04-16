@@ -90,39 +90,50 @@ if [ -z "$MR_LINK" ]; then
     exit 1
 fi
 
-# Prompt for deploy state/notes - pre-fill default checklist items for inline editing
-echo_yellow "Edit deploy checklist (arrow keys to edit, clear a line to remove it, empty line to finish):"
+# Prompt for deploy state - pre-fill default checklist items for inline editing
+echo_yellow "Edit deploy state checklist (arrow keys to edit, clear a line to remove it, empty line to finish):"
 DEPLOY_ITEMS=()
-for default_item in "* [ ] Merge Dev" "* [ ] Merge Production"; do
+for default_item in "* [ ] Deployed to Dev" "* [ ] Deployed to Production"; do
     read -e -i "$default_item" -r line
     [ -n "$line" ] && DEPLOY_ITEMS+=("$line")
 done
-echo_yellow "Add more items (empty line to finish):"
+echo_yellow "Add more state items (empty line to finish):"
 while IFS= read -r line; do
     [ -z "$line" ] && break
     DEPLOY_ITEMS+=("$line")
 done
 DEPLOY_STATE=$(printf '%s\n' "${DEPLOY_ITEMS[@]}")
 
-# Prompt for test notes (multiline)
+# Prompt for deployment steps (checklist, optional)
+DEPLOY_STEPS_ITEMS=()
+echo_yellow "Enter deployment steps (arrow keys to edit, empty line to finish, leave blank to skip):"
+while IFS= read -r line; do
+    [ -z "$line" ] && break
+    # Auto-prefix with checkbox if not already
+    [[ "$line" == "* [ ]"* ]] || line="* [ ] $line"
+    DEPLOY_STEPS_ITEMS+=("$line")
+done
+if [ ${#DEPLOY_STEPS_ITEMS[@]} -eq 0 ]; then
+    DEPLOY_STEPS="_no manual steps required/provided_"
+else
+    DEPLOY_STEPS=$(printf '%s\n' "${DEPLOY_STEPS_ITEMS[@]}")
+fi
+
+# Prompt for test notes (multiline, optional)
 TEST_NOTES=""
-while [ -z "$TEST_NOTES" ]; do
-    echo_yellow "Enter test notes/plan (empty line to finish):"
-    while IFS= read -r line; do
-        if [ -z "$line" ]; then
-            break
-        fi
-        if [ -n "$TEST_NOTES" ]; then
-            TEST_NOTES="${TEST_NOTES}
+echo_yellow "Enter test notes/plan (empty line to finish, leave blank to skip):"
+while IFS= read -r line; do
+    [ -z "$line" ] && break
+    if [ -n "$TEST_NOTES" ]; then
+        TEST_NOTES="${TEST_NOTES}
 ${line}"
-        else
-            TEST_NOTES="$line"
-        fi
-    done
-    if [ -z "$TEST_NOTES" ]; then
-        echo_red "Test notes are required, please enter at least one line."
+    else
+        TEST_NOTES="$line"
     fi
 done
+if [ -z "$TEST_NOTES" ]; then
+    TEST_NOTES="_no test notes provided_"
+fi
 
 # Fetch Dev URL if upstream provider is platform or upsun
 UPSUN_DEV_URL=""
@@ -185,8 +196,9 @@ else
 fi
 
 # Build new section to append
-NEW_SECTION="## Deployment
+NEW_SECTION="## Deployment notes
 
+- Date: $(date +%Y-%m-%d)
 - MR: ${MR_LINK}
 - Branch: \`${branch_name}\`
 
@@ -194,9 +206,19 @@ NEW_SECTION="## Deployment
 
 ${DEPLOY_STATE}
 
-#### Test
+#### Testing
 
-${TEST_NOTES}"
+${TEST_NOTES}
+
+#### Deployment steps
+
+${DEPLOY_STEPS}
+
+#### Approval
+
+* [ ] Code Review and approved
+* [ ] Internal QA successful
+* [ ] Client acceptance (or N/A)"
 
 # Combine existing and new
 FULL_DESCRIPTION="${EXISTING_DESC}${NEW_SECTION}"
