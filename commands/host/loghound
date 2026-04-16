@@ -23,6 +23,7 @@ import bz2
 import glob as _glob
 import gzip
 import io
+import ipaddress
 import json
 import os
 import statistics
@@ -138,6 +139,42 @@ def open_log(path: str):
 
 
 # ---------------------------------------------------------------------------
+# Known IP ranges (loaded from known_ips.json next to this script)
+# ---------------------------------------------------------------------------
+
+def _load_known_ips() -> dict[str, list]:
+    """Load known_ips.json → {service_name: [ip_network, ...]}."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(here, "known_ips.json")
+    if not os.path.isfile(path):
+        return {}
+    with open(path, "r", encoding="utf-8") as f:
+        raw = json.load(f)
+    result: dict[str, list] = {}
+    for key, cidrs in raw.items():
+        if key.startswith("_"):
+            continue
+        result[key] = [ipaddress.ip_network(c, strict=False) for c in cidrs]
+    return result
+
+
+KNOWN_IP_RANGES: dict[str, list] = _load_known_ips()
+
+
+def lookup_known_ip(ip_str: str) -> str | None:
+    """Return the service name if ip_str falls in a known range, else None."""
+    try:
+        addr = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return None
+    for service, nets in KNOWN_IP_RANGES.items():
+        for net in nets:
+            if addr in net:
+                return service
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Aggregation
 # ---------------------------------------------------------------------------
 
@@ -211,6 +248,9 @@ class Aggregator:
         # Per-IP crawler tag: ip -> crawler name (first match wins)
         self.ip_crawler: dict[str, str] = {}
 
+        # Known IP tag: ip -> service name (Googlebot, Bingbot, NodePing)
+        self.ip_known: dict[str, str] = {}
+
     def feed(self, rec) -> None:
         ip, epoch, _method, path, status, _size, referer, ua = rec
         self.lines += 1
@@ -258,10 +298,30 @@ class Aggregator:
                     self.ip_crawler[ip] = tok
                 break
 
+        # Known IP range check (only on first encounter per IP)
+        if ip not in self.ip_known and KNOWN_IP_RANGES:
+            svc = lookup_known_ip(ip)
+            if svc:
+                self.ip_known[ip] = svc
+
 
 # ---------------------------------------------------------------------------
 # Detections derived from aggregates
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Verdicts — hardcoded, hedged labels for an offline triage tool.
+# We surface signals; only a human with full context can issue a real verdict.
+# ---------------------------------------------------------------------------
+
+VERDICT_CHECK_FURTHER = "check further"
+VERDICT_LIKELY_BENIGN = "likely benign"
+VERDICT_LIKELY_CRAWLER = "likely crawler — verify intent"
+VERDICT_HIGH_ERROR_RATE = "high error rate — investigate"
+VERDICT_HIGH_VOLUME = "high volume — check if legitimate"
+VERDICT_FLOOD_WITH_ERRORS = "flood + errors — investigate"
+VERDICT_REVIEW_BEFORE_ACTING = "review before acting"
+
 
 def crawler_fraction_for_ips(ips: list[str], agg: Aggregator) -> float:
     """Return fraction of IPs (0.0–1.0) tagged as declared crawlers."""
@@ -405,9 +465,7 @@ class Style:
         return f"\033[2m{s}\033[0m" if self.color else s
 
     def link(self, url: str, label: str | None = None) -> str:
-        """Return a clickable OSC 8 hyperlink in color mode, plain URL otherwise."""
-        if self.color and label:
-            return f"\033]8;;{url}\033\\{label}\033]8;;\033\\"
+        """Always return the full URL as plain text."""
         return url
 
 
@@ -444,6 +502,10 @@ def render_table(rows: list[tuple], headers: tuple[str, ...], out) -> None:
 def render_report(agg: Aggregator, args, out, style: Style) -> dict:
     """Print human report; also build & return the JSON shape."""
     js: dict = {}
+
+    # Run all detections once up front so results can be reused.
+    floods = detect_floods(agg, args.flood_rpm, args.flood_sustained)
+    clusters = detect_subnet_clusters(agg, args.subnet_min_ips, args.subnet_min_requests)
 
     # ---------- Header
     out.write(style.h("=" * 78) + "\n")
@@ -488,10 +550,11 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
             render_table(
                 [
                     (ip, fmt_int(c),
+                     agg.ip_known.get(ip, ""),
                      style.link(f"https://www.abuseipdb.com/check/{ip}"))
                     for ip, c in agg.fivexx_ip[code].most_common(args.top)
                 ],
-                ("ip", "hits", "check"),
+                ("ip", "hits", "known", "check"),
                 out,
             )
             out.write(style.dim("\n  Top request paths:\n"))
@@ -536,8 +599,9 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
             )
             out.write(style.dim("\n  Top IPs hitting 404s:\n"))
             render_table(
-                [(ip, fmt_int(c)) for ip, c in agg.fourxx_ip.most_common(args.top)],
-                ("ip", "hits"),
+                [(ip, fmt_int(c), agg.ip_known.get(ip, ""))
+                 for ip, c in agg.fourxx_ip.most_common(args.top)],
+                ("ip", "hits", "known"),
                 out,
             )
             js["fourxx"] = {
@@ -545,26 +609,33 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
                 "top_ips": agg.fourxx_ip.most_common(args.top),
             }
 
-    # ---------- Botnet / subnet clustering
+    # ---------- IP clusters
     if not focus or focus == "botnet":
-        clusters = detect_subnet_clusters(agg, args.subnet_min_ips, args.subnet_min_requests)
-        out.write("\n" + style.warn("=== BOTNET / SUBNET CLUSTERS  (≥ "
+        out.write("\n" + style.warn("=== IP CLUSTERS  (≥ "
                                     f"{args.subnet_min_ips} IPs, ≥ "
-                                    f"{fmt_int(args.subnet_min_requests)} reqs) ===") + "\n")
+                                    f"{fmt_int(args.subnet_min_requests)} reqs — "
+                                    f"possible botnet, CDN, or shared network) ===") + "\n")
+        def _cluster_known(c):
+            svcs = {agg.ip_known[ip] for ip in c["sample_ips"] if ip in agg.ip_known}
+            if not svcs:
+                svcs = {agg.ip_known[ip] for ip in agg.ip_total
+                        if subnet24(ip) == c["subnet"] and ip in agg.ip_known}
+            return ",".join(sorted(svcs)) if svcs else ""
         rows = [(c["subnet"], c["ip_count"], fmt_int(c["total_requests"]),
-                 ", ".join(c["sample_ips"])) for c in clusters[:args.top]]
-        render_table(rows, ("subnet", "#ips", "requests", "sample"), out)
-        js["botnet_clusters"] = clusters[:args.top]
+                 _cluster_known(c), ", ".join(c["sample_ips"]))
+                for c in clusters[:args.top]]
+        render_table(rows, ("subnet", "#ips", "requests", "known", "sample"), out)
+        js["ip_clusters"] = clusters[:args.top]
 
     # ---------- Floods
     if not focus or focus == "flood":
-        floods = detect_floods(agg, args.flood_rpm, args.flood_sustained)
-        out.write("\n" + style.warn(f"=== IP FLOODS  (≥ {args.flood_rpm} req/min for ≥ "
-                                    f"{args.flood_sustained} min) ===") + "\n")
+        out.write("\n" + style.warn(f"=== POSSIBLE IP FLOODS  (≥ {args.flood_rpm} req/min for ≥ "
+                                    f"{args.flood_sustained} min — {VERDICT_CHECK_FURTHER}) ===") + "\n")
         rows = [(f["ip"], fmt_int(f["total_requests"]), f["peak_rpm"],
-                 f["minutes_over_threshold"], f["peak_minute_utc"])
+                 f["minutes_over_threshold"], f["peak_minute_utc"],
+                 agg.ip_known.get(f["ip"], ""))
                 for f in floods[:args.top]]
-        render_table(rows, ("ip", "total", "peak rpm", "min>thr", "peak minute"), out)
+        render_table(rows, ("ip", "total", "peak rpm", "min>thr", "peak minute", "known"), out)
         js["floods"] = floods[:args.top]
 
     # ---------- Crawlers
@@ -576,15 +647,15 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
             out,
         )
         undeclared = detect_undeclared_crawlers(agg)
-        out.write("\n" + style.warn("=== SUSPICIOUS / UNDECLARED CRAWLERS  (browser UA, "
-                                    "≥ 500 distinct paths) ===") + "\n")
+        out.write("\n" + style.warn("=== POSSIBLE UNDECLARED CRAWLERS  (browser UA, "
+                                    f"≥ 500 distinct paths — {VERDICT_CHECK_FURTHER}) ===") + "\n")
         rows = [(u["ip"], u["distinct_paths_seen"], fmt_int(u["total_requests"]),
                  "yes" if u["had_any_referer"] else "no",
                  (u["user_agents"][0] if u["user_agents"] else "")[:60])
                 for u in undeclared[:args.top]]
         render_table(rows, ("ip", "paths", "total", "ref?", "ua"), out)
         js["declared_crawlers"] = dict(agg.crawler_hits)
-        js["suspicious_crawlers"] = undeclared[:args.top]
+        js["possible_undeclared_crawlers"] = undeclared[:args.top]
 
     # ---------- Traffic spikes
     if not focus or focus == "spike":
@@ -623,11 +694,9 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
             ))
         render_table(hist_rows, ("hour", "total", "2xx", "3xx", "4xx", "5xx", ""), out)
 
-    # ---------- Suggested block lists (CIDR)
+    # ---------- Candidates for blocking
     if not focus or focus in ("botnet", "flood"):
-        floods = detect_floods(agg, args.flood_rpm, args.flood_sustained)
         flood_by_ip = {f["ip"]: f for f in floods}
-        clusters = detect_subnet_clusters(agg, args.subnet_min_ips, args.subnet_min_requests)
         cluster_by_subnet = {c["subnet"]: c for c in clusters[:args.top]}
         block_subnets = list(cluster_by_subnet.keys())
         candidate_ips: list[str] = [f["ip"] for f in floods[:args.top]]
@@ -701,28 +770,42 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
                 return [ip for ip in agg.ip_total if subnet24(ip) == sn]
             return [ip for ip in leftover_ips if subnet24(ip) == sn]
 
-        def is_false_positive_subnet(sn: str) -> tuple[bool, str]:
+        def _known_tag_for_ips(ips: list[str]) -> str:
+            services = {agg.ip_known[ip] for ip in ips if ip in agg.ip_known}
+            return f" KNOWN:{','.join(sorted(services))}" if services else ""
+
+        def verdict_subnet(sn: str) -> tuple[bool, str]:
             ips = subnet_ips(sn)
             cfrac = crawler_fraction_for_ips(ips, agg)
             erate = error_rate_for_ips(ips, agg)
+            ktag = _known_tag_for_ips(ips)
             if cfrac >= CRAWLER_FRAC_FLOOR:
                 names = {agg.ip_crawler[ip] for ip in ips if ip in agg.ip_crawler}
-                return True, f"crawler:{','.join(sorted(names)[:2])}"
+                return True, f"{VERDICT_LIKELY_CRAWLER} [{','.join(sorted(names)[:2])}]{ktag}"
             if erate < CRAWLER_ERR_FLOOR:
-                return True, f"low-err:{erate:.1%}"
-            return False, ""
+                return True, f"{VERDICT_LIKELY_BENIGN} [err:{erate:.1%}]{ktag}"
+            if erate >= 0.10:
+                return False, f"{VERDICT_HIGH_ERROR_RATE}{ktag}"
+            return False, f"{VERDICT_CHECK_FURTHER}{ktag}"
 
-        def is_false_positive_ip(ip: str) -> tuple[bool, str]:
+        def verdict_ip(ip: str) -> tuple[bool, str]:
+            ktag = f" KNOWN:{agg.ip_known[ip]}" if ip in agg.ip_known else ""
             if ip in agg.ip_crawler:
-                return True, f"crawler:{agg.ip_crawler[ip]}"
+                return True, f"{VERDICT_LIKELY_CRAWLER} [{agg.ip_crawler[ip]}]{ktag}"
             total = agg.ip_total.get(ip, 0)
             errs = sum(agg.fivexx_ip[c].get(ip, 0) for c in fivexx_codes)
             erate = errs / total if total else 0
             if erate < CRAWLER_ERR_FLOOR:
-                return True, f"low-err:{erate:.1%}"
-            return False, ""
+                if ip in flood_by_ip:
+                    return True, f"{VERDICT_HIGH_VOLUME} [err:{erate:.1%}]{ktag}"
+                return True, f"{VERDICT_LIKELY_BENIGN} [err:{erate:.1%}]{ktag}"
+            if ip in flood_by_ip and erate >= CRAWLER_ERR_FLOOR:
+                return False, f"{VERDICT_FLOOD_WITH_ERRORS}{ktag}"
+            if erate >= 0.10:
+                return False, f"{VERDICT_HIGH_ERROR_RATE}{ktag}"
+            return False, f"{VERDICT_CHECK_FURTHER}{ktag}"
 
-        out.write("\n" + style.h("=== SUGGESTED BLOCK LIST  (CIDR — review before applying) ===") + "\n")
+        out.write("\n" + style.h(f"=== CANDIDATES FOR BLOCKING  (CIDR — {VERDICT_REVIEW_BEFORE_ACTING}) ===") + "\n")
 
         def render_subnet_block(title: str, subnets: list[str]):
             out.write(style.dim(f"\n  {title}\n"))
@@ -735,8 +818,8 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
                 else:
                     members = [ip for ip in leftover_ips if subnet24(ip) == sn]
                     total_reqs = sum(agg.ip_total.get(ip, 0) for ip in members)
-                fp, fp_note = is_false_positive_subnet(sn)
-                note = style.dim(f"[{fp_note}]") if fp else ""
+                _benign, v_note = verdict_subnet(sn)
+                note = style.dim(f"[{v_note}]")
                 out.write(
                     f"    {severity_label(score)}  {sn:<22} "
                     f"{fmt_int(total_reqs):>9} {fmt_int(errs):>7} {n_ips:>5}  "
@@ -754,8 +837,8 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
             for ip in scored_ips:
                 score, errs, peak = ip_severity(ip)
                 total = agg.ip_total.get(ip, 0)
-                fp, fp_note = is_false_positive_ip(ip)
-                note = style.dim(f"[{fp_note}]") if fp else ""
+                _benign, v_note = verdict_ip(ip)
+                note = style.dim(f"[{v_note}]")
                 ratio = score / max_score if max_score else 0
                 if ratio >= 0.33:  # CRIT or HIGH — add AbuseIPDB link
                     abuse_url = f"https://www.abuseipdb.com/check/{ip}"
@@ -772,10 +855,10 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
         top_cidrs: list[str] = []
         all_cidrs_scored: list[tuple[int, str]] = []
         for sn in block_subnets + derived_ranges:
-            if not is_false_positive_subnet(sn)[0]:
+            if not verdict_subnet(sn)[0]:
                 all_cidrs_scored.append((subnet_severity(sn)[0], sn))
         for ip in lone_ips:
-            if not is_false_positive_ip(ip)[0]:
+            if not verdict_ip(ip)[0]:
                 all_cidrs_scored.append((ip_severity(ip)[0], ip + "/32"))
         all_cidrs_scored.sort(reverse=True)
         if all_cidrs_scored:
@@ -783,10 +866,10 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
             top_cidrs = [cidr for score, cidr in all_cidrs_scored if score >= top_threshold]
             top_cidrs = top_cidrs[:max(1, args.top)]
         skipped_fp = (len(block_subnets) + len(derived_ranges) + len(lone_ips)) - len([
-            1 for sn in block_subnets + derived_ranges if not is_false_positive_subnet(sn)[0]
-        ]) - len([1 for ip in lone_ips if not is_false_positive_ip(ip)[0]])
-        fp_note = f"  ({skipped_fp} likely false positive(s) excluded — see table above)\n" if skipped_fp else ""
-        out.write(style.dim(f"\n  Copy-paste — top {len(top_cidrs)} offender(s) (CIDR per line):\n"))
+            1 for sn in block_subnets + derived_ranges if not verdict_subnet(sn)[0]
+        ]) - len([1 for ip in lone_ips if not verdict_ip(ip)[0]])
+        fp_note = f"  ({skipped_fp} likely benign source(s) excluded — see table above)\n" if skipped_fp else ""
+        out.write(style.dim(f"\n  Copy-paste — top {len(top_cidrs)} candidate(s) (CIDR per line, {VERDICT_REVIEW_BEFORE_ACTING}):\n"))
         if fp_note:
             out.write(style.dim(fp_note))
         for cidr in top_cidrs:
@@ -813,7 +896,7 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
 
     # ---------- Executive summary
     if not focus:
-        summary = build_summary(agg, args)
+        summary = build_summary(agg, args, floods=floods, clusters=clusters)
         out.write("\n" + style.h("=== EXECUTIVE SUMMARY ===") + "\n")
         out.write(summary + "\n")
         js["executive_summary"] = summary
@@ -821,13 +904,17 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
     return js
 
 
-def build_summary(agg: Aggregator, args) -> str:
+def build_summary(agg: Aggregator, args,
+                   floods: list[dict] | None = None,
+                   clusters: list[dict] | None = None) -> str:
     total = agg.lines
     fivexx_total = sum(c for s, c in agg.status_total.items() if 500 <= s < 600)
     fourxx_total = sum(c for s, c in agg.status_total.items() if 400 <= s < 500)
     twoxx_total = sum(c for s, c in agg.status_total.items() if 200 <= s < 300)
-    floods = detect_floods(agg, args.flood_rpm, args.flood_sustained)
-    clusters = detect_subnet_clusters(agg, args.subnet_min_ips, args.subnet_min_requests)
+    if floods is None:
+        floods = detect_floods(agg, args.flood_rpm, args.flood_sustained)
+    if clusters is None:
+        clusters = detect_subnet_clusters(agg, args.subnet_min_ips, args.subnet_min_requests)
 
     lines = []
 
@@ -835,6 +922,9 @@ def build_summary(agg: Aggregator, args) -> str:
     lines.append("## Overview\n")
     lines.append(f"- **Period (UTC):** {fmt_ts(agg.first_ts)} → {fmt_ts(agg.last_ts)}")
     lines.append(f"- **Total requests:** {fmt_int(total)}")
+    if total == 0:
+        lines.append("- (no matching records)")
+        return "\n".join(lines)
     lines.append(f"- **Successful (2xx):** {fmt_int(twoxx_total)} ({twoxx_total * 100 / total:.1f}%)")
     if fivexx_total:
         lines.append(f"- **Server errors (5xx):** {fmt_int(fivexx_total)} ({fivexx_total * 100 / total:.1f}%) ⚠")
@@ -865,31 +955,33 @@ def build_summary(agg: Aggregator, args) -> str:
 
         top_ip, top_ip_n = next(iter(agg.fivexx_ip[worst].most_common(1)), (None, 0))
         if top_ip:
-            lines.append(f"- **Top offending IP:** {top_ip} ({fmt_int(top_ip_n)} hits)")
+            lines.append(f"- **Top contributing IP:** {top_ip} ({fmt_int(top_ip_n)} hits — {VERDICT_CHECK_FURTHER})")
 
-    # --- Threats
-    threat_lines = []
+    # --- Indicators
+    indicator_lines = []
     if clusters:
         top = clusters[0]
-        threat_lines.append(
-            f"- **Largest botnet cluster:** `{top['subnet']}` — "
-            f"{top['ip_count']} IPs, {fmt_int(top['total_requests'])} requests"
+        indicator_lines.append(
+            f"- **Largest IP cluster:** `{top['subnet']}` — "
+            f"{top['ip_count']} IPs, {fmt_int(top['total_requests'])} requests "
+            f"(possible botnet, CDN, or shared network — {VERDICT_CHECK_FURTHER})"
         )
         if len(clusters) > 1:
-            threat_lines.append(f"- **Other suspicious subnets:** {len(clusters) - 1} additional cluster(s) detected")
+            indicator_lines.append(f"- **Other notable clusters:** {len(clusters) - 1} additional cluster(s) detected")
     if floods:
-        threat_lines.append(
-            f"- **IP floods:** {len(floods)} IP(s) exceeded {args.flood_rpm} req/min "
-            f"(top: `{floods[0]['ip']}` @ {floods[0]['peak_rpm']} rpm)"
+        indicator_lines.append(
+            f"- **Possible IP floods:** {len(floods)} IP(s) exceeded {args.flood_rpm} req/min "
+            f"(top: `{floods[0]['ip']}` @ {floods[0]['peak_rpm']} rpm — {VERDICT_CHECK_FURTHER})"
         )
-    if threat_lines:
-        lines.append("\n## Threats\n")
-        lines.extend(threat_lines)
+    if indicator_lines:
+        lines.append("\n## Indicators\n")
+        lines.extend(indicator_lines)
 
-    # --- Action
-    lines.append("\n## Action required\n")
-    lines.append("- Review the **Suggested block list** section and apply the CIDRs to your CDN / WAF firewall after verification.")
-    lines.append("- Cross-reference botnet IPs against the 5xx deep dive before blocking to avoid false positives.")
+    # --- Suggested next steps
+    lines.append("\n## Suggested next steps\n")
+    lines.append(f"- Review the **Candidates for blocking** section — {VERDICT_REVIEW_BEFORE_ACTING}.")
+    lines.append("- Cross-reference flagged IPs against the 5xx deep dive and AbuseIPDB before blocking.")
+    lines.append("- This is an offline heuristic report; verify findings with live traffic data and WAF logs.")
 
     return "\n".join(lines)
 
@@ -898,8 +990,28 @@ def build_summary(agg: Aggregator, args) -> str:
 # CLI
 # ---------------------------------------------------------------------------
 
+def parse_ip_filters(specs: list[str]) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
+    """Parse a list of IP or CIDR strings into network objects."""
+    nets = []
+    for s in specs:
+        try:
+            nets.append(ipaddress.ip_network(s, strict=False))
+        except ValueError as e:
+            raise SystemExit(f"loghound: invalid --ip value {s!r}: {e}") from None
+    return nets
+
+
+def ip_matches(ip_str: str, nets: list) -> bool:
+    try:
+        addr = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return False
+    return any(addr in net for net in nets)
+
+
 def iter_records(paths: Iterable[str], agg: Aggregator,
-                 since: int | None, until: int | None) -> None:
+                 since: int | None, until: int | None,
+                 ip_filter: list | None = None) -> None:
     for path in paths:
         with open_log(path) as f:
             for line in f:
@@ -910,6 +1022,8 @@ def iter_records(paths: Iterable[str], agg: Aggregator,
                 if since is not None and rec[1] < since:
                     continue
                 if until is not None and rec[1] > until:
+                    continue
+                if ip_filter and not ip_matches(rec[0], ip_filter):
                     continue
                 agg.feed(rec)
 
@@ -944,6 +1058,8 @@ def main(argv: list[str] | None = None) -> int:
                    help="× median req/hour to flag a spike (default 3.0)")
     p.add_argument("--business-start", type=int, default=9, help="UTC hour, default 9")
     p.add_argument("--business-end", type=int, default=17, help="UTC hour, default 17")
+    p.add_argument("--ip", metavar="IP/CIDR", action="append", default=[],
+                   help="filter to this IP or subnet (repeatable, e.g. --ip 1.2.3.4 --ip 10.0.0.0/8)")
     p.add_argument("--focus", choices=("5xx", "4xx", "botnet", "flood", "spike"),
                    help="run one module only (faster reporting, same parse)")
     p.add_argument("--json", action="store_true", help="emit JSON only on stdout")
@@ -981,9 +1097,10 @@ def main(argv: list[str] | None = None) -> int:
 
     since = parse_iso(args.since)
     until = parse_iso(args.until)
+    ip_filter = parse_ip_filters(args.ip) if args.ip else None
 
     agg = Aggregator(top=args.top)
-    iter_records(args.files, agg, since, until)
+    iter_records(args.files, agg, since, until, ip_filter)
 
     color = (not args.no_color) and sys.stdout.isatty() and not args.json
     style = Style(color=color)
