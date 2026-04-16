@@ -2,6 +2,10 @@
 #ddev-generated
 #annertech-ddev
 
+## Description: Helper command to ensure a required DDEV add-on is installed for this project
+## Usage: check-addon <repository> [reason]
+## Example: ddev check-addon ddev/ddev-cypress "Cypress tests"
+
 set -euo pipefail
 
 bold=$(tput bold)
@@ -16,8 +20,7 @@ REPO="$1"
 REASON="${2:-}"
 ADDON_NAME="${REPO##*/}"
 
-ADDON_METADATA_BASE="${DDEV_APPROOT}/.ddev/addon-metadata"
-MANIFEST="${ADDON_METADATA_BASE}/${ADDON_NAME}/manifest.yaml"
+MANIFEST="${DDEV_APPROOT}/.ddev/addon-metadata/${ADDON_NAME}/manifest.yaml"
 
 # ---------------------------------------------------------------------------
 # Success path: already installed
@@ -32,25 +35,22 @@ fi
 # ---------------------------------------------------------------------------
 echo >&2
 echo "❌ Required DDEV add-on not installed: ${REPO}" >&2
-# echo "   Add-on : ${REPO}" >&2
 
 if [ -n "${REASON}" ]; then
-  echo ""
   echo "   ${bold}Add-on is needed to run ${REASON}${normal}" >&2
 fi
-
 echo >&2
 
 # ---------------------------------------------------------------------------
 # Non-interactive (CI, automation)
 # ---------------------------------------------------------------------------
 if [ "${DDEV_NONINTERACTIVE:-false}" = "true" ]; then
-  echo "⚙️  Non-interactive mode detected; installing automatically…" >&2
-  if ddev add-on get "${REPO}"; then
+  echo "⚙️  Non-interactive mode detected; installing ${REPO} automatically…" >&2
+  if ddev add-on get "${REPO}" >&2; then
     echo "installed"
     exit 0
   else
-    echo "❌ Failed to install ${REPO}" >&2
+    echo "❌ Failed to install add-on: ${REPO}" >&2
     exit 1
   fi
 fi
@@ -61,19 +61,16 @@ fi
 read -r -p "Install ${REPO} now? [Y/n] " reply
 
 if [[ "${reply}" =~ ^[Nn]$ ]]; then
-  echo >&2
   echo "⚠️  Skipping add-on installation at user request." >&2
   if [ -n "${REASON}" ]; then
     echo "   ${REASON} will not be available." >&2
   fi
-  echo "not-installed"
+  echo >&2
+  echo "skipped"
   exit 0
 fi
 
-if ddev add-on get "${REPO}"; then
-  echo "installed"
-  exit 0
-else
-  echo "❌ Failed to install ${REPO}" >&2
-  exit 1
-fi
+ddev add-on get "${REPO}" >&2
+echo >&2
+echo "installed"
+exit 0

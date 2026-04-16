@@ -20,12 +20,10 @@ echo
 # ---------------------------------------------------------------------------
 if [ -f "${DDEV_APPROOT}/tests/backstop/backstop.json" ]; then
   backstop_addon="$(
-    ddev check-addon \
-    ddev/ddev-backstopjs \
-    "Backstop tests"
+    ddev check-addon ddev/ddev-backstopjs "Backstop tests"
   )"
 
-  if [ "${backstop_addon}" = "installed" ]; then
+  if [ "$backstop_addon" = "installed" ]; then
     echo "${bold}Backstop:${normal}"
     echo "  ddev backstop reference"
     echo "  ddev backstop test"
@@ -59,12 +57,10 @@ fi
 # ---------------------------------------------------------------------------
 if [ -f "${DDEV_APPROOT}/cypress.config.js" ]; then
   cypress_addon="$(
-    ddev check-addon \
-      ddev/ddev-cypress \
-      "Cypress tests"
+    ddev check-addon ddev/ddev-cypress "Cypress tests"
   )"
 
-  if [ "${cypress_addon}" = "installed" ]; then
+  if [ "$cypress_addon" = "installed" ]; then
     echo "${bold}Cypress:${normal}"
     echo "  ddev cypress-run"
     echo "  ddev cypress-run --headed"
