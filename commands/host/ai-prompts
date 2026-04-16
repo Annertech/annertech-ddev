@@ -20,6 +20,7 @@ echo_yellow() { echo -e "${YELLOW}$1${NC}" >&2; }
 # Menu options
 OPTIONS=(
     "1. BackstopJS Init"
+    "2. Access Log Forensics"
 )
 
 # AI Agent options
@@ -103,6 +104,80 @@ backstop_init() {
     esac
 }
 
+# Access Log Forensics function
+access_log_forensics() {
+    # Pick a log file from ./logs/ directory, fallback to manual input
+    local log_file
+    local log_files
+    log_files=$(find logs -maxdepth 1 \( -name "*_access.log" -o -name "*_access.log.gz" \) 2>/dev/null)
+
+    if [[ -n "$log_files" ]]; then
+        log_file=$(echo "$log_files" | fzf --reverse --height=50% --header="Select access log file")
+    fi
+
+    if [[ -z "$log_file" ]]; then
+        echo_yellow "No access log files found in logs/. Enter path manually:"
+        read -r log_file
+    fi
+
+    if [[ -z "$log_file" || ! -f "$log_file" ]]; then
+        echo_red "File not found: $log_file"
+        exit 1
+    fi
+
+    # If the file is gzipped, decompress to a temp file
+    local work_file="$log_file"
+    local tmp_file=""
+    if [[ "$log_file" == *.gz ]]; then
+        tmp_file=$(mktemp /tmp/access_log_XXXXXX.log)
+        echo_yellow "Decompressing ${log_file}..."
+        if ! gunzip -c "$log_file" > "$tmp_file"; then
+            echo_red "Failed to decompress: $log_file"
+            rm -f "$tmp_file"
+            exit 1
+        fi
+        work_file="$tmp_file"
+    fi
+
+    # Select AI agent
+    local agent_selection
+    agent_selection=$(select_agent)
+    if [[ -z "$agent_selection" ]]; then
+        echo_red "No agent selected... Exiting"
+        rm -f "$tmp_file"
+        exit 0
+    fi
+
+    local agent_label
+    agent_label=$(echo "$agent_selection" | sed 's/^[0-9]*\. //')
+
+    echo_green "Running Access Log Forensics with ${agent_label} on ${log_file}..."
+    echo ""
+
+    local prompt_content
+    prompt_content=$(sed -e "s|__ACCESS_LOG_FILE__|$work_file|g" \
+        "${DDEV_APPROOT}/.ddev/scripts/prompts/access-log-forensics.md")
+
+    case "$agent_label" in
+        "Gemini")
+            gemini "$prompt_content"
+            ;;
+        "Copilot")
+            copilot "$prompt_content"
+            ;;
+        "Claude")
+            claude "$prompt_content"
+            ;;
+        *)
+            echo_red "Unknown agent: $agent_label"
+            rm -f "$tmp_file"
+            exit 1
+            ;;
+    esac
+
+    rm -f "$tmp_file"
+}
+
 # Main function
 main() {
     # Banner
@@ -135,6 +210,9 @@ main() {
     case "$action_label" in
         "BackstopJS Init")
             backstop_init
+            ;;
+        "Access Log Forensics")
+            access_log_forensics
             ;;
         *)
             echo_red "Unknown action: $action_label"
