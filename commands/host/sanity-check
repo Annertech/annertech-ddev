@@ -14,6 +14,13 @@ pass()  { $SILENT || echo -e "${GREEN}  ✓ $1${NC}"; }
 fail()  { echo -e "${RED}  ✗ $1${NC}"; ERRORS=$((ERRORS + 1)); }
 critical_fail() { echo -e "${RED}${BOLD}  ✗ CRITICAL: $1${NC}"; ERRORS=$((ERRORS + 1)); CRITICAL_ERRORS=$((CRITICAL_ERRORS + 1)); }
 warn()  { echo -e "${YELLOW}  ! $1${NC}"; WARNINGS=$((WARNINGS + 1)); }
+bail_if_critical() {
+  if [[ $CRITICAL_ERRORS -gt 0 ]]; then
+    echo ""
+    echo -e "${RED}${BOLD}── $CRITICAL_ERRORS critical error(s) — subsequent checks skipped, push must be blocked ──${NC}"
+    exit 2
+  fi
+}
 title() { echo -e "\n── $1 ──"; }
 group() { echo -e "\n${BOLD}$1${NC}"; }
 
@@ -168,6 +175,7 @@ if [[ -n "$EXT_FILE" ]] && git -C "$APPROOT" rev-parse --git-dir >/dev/null 2>&1
     fi
   fi
 fi
+bail_if_critical
 
 # ── Drupal: Files view with operations ──────────────────────────────────────
 FILES_VIEW="$APPROOT/config/sync/views.view.files.yml"
