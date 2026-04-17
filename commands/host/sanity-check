@@ -12,6 +12,7 @@ SILENT=false
 [[ "$*" == *"-s"* ]] && SILENT=true
 pass()  { $SILENT || echo -e "${GREEN}  ✓ $1${NC}"; }
 fail()  { echo -e "${RED}  ✗ $1${NC}"; ERRORS=$((ERRORS + 1)); }
+critical_fail() { echo -e "${RED}${BOLD}  ✗ CRITICAL: $1${NC}"; ERRORS=$((ERRORS + 1)); CRITICAL_ERRORS=$((CRITICAL_ERRORS + 1)); }
 warn()  { echo -e "${YELLOW}  ! $1${NC}"; WARNINGS=$((WARNINGS + 1)); }
 title() { echo -e "\n── $1 ──"; }
 group() { echo -e "\n${BOLD}$1${NC}"; }
@@ -26,6 +27,7 @@ CONFIG_READER_MIN=3
 
 ERRORS=0
 WARNINGS=0
+CRITICAL_ERRORS=0
 APPROOT="${DDEV_APPROOT:-.}"
 BEHIND_CDN=false
 LOCK_FILE="$APPROOT/composer.lock"
@@ -159,7 +161,7 @@ if [[ -n "$EXT_FILE" ]] && git -C "$APPROOT" rev-parse --git-dir >/dev/null 2>&1
 
     if [[ ${#UNSAFE[@]} -gt 0 ]]; then
       for m in "${UNSAFE[@]}"; do
-        fail "Module '$m' is being uninstalled AND its code/package removed in the same change — uninstall first (deploy), then remove code in a later change"
+        critical_fail "Module '$m' is being uninstalled AND its code/package removed in the same change — uninstall first (deploy), then remove code in a later change"
       done
     else
       pass "Module uninstallations keep code/package in place (safe)"
@@ -469,7 +471,10 @@ fi # end Upsun checks
 
 # ── Summary ─────────────────────────────────────────────────────────────────
 echo ""
-if [[ $ERRORS -gt 0 ]]; then
+if [[ $CRITICAL_ERRORS -gt 0 ]]; then
+  echo -e "${RED}${BOLD}── $CRITICAL_ERRORS critical error(s), $ERRORS total error(s) — push must be blocked ──${NC}"
+  exit 2
+elif [[ $ERRORS -gt 0 ]]; then
   echo -e "${RED}── $ERRORS error(s) found ──${NC}"
   exit 1
 elif [[ $WARNINGS -gt 0 ]]; then

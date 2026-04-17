@@ -44,8 +44,14 @@ if [[ -n "$PUSH_LINE" ]]; then
   [[ -n "$PUSH_LOCAL_SHA" && "$PUSH_LOCAL_SHA" != "$ZERO_SHA" ]] && export GIT_PUSH_RANGE_TIP="$PUSH_LOCAL_SHA"
 fi
 
-ddev sanity-check -s
-if [[ $? -ne 0 ]]; then
+SANITY_OUTPUT=$(ddev sanity-check -s 2>&1)
+SANITY_EXIT=$?
+echo "$SANITY_OUTPUT"
+if echo "$SANITY_OUTPUT" | grep -q "CRITICAL:"; then
+  echo ""
+  echo "🚫 Push blocked: critical sanity-check failure. This cannot be bypassed — fix the issues above and try again."
+  exit 1
+elif [[ $SANITY_EXIT -ne 0 ]]; then
   echo ""
   if [[ "$CURRENT_BRANCH" == "dev" ]]; then
     echo "⚠️  Sanity-check failed on 'dev' branch — pushing anyway."
