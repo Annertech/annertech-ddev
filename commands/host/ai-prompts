@@ -7,6 +7,28 @@
 ## Example: "ddev ai-prompts"
 ## Aliases: ai
 
+# ------------------------------------------------------------------------------
+# Access Log Forensics — GDPR note
+# ------------------------------------------------------------------------------
+# Access logs contain client IP addresses, which are personal data under GDPR.
+# Sending them to a US-hosted LLM without safeguards is a transfer violation.
+#
+# Before the log is handed to any agent, IPv4 addresses are replaced with
+# prefix-preserving pseudonyms:
+#   - IPs in the same /8, /16 or /24 in the real log share the same masked
+#     /8, /16 or /24 — so subnet-based analysis (botnet detection, CIDR blocks
+#     to recommend) still works correctly.
+#   - The mapping is random per run and never leaves the machine.
+#   - A sidecar TSV is written next to the source log at
+#     `<log_dir>/.ip_mapping_<timestamp>.tsv` (chmod 600). Grep a masked IP
+#     in that file to recover the real one for blocklist application.
+#   - The masked copy passed to the LLM lives in /tmp and is deleted after.
+#   - IPv6 addresses are NOT masked yet; a warning is printed if any are
+#     detected. Do not run this on IPv6-heavy logs until that's handled.
+#   - Note that WHOIS / ASN / geolocation steps cannot be run against masked
+#     IPs — the prompt has been adjusted accordingly.
+# ------------------------------------------------------------------------------
+
 # Colours
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -20,7 +42,7 @@ echo_yellow() { echo -e "${YELLOW}$1${NC}" >&2; }
 # Menu options
 OPTIONS=(
     "1. BackstopJS Init"
-    "2. Access Log Forensics"
+    "2. Access Log Forensics (GDPR-safe: IPv4 masked, mapping kept locally)"
 )
 
 # AI Agent options
@@ -95,7 +117,7 @@ backstop_init() {
             copilot "$prompt_content"
             ;;
         "Claude")
-            claude "$prompt_content"
+            claude --model sonnet --effort low "$prompt_content"
             ;;
         *)
             echo_red "Unknown agent: $agent_label"
@@ -151,14 +173,45 @@ access_log_forensics() {
     local agent_label
     agent_label=$(echo "$agent_selection" | sed 's/^[0-9]*\. //')
 
-    echo_green "Running Access Log Forensics with ${agent_label} on ${log_file}..."
+    # GDPR: mask IPs before sending to LLM. Prefix-preserving pseudonymization
+    # keeps subnet structure (so botnet /24 patterns are still detectable) while
+    # stripping the real IPs. Mapping kept locally for reverse lookup.
+    mkdir -p /tmp/anrt-ddev
+    local masked_file
+    masked_file=$(mktemp /tmp/anrt-ddev/access_log_masked_XXXXXX.log)
+    local timestamp
+    timestamp=$(date +%Y%m%d_%H%M%S)
+    local log_dir
+    log_dir=$(dirname "$log_file")
+    local mapping_file="${log_dir}/.ip_mapping_${timestamp}.tsv"
+
+    echo_yellow "Masking IPs (prefix-preserving) before LLM submission..."
+    if ! python3 "${DDEV_APPROOT}/.ddev/commands/host/_lib/mask_ips.py" \
+        "$work_file" "$masked_file" "$mapping_file"; then
+        echo_red "IP masking failed — aborting to avoid leaking real IPs."
+        rm -f "$tmp_file" "$masked_file"
+        exit 1
+    fi
+    echo_green "Mapping: ${mapping_file} (chmod 600). Grep a masked IP to recover the real one."
+
+    echo_green "Running Access Log Forensics with ${agent_label} on masked copy of ${log_file}..."
     echo ""
 
+    # Mapping basename is what both the LLM (cwd=./logs) and the user
+    # (after `cd logs`) will use. Keeping it basename-only lets the sed
+    # command the LLM emits stay short and copy-pasteable.
+    local mapping_basename
+    mapping_basename=$(basename "$mapping_file")
+
     local prompt_content
-    prompt_content=$(sed -e "s|__ACCESS_LOG_FILE__|$work_file|g" \
+    prompt_content=$(sed -e "s|__ACCESS_LOG_FILE__|$masked_file|g" \
+        -e "s|__MAPPING_FILE__|$mapping_basename|g" \
         "${DDEV_APPROOT}/.ddev/scripts/prompts/access-log-forensics.md")
 
-    case "$agent_label" in
+    # Run the LLM with cwd=./logs (mirrors backstop_init's cd into tests/backstop).
+    # The masked log lives in /tmp (absolute path in the prompt) so it's still
+    # reachable; the LLM's cwd is just scoped to the logs directory.
+    if ! (cd "$log_dir" && case "$agent_label" in
         "Gemini")
             gemini "$prompt_content"
             ;;
@@ -166,16 +219,18 @@ access_log_forensics() {
             copilot "$prompt_content"
             ;;
         "Claude")
-            claude "$prompt_content"
+            claude --model sonnet --effort low "$prompt_content"
             ;;
         *)
             echo_red "Unknown agent: $agent_label"
-            rm -f "$tmp_file"
             exit 1
             ;;
-    esac
+    esac); then
+        rm -f "$tmp_file" "$masked_file"
+        exit 1
+    fi
 
-    rm -f "$tmp_file"
+    rm -f "$tmp_file" "$masked_file"
 }
 
 # Main function
@@ -205,7 +260,7 @@ main() {
         "BackstopJS Init")
             backstop_init
             ;;
-        "Access Log Forensics")
+        "Access Log Forensics "*)
             access_log_forensics
             ;;
         *)
