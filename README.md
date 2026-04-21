@@ -3,6 +3,13 @@
 **Highly opinionated** set of configs and commands used by Annertech in our 
 DDEV workflow.
 
+> [!NOTE]
+> **This is an Annertech tool!**  
+> 3rd party developers and agencies are encouraged to take what they need
+> and re-use rather than using the add-on directly.  
+> Rapid prototyping and our workflows will not be compatible with yours.  
+> Feature requests that you consider important _might_ not be accepted.
+
 ## Installation and Updating
 
 1. `ddev add-on get annertech/annertech-ddev`
