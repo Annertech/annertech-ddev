@@ -22,8 +22,36 @@ fi
 
 # ── Sanity check ─────────────────────────────────────────────────────────────
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-ddev sanity-check -s
-if [[ $? -ne 0 ]]; then
+
+# Expose the range being pushed so sanity-check can diff committed changes.
+# Pre-push stdin format (per line): <local_ref> <local_sha> <remote_ref> <remote_sha>
+ZERO_SHA="0000000000000000000000000000000000000000"
+PUSH_LINE=$(echo "$PUSH_REFS" | grep -v '^$' | head -1)
+if [[ -n "$PUSH_LINE" ]]; then
+  read -r _ PUSH_LOCAL_SHA _ PUSH_REMOTE_SHA <<< "$PUSH_LINE"
+  if [[ -n "$PUSH_REMOTE_SHA" && "$PUSH_REMOTE_SHA" != "$ZERO_SHA" ]]; then
+    export GIT_PUSH_RANGE_BASE="$PUSH_REMOTE_SHA"
+  else
+    # New branch: base is the merge-base with the default remote branch.
+    for ref in "origin/HEAD" "origin/main" "origin/master"; do
+      if git rev-parse --verify --quiet "$ref" >/dev/null 2>&1; then
+        MERGE_BASE=$(git merge-base "$ref" "$PUSH_LOCAL_SHA" 2>/dev/null)
+        [[ -n "$MERGE_BASE" ]] && export GIT_PUSH_RANGE_BASE="$MERGE_BASE"
+        break
+      fi
+    done
+  fi
+  [[ -n "$PUSH_LOCAL_SHA" && "$PUSH_LOCAL_SHA" != "$ZERO_SHA" ]] && export GIT_PUSH_RANGE_TIP="$PUSH_LOCAL_SHA"
+fi
+
+SANITY_OUTPUT=$(ddev sanity-check -s 2>&1)
+SANITY_EXIT=$?
+echo "$SANITY_OUTPUT"
+if echo "$SANITY_OUTPUT" | grep -q "CRITICAL:"; then
+  echo ""
+  echo "🚫 Push blocked: critical sanity-check failure. This cannot be bypassed — fix the issues above and try again."
+  exit 1
+elif [[ $SANITY_EXIT -ne 0 ]]; then
   echo ""
   if [[ "$CURRENT_BRANCH" == "dev" ]]; then
     echo "⚠️  Sanity-check failed on 'dev' branch — pushing anyway."
