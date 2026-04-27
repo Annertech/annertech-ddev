@@ -2,10 +2,6 @@
 #ddev-generated
 #annertech-ddev
 
-# Bash version of Upsun Command Centre
-# Converted to bash automatically with Claude Code.
-# We'll chose which one will be maintained further.
-
 ## Description: Upsun Command Centre (ssh, uli, resume, activities, disk) - Bash version
 ## Usage: upsun-command-center-bash [ACTION] [PROJECT] [ENVIRONMENT]
 ## Example: "ddev upsun-command-center-bash" (interactive) or "ddev uccb run_log_checker_goaccess myproject main"
@@ -37,6 +33,19 @@ OPTIONS=(
     "10. Backup Environment"
     "11. Fastly API Token"
 )
+
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
+. "$LIB_DIR/upsun-resume.sh"
+. "$LIB_DIR/upsun-uli.sh"
+. "$LIB_DIR/upsun-ssh.sh"
+. "$LIB_DIR/upsun-activities.sh"
+. "$LIB_DIR/upsun-activity-in-progress.sh"
+. "$LIB_DIR/upsun-disk-helper.sh"
+. "$LIB_DIR/upsun-log-checker.sh"
+. "$LIB_DIR/upsun-log-checker-goaccess.sh"
+. "$LIB_DIR/upsun-download-access-log.sh"
+. "$LIB_DIR/upsun-backup.sh"
+. "$LIB_DIR/upsun-fastly-api-token.sh"
 
 # Get current project ID from .ddev/config.yaml
 get_current_project_id() {
@@ -104,176 +113,6 @@ select_environment() {
     echo "$environments" | fzf --reverse --height=50% --header="Environment" -1
 }
 
-# Run resume
-run_resume() {
-    local project_id="$1"
-    local project_name="$2"
-    local environment_id="$3"
-    echo_green "${project_name} / ${environment_id} Selected"
-    echo_yellow "Starting resume process..."
-    ddev exec upsun environment:resume --project="${project_id}" -e "${environment_id}"
-}
-
-# Run ULI
-run_uli() {
-    local project_id="$1"
-    local project_name="$2"
-    local environment_id="$3"
-    echo_green "${project_name} / ${environment_id} Selected"
-    echo_yellow "Getting URL..."
-    ddev exec upsun drush uli --project="${project_id}" -e "${environment_id}"
-}
-
-# Run SSH
-run_ssh() {
-    local project_id="$1"
-    local project_name="$2"
-    echo_green "${project_name} Selected"
-    echo_yellow "Connecting via SSH..."
-    ddev exec upsun ssh --project="${project_id}"
-}
-
-# Run activities
-run_activities() {
-    local project_id="$1"
-    local project_name="$2"
-    echo_green "${project_name} Selected"
-    echo_yellow "Fetching activities..."
-    ddev exec upsun act --project="${project_id}"
-}
-
-# Run activity in progress
-run_activity_in_progress() {
-    local project_id="$1"
-    local project_name="$2"
-    local environment_id="$3"
-    echo_green "${project_name} / ${environment_id} Selected"
-    echo_yellow "Fetching running activity log..."
-    ddev exec upsun act:log --state=in_progress --project="${project_id}" -e "${environment_id}"
-}
-
-# Run disk helper
-run_disk_helper() {
-    local project_id="$1"
-    local project_name="$2"
-    echo_green "${project_name} Selected"
-
-    echo ""
-    echo "Currently used and assigned disk space:"
-    ddev exec upsun disk -1 --columns Service,Used,Limit --project="${project_id}"
-
-    # Get disk bytes for services
-    local web db solr total_assigned total_available
-    web=$(ddev exec upsun disk -1 --columns Limit -s app --bytes --no-header --format=plain --project="${project_id}" 2>/dev/null | tr -d '[:space:]')
-    db=$(ddev exec upsun disk -1 --columns Limit -s mysqldb --bytes --no-header --format=plain --project="${project_id}" 2>/dev/null | tr -d '[:space:]')
-    solr=$(ddev exec upsun disk -1 --columns Limit -s solrsearch --bytes --no-header --format=plain --project="${project_id}" 2>/dev/null | tr -d '[:space:]')
-
-    web=${web:-0}
-    db=${db:-0}
-    solr=${solr:-0}
-    total_assigned=$((web + db + solr))
-
-    # Get total available storage
-    total_available=$(ddev exec upsun project:info subscription.storage --project="${project_id}" 2>/dev/null | tr -d '[:space:]')
-    total_available=${total_available:-0}
-
-    echo ""
-    echo "Total assigned (app+mysqldb+solrsearch):"
-    numfmt --to iec --format "%3.2f" "$total_assigned"
-
-    echo ""
-    echo "Total storage available in project:"
-    numfmt --from-unit=1048576 --to iec --format="%3.2f" "$total_available"
-
-    echo_yellow ""
-    echo_yellow "WARNING: command uses hardcoded values for service totals. Verify numbers with table above!"
-    echo ""
-}
-
-# Run log checker
-run_log_checker() {
-    local project_id="$1"
-    local project_name="$2"
-    local environment_id="$3"
-    echo_green "${project_name} / ${environment_id} Selected"
-    echo_yellow "Analyzing access logs (top 10 requests)..."
-    ddev exec upsun ssh --project="${project_id}" -e "${environment_id}" -- \
-        "tail -n 5000 /var/log/access.log | cut -d' ' -f 12- | sort | uniq -c | sort -nr | head -n 10"
-}
-
-# Run log checker with goaccess
-run_log_checker_goaccess() {
-    local project_id="$1"
-    local project_name="$2"
-    local environment_id="$3"
-    echo_green "${project_name} / ${environment_id} Selected"
-    echo_yellow "Fetching logs and loading in goaccess..."
-    ddev exec upsun ssh --project="${project_id}" -e "${environment_id}" -- "cat /var/log/access.log" | \
-        goaccess --log-format=COMBINED -
-}
-
-# Download access.log locally
-run_download_access_log() {
-    local project_id="$1"
-    local project_name="$2"
-    local environment_id="$3"
-    echo_green "${project_name} / ${environment_id} Selected"
-    local date_str
-    date_str=$(date +%Y%m%d)
-    local filename="${date_str}_${project_name}_${environment_id}_access.log.gz"
-    filename="${filename// /_}"
-    filename="${filename//[\[\]()]/}"
-    mkdir -p logs
-    filename="logs/${filename}"
-    echo_yellow "Resolving SSH endpoint..."
-    local ssh_host
-    ssh_host=$(ddev exec upsun ssh --project="${project_id}" -e "${environment_id}" --pipe 2>/dev/null)
-    if [[ -z "$ssh_host" ]]; then
-        echo_red "Failed to get SSH endpoint"
-        return 1
-    fi
-    echo_yellow "Downloading access.log (gzipped) to ${filename}..."
-    if command -v pv &>/dev/null; then
-        ssh "${ssh_host}" "gzip -c /var/log/access.log" | pv > "${filename}"
-    else
-        ssh "${ssh_host}" "gzip -c /var/log/access.log" > "${filename}"
-    fi
-    echo_green "Saved to ${filename}"
-    echo_yellow "Analyse with: ddev loghound ${filename}"
-}
-
-# Run backup
-run_backup() {
-    local project_id="$1"
-    local project_name="$2"
-    local environment_id="$3"
-    echo_green "${project_name} / ${environment_id} Selected"
-    echo_yellow "Creating backup..."
-    ddev exec upsun backup:create --project="${project_id}" -e "${environment_id}"
-}
-
-# Run Fastly credentials
-run_fastly_api_token() {
-    local project_id="$1"
-    local project_name="$2"
-    local environment_id="$3"
-    echo_green "${project_name} / ${environment_id} Selected"
-    echo_yellow "Fetching Fastly credentials..."
-    ddev exec upsun ssh --project="${project_id}" -e "${environment_id}" -- "env | grep -i fastly"
-}
-
-# Print equivalent non-interactive command
-print_command() {
-    local action="$1"
-    local project="$2"
-    local env="$3"
-    local cmd="ddev ucc ${action} ${project}"
-    [[ -n "$env" ]] && cmd="${cmd} ${env}"
-    echo -e "${BOLD}Equivalent command:${NC}"
-    echo -e "${RED}${BOLD}${cmd}${NC}"
-    echo ""
-}
-
 # Find project by name or ID
 find_project() {
     local search_term="$1"
@@ -290,6 +129,18 @@ find_project() {
     fi
 
     echo "$match"
+}
+
+# Print equivalent non-interactive command
+print_command() {
+    local action="$1"
+    local project="$2"
+    local env="$3"
+    local cmd="ddev ucc ${action} ${project}"
+    [[ -n "$env" ]] && cmd="${cmd} ${env}"
+    echo -e "${BOLD}Equivalent command:${NC}"
+    echo -e "${RED}${BOLD}${cmd}${NC}"
+    echo ""
 }
 
 # Main function
@@ -313,20 +164,20 @@ main() {
     if [[ -n "$action_arg" ]]; then
         # Map function name to action label
         case "$action_arg" in
-            run_ssh) action_label="SSH" ;;
-            run_uli) action_label="Drush ULI" ;;
-            run_resume) action_label="Resume Environment" ;;
-            run_activities) action_label="Activities" ;;
-            run_activity_in_progress) action_label="Running activity" ;;
-            run_disk_helper) action_label="Disk Allocation Helper (beta)" ;;
-            run_log_checker) action_label="Log-checker (beta)" ;;
-            run_log_checker_goaccess) action_label="Log-checker with goaccess (beta)" ;;
-            run_download_access_log) action_label="Download access.log" ;;
-            run_backup) action_label="Backup Environment" ;;
-            run_fastly_api_token) action_label="Fastly API Token" ;;
+            upsun_ssh) action_label="SSH" ;;
+            upsun_uli) action_label="Drush ULI" ;;
+            upsun_resume) action_label="Resume Environment" ;;
+            upsun_activities) action_label="Activities" ;;
+            upsun_activity_in_progress) action_label="Running activity" ;;
+            upsun_disk_helper) action_label="Disk Allocation Helper (beta)" ;;
+            upsun_log_checker) action_label="Log-checker (beta)" ;;
+            upsun_log_checker_goaccess) action_label="Log-checker with goaccess (beta)" ;;
+            upsun_download_access_log) action_label="Download access.log" ;;
+            upsun_backup) action_label="Backup Environment" ;;
+            upsun_fastly_api_token) action_label="Fastly API Token" ;;
             *)
                 echo_red "Unknown action: $action_arg"
-                echo_yellow "Available actions: run_ssh, run_uli, run_resume, run_activities, run_activity_in_progress, run_disk_helper, run_log_checker, run_log_checker_goaccess, run_download_access_log, run_backup, run_fastly_api_token"
+                echo_yellow "Available actions: upsun_ssh, upsun_uli, upsun_resume, upsun_activities, upsun_activity_in_progress, upsun_disk_helper, upsun_log_checker, upsun_log_checker_goaccess, upsun_download_access_log, upsun_backup, upsun_fastly_api_token"
                 exit 1
                 ;;
         esac
@@ -367,8 +218,8 @@ main() {
     # Execute selected action
     case "$action_label" in
         "SSH")
-            print_command "run_ssh" "$project_id"
-            run_ssh "$project_id" "$project_name"
+            print_command "upsun_ssh" "$project_id"
+            upsun_ssh "$project_id" "$project_name"
             ;;
         "Drush ULI")
             local env
@@ -381,8 +232,8 @@ main() {
                     exit 0
                 fi
             fi
-            print_command "run_uli" "$project_id" "$env"
-            run_uli "$project_id" "$project_name" "$env"
+            print_command "upsun_uli" "$project_id" "$env"
+            upsun_uli "$project_id" "$project_name" "$env"
             ;;
         "Resume Environment")
             local env
@@ -395,12 +246,12 @@ main() {
                     exit 0
                 fi
             fi
-            print_command "run_resume" "$project_id" "$env"
-            run_resume "$project_id" "$project_name" "$env"
+            print_command "upsun_resume" "$project_id" "$env"
+            upsun_resume "$project_id" "$project_name" "$env"
             ;;
         "Activities")
-            print_command "run_activities" "$project_id"
-            run_activities "$project_id" "$project_name"
+            print_command "upsun_activities" "$project_id"
+            upsun_activities "$project_id" "$project_name"
             ;;
         "Running activity")
             local env
@@ -413,12 +264,12 @@ main() {
                     exit 0
                 fi
             fi
-            print_command "run_activity_in_progress" "$project_id" "$env"
-            run_activity_in_progress "$project_id" "$project_name" "$env"
+            print_command "upsun_activity_in_progress" "$project_id" "$env"
+            upsun_activity_in_progress "$project_id" "$project_name" "$env"
             ;;
         "Disk Allocation Helper (beta)")
-            print_command "run_disk_helper" "$project_id"
-            run_disk_helper "$project_id" "$project_name"
+            print_command "upsun_disk_helper" "$project_id"
+            upsun_disk_helper "$project_id" "$project_name"
             ;;
         "Log-checker (beta)")
             local env
@@ -431,8 +282,8 @@ main() {
                     exit 0
                 fi
             fi
-            print_command "run_log_checker" "$project_id" "$env"
-            run_log_checker "$project_id" "$project_name" "$env"
+            print_command "upsun_log_checker" "$project_id" "$env"
+            upsun_log_checker "$project_id" "$project_name" "$env"
             ;;
         "Log-checker with goaccess (beta)")
             local env
@@ -445,8 +296,8 @@ main() {
                     exit 0
                 fi
             fi
-            print_command "run_log_checker_goaccess" "$project_id" "$env"
-            run_log_checker_goaccess "$project_id" "$project_name" "$env"
+            print_command "upsun_log_checker_goaccess" "$project_id" "$env"
+            upsun_log_checker_goaccess "$project_id" "$project_name" "$env"
             ;;
         "Download access.log (for local advanced forensics)")
             local env
@@ -459,8 +310,8 @@ main() {
                     exit 0
                 fi
             fi
-            print_command "run_download_access_log" "$project_id" "$env"
-            run_download_access_log "$project_id" "$project_name" "$env"
+            print_command "upsun_download_access_log" "$project_id" "$env"
+            upsun_download_access_log "$project_id" "$project_name" "$env"
             ;;
         "Backup Environment")
             local env
@@ -473,8 +324,8 @@ main() {
                     exit 0
                 fi
             fi
-            print_command "run_backup" "$project_id" "$env"
-            run_backup "$project_id" "$project_name" "$env"
+            print_command "upsun_backup" "$project_id" "$env"
+            upsun_backup "$project_id" "$project_name" "$env"
             ;;
         "Fastly API Token")
             local env
@@ -487,8 +338,8 @@ main() {
                     exit 0
                 fi
             fi
-            print_command "run_fastly_api_token" "$project_id" "$env"
-            run_fastly_api_token "$project_id" "$project_name" "$env"
+            print_command "upsun_fastly_api_token" "$project_id" "$env"
+            upsun_fastly_api_token "$project_id" "$project_name" "$env"
             ;;
         *)
             echo_red "Unknown action: $action_label"
