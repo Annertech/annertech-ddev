@@ -117,7 +117,7 @@ if [ -z "$CARD_TITLE" ]; then
 fi
 
 # Get multiline description (Markdown supported, Ctrl+D to submit)
-echo_yellow "Enter description — Markdown supported (Ctrl+D on an empty line to finish):"
+echo_yellow "Enter description - Markdown supported (Ctrl+D on an empty line to finish):"
 CARD_DESC=$(cat)
 
 # Build JSON payload

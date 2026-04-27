@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# ddev-generated
-# annertech-ddev
+#ddev-generated
+#annertech-ddev
 """
 Prefix-preserving IPv4 pseudonymization for GDPR-safe log forensics.
 

@@ -8,7 +8,7 @@
 ## Aliases: ai
 
 # ------------------------------------------------------------------------------
-# Access Log Forensics — GDPR note
+# Access Log Forensics - GDPR note
 # ------------------------------------------------------------------------------
 # Access logs contain client IP addresses, which are personal data under GDPR.
 # Sending them to a US-hosted LLM without safeguards is a transfer violation.
@@ -16,7 +16,7 @@
 # Before the log is handed to any agent, IPv4 addresses are replaced with
 # prefix-preserving pseudonyms:
 #   - IPs in the same /8, /16 or /24 in the real log share the same masked
-#     /8, /16 or /24 — so subnet-based analysis (botnet detection, CIDR blocks
+#     /8, /16 or /24 - so subnet-based analysis (botnet detection, CIDR blocks
 #     to recommend) still works correctly.
 #   - The mapping is random per run and never leaves the machine.
 #   - A sidecar TSV is written next to the source log at
@@ -26,7 +26,7 @@
 #   - IPv6 addresses are NOT masked yet; a warning is printed if any are
 #     detected. Do not run this on IPv6-heavy logs until that's handled.
 #   - Note that WHOIS / ASN / geolocation steps cannot be run against masked
-#     IPs — the prompt has been adjusted accordingly.
+#     IPs - the prompt has been adjusted accordingly.
 # ------------------------------------------------------------------------------
 
 # Colours
@@ -188,7 +188,7 @@ access_log_forensics() {
     echo_yellow "Masking IPs (prefix-preserving) before LLM submission..."
     if ! python3 "${DDEV_APPROOT}/.ddev/commands/host/_lib/mask_ips.py" \
         "$work_file" "$masked_file" "$mapping_file"; then
-        echo_red "IP masking failed — aborting to avoid leaking real IPs."
+        echo_red "IP masking failed - aborting to avoid leaking real IPs."
         rm -f "$tmp_file" "$masked_file"
         exit 1
     fi
