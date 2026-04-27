@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Open the Teamwork board for this project in the browser
+## Usage: open-board
+## Example: "ddev open-board"
+
+ENV_FILE="${DDEV_APPROOT:-.}/.ddev/.env.anner"
+[[ -f "$ENV_FILE" ]] && source "$ENV_FILE"
+
+if [[ -z "$TEAMWORK_PROJECT_ID" ]]; then
+  echo "Error: TEAMWORK_PROJECT_ID is not set in .ddev/.env.anner"
+  exit 1
+fi
+
+URL="https://projects.annertech.com/app/projects/${TEAMWORK_PROJECT_ID}/tasks/board"
+
+case $OSTYPE in
+  linux-gnu)
+    xdg-open "$URL"
+    ;;
+  "darwin"*)
+    open "$URL"
+    ;;
+  "win*"* | "msys"*)
+    start "$URL"
+    ;;
+esac
+
+echo "$URL"
