@@ -7,7 +7,7 @@
 ## Example: "ddev loghound access.log" or "ddev loghound access.log.gz --focus 5xx"
 
 # SPDX-License-Identifier: GPL-2.0-only
-"""loghound — fast offline Apache access log forensics.
+"""loghound - fast offline Apache access log forensics.
 
 First-line-of-defense triage tool for security teams. Streams
 Apache Combined Log Format files, surfaces 5xx incidents, botnet clusters,
@@ -45,7 +45,7 @@ MONTHS_S = {k.decode(): v for k, v in MONTHS.items()}
 
 def parse_apache_time(ts: str) -> int:
     # ts looks like: 30/Mar/2026:04:25:55 +0000
-    # Manual parse — strptime is the bottleneck on ~1M lines.
+    # Manual parse - strptime is the bottleneck on ~1M lines.
     try:
         day = int(ts[0:2])
         mon = MONTHS_S[ts[3:6]]
@@ -110,7 +110,7 @@ def parse_line(line: str):
             return None
 
         # Referer + UA: last two "..." in line.
-        # rfind from end — UA is the last quoted, referer the second-last.
+        # rfind from end - UA is the last quoted, referer the second-last.
         end = len(line)
         # Strip trailing newline / whitespace
         while end > 0 and line[end - 1] in "\r\n ":
@@ -290,7 +290,7 @@ class Aggregator:
             self.fourxx_path[path] += 1
             self.fourxx_ip[ip] += 1
 
-        # Declared crawler check (substring match — cheap and good enough)
+        # Declared crawler check (substring match - cheap and good enough)
         for tok in CRAWLER_UA_TOKENS:
             if tok in ua:
                 self.crawler_hits[tok] += 1
@@ -310,16 +310,16 @@ class Aggregator:
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Verdicts — hardcoded, hedged labels for an offline triage tool.
+# Verdicts - hardcoded, hedged labels for an offline triage tool.
 # We surface signals; only a human with full context can issue a real verdict.
 # ---------------------------------------------------------------------------
 
 VERDICT_CHECK_FURTHER = "check further"
 VERDICT_LIKELY_BENIGN = "likely benign"
-VERDICT_LIKELY_CRAWLER = "likely crawler — verify intent"
-VERDICT_HIGH_ERROR_RATE = "high error rate — investigate"
-VERDICT_HIGH_VOLUME = "high volume — check if legitimate"
-VERDICT_FLOOD_WITH_ERRORS = "flood + errors — investigate"
+VERDICT_LIKELY_CRAWLER = "likely crawler - verify intent"
+VERDICT_HIGH_ERROR_RATE = "high error rate - investigate"
+VERDICT_HIGH_VOLUME = "high volume - check if legitimate"
+VERDICT_FLOOD_WITH_ERRORS = "flood + errors - investigate"
 VERDICT_REVIEW_BEFORE_ACTING = "review before acting"
 
 
@@ -509,7 +509,7 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
 
     # ---------- Header
     out.write(style.h("=" * 78) + "\n")
-    out.write(style.h("LOGHOUND  —  Apache access log forensics report") + "\n")
+    out.write(style.h("LOGHOUND  -  Apache access log forensics report") + "\n")
     out.write(style.h("=" * 78) + "\n")
     out.write(f"Lines parsed     : {fmt_int(agg.lines)}\n")
     out.write(f"Malformed        : {fmt_int(agg.malformed)}\n")
@@ -613,7 +613,7 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
     if not focus or focus == "botnet":
         out.write("\n" + style.warn("=== IP CLUSTERS  (≥ "
                                     f"{args.subnet_min_ips} IPs, ≥ "
-                                    f"{fmt_int(args.subnet_min_requests)} reqs — "
+                                    f"{fmt_int(args.subnet_min_requests)} reqs - "
                                     f"possible botnet, CDN, or shared network) ===") + "\n")
         def _cluster_known(c):
             svcs = {agg.ip_known[ip] for ip in c["sample_ips"] if ip in agg.ip_known}
@@ -630,7 +630,7 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
     # ---------- Floods
     if not focus or focus == "flood":
         out.write("\n" + style.warn(f"=== POSSIBLE IP FLOODS  (≥ {args.flood_rpm} req/min for ≥ "
-                                    f"{args.flood_sustained} min — {VERDICT_CHECK_FURTHER}) ===") + "\n")
+                                    f"{args.flood_sustained} min - {VERDICT_CHECK_FURTHER}) ===") + "\n")
         rows = [(f["ip"], fmt_int(f["total_requests"]), f["peak_rpm"],
                  f["minutes_over_threshold"], f["peak_minute_utc"],
                  agg.ip_known.get(f["ip"], ""))
@@ -648,7 +648,7 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
         )
         undeclared = detect_undeclared_crawlers(agg)
         out.write("\n" + style.warn("=== POSSIBLE UNDECLARED CRAWLERS  (browser UA, "
-                                    f"≥ 500 distinct paths — {VERDICT_CHECK_FURTHER}) ===") + "\n")
+                                    f"≥ 500 distinct paths - {VERDICT_CHECK_FURTHER}) ===") + "\n")
         rows = [(u["ip"], u["distinct_paths_seen"], fmt_int(u["total_requests"]),
                  "yes" if u["had_any_referer"] else "no",
                  (u["user_agents"][0] if u["user_agents"] else "")[:60])
@@ -720,7 +720,7 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
         def subnet_severity(sn: str) -> tuple[int, int, int]:
             c = cluster_by_subnet.get(sn)
             if not c:
-                # Derived range — sum from members
+                # Derived range - sum from members
                 members = [ip for ip in leftover_ips if subnet24(ip) == sn]
                 total = sum(agg.ip_total.get(ip, 0) for ip in members)
                 errs = sum(
@@ -805,7 +805,7 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
                 return False, f"{VERDICT_HIGH_ERROR_RATE}{ktag}"
             return False, f"{VERDICT_CHECK_FURTHER}{ktag}"
 
-        out.write("\n" + style.h(f"=== CANDIDATES FOR BLOCKING  (CIDR — {VERDICT_REVIEW_BEFORE_ACTING}) ===") + "\n")
+        out.write("\n" + style.h(f"=== CANDIDATES FOR BLOCKING  (CIDR - {VERDICT_REVIEW_BEFORE_ACTING}) ===") + "\n")
 
         def render_subnet_block(title: str, subnets: list[str]):
             out.write(style.dim(f"\n  {title}\n"))
@@ -840,7 +840,7 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
                 _benign, v_note = verdict_ip(ip)
                 note = style.dim(f"[{v_note}]")
                 ratio = score / max_score if max_score else 0
-                if ratio >= 0.33:  # CRIT or HIGH — add AbuseIPDB link
+                if ratio >= 0.33:  # CRIT or HIGH - add AbuseIPDB link
                     abuse_url = f"https://www.abuseipdb.com/check/{ip}"
                     note = (note + "  " if note else "") + style.link(abuse_url, "abuseipdb")
                 out.write(
@@ -851,7 +851,7 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
         if not (block_subnets or derived_ranges or lone_ips):
             out.write("  (none)\n")
 
-        # Plain CIDR list — top offenders only, false positives excluded.
+        # Plain CIDR list - top offenders only, false positives excluded.
         top_cidrs: list[str] = []
         all_cidrs_scored: list[tuple[int, str]] = []
         for sn in block_subnets + derived_ranges:
@@ -868,8 +868,8 @@ def render_report(agg: Aggregator, args, out, style: Style) -> dict:
         skipped_fp = (len(block_subnets) + len(derived_ranges) + len(lone_ips)) - len([
             1 for sn in block_subnets + derived_ranges if not verdict_subnet(sn)[0]
         ]) - len([1 for ip in lone_ips if not verdict_ip(ip)[0]])
-        fp_note = f"  ({skipped_fp} likely benign source(s) excluded — see table above)\n" if skipped_fp else ""
-        out.write(style.dim(f"\n  Copy-paste — top {len(top_cidrs)} candidate(s) (CIDR per line, {VERDICT_REVIEW_BEFORE_ACTING}):\n"))
+        fp_note = f"  ({skipped_fp} likely benign source(s) excluded - see table above)\n" if skipped_fp else ""
+        out.write(style.dim(f"\n  Copy-paste - top {len(top_cidrs)} candidate(s) (CIDR per line, {VERDICT_REVIEW_BEFORE_ACTING}):\n"))
         if fp_note:
             out.write(style.dim(fp_note))
         for cidr in top_cidrs:
@@ -955,23 +955,23 @@ def build_summary(agg: Aggregator, args,
 
         top_ip, top_ip_n = next(iter(agg.fivexx_ip[worst].most_common(1)), (None, 0))
         if top_ip:
-            lines.append(f"- **Top contributing IP:** {top_ip} ({fmt_int(top_ip_n)} hits — {VERDICT_CHECK_FURTHER})")
+            lines.append(f"- **Top contributing IP:** {top_ip} ({fmt_int(top_ip_n)} hits - {VERDICT_CHECK_FURTHER})")
 
     # --- Indicators
     indicator_lines = []
     if clusters:
         top = clusters[0]
         indicator_lines.append(
-            f"- **Largest IP cluster:** `{top['subnet']}` — "
+            f"- **Largest IP cluster:** `{top['subnet']}` - "
             f"{top['ip_count']} IPs, {fmt_int(top['total_requests'])} requests "
-            f"(possible botnet, CDN, or shared network — {VERDICT_CHECK_FURTHER})"
+            f"(possible botnet, CDN, or shared network - {VERDICT_CHECK_FURTHER})"
         )
         if len(clusters) > 1:
             indicator_lines.append(f"- **Other notable clusters:** {len(clusters) - 1} additional cluster(s) detected")
     if floods:
         indicator_lines.append(
             f"- **Possible IP floods:** {len(floods)} IP(s) exceeded {args.flood_rpm} req/min "
-            f"(top: `{floods[0]['ip']}` @ {floods[0]['peak_rpm']} rpm — {VERDICT_CHECK_FURTHER})"
+            f"(top: `{floods[0]['ip']}` @ {floods[0]['peak_rpm']} rpm - {VERDICT_CHECK_FURTHER})"
         )
     if indicator_lines:
         lines.append("\n## Indicators\n")
@@ -979,7 +979,7 @@ def build_summary(agg: Aggregator, args,
 
     # --- Suggested next steps
     lines.append("\n## Suggested next steps\n")
-    lines.append(f"- Review the **Candidates for blocking** section — {VERDICT_REVIEW_BEFORE_ACTING}.")
+    lines.append(f"- Review the **Candidates for blocking** section - {VERDICT_REVIEW_BEFORE_ACTING}.")
     lines.append("- Cross-reference flagged IPs against the 5xx deep dive and AbuseIPDB before blocking.")
     lines.append("- This is an offline heuristic report; verify findings with live traffic data and WAF logs.")
 
@@ -1071,7 +1071,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.files:
         candidates = sorted(_glob.glob("logs/*access.log") + _glob.glob("logs/*access.log.gz") + _glob.glob("logs/*access.log.bz2"))
         if not candidates:
-            p.error("no *access.log files found in logs/ — pass a file explicitly or run ddev ucc to download one")
+            p.error("no *access.log files found in logs/ - pass a file explicitly or run ddev ucc to download one")
         if len(candidates) == 1:
             args.files = candidates
         else:

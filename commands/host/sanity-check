@@ -43,18 +43,18 @@ group "DRUPAL"
 
 
 if [[ ! -f "$LOCK_FILE" ]]; then
-  warn "composer.lock not found — skipping Drupal version check"
+  warn "composer.lock not found - skipping Drupal version check"
 else
   DRUPAL_VERSION=$(grep -A3 '"name": "drupal/core"' "$LOCK_FILE" | grep '"version"' | sed 's/.*"version": "\(.*\)".*/\1/' | tr -d 'v')
 
   if [[ -z "$DRUPAL_VERSION" ]]; then
-    warn "drupal/core not found in composer.lock — skipping version check"
+    warn "drupal/core not found in composer.lock - skipping version check"
   else
     DRUPAL_BRANCH=$(echo "$DRUPAL_VERSION" | grep -oE '^[0-9]+\.[0-9]+\.')
     UPDATE_XML=$(curl -sf --max-time 10 "https://updates.drupal.org/release-history/drupal/current" 2>/dev/null)
 
     if [[ -z "$UPDATE_XML" ]]; then
-      warn "Could not reach updates.drupal.org — skipping support check (installed: $DRUPAL_VERSION)"
+      warn "Could not reach updates.drupal.org - skipping support check (installed: $DRUPAL_VERSION)"
     else
       SUPPORTED_BRANCHES=$(echo "$UPDATE_XML" | sed -n 's/.*<supported_branches>\(.*\)<\/supported_branches>.*/\1/p')
 
@@ -63,7 +63,7 @@ else
       elif echo "$SUPPORTED_BRANCHES" | grep -qF "$DRUPAL_BRANCH"; then
         pass "Drupal $DRUPAL_VERSION is on a supported branch ($DRUPAL_BRANCH)"
       else
-        warn "Drupal $DRUPAL_VERSION is NOT supported — supported branches: $SUPPORTED_BRANCHES"
+        warn "Drupal $DRUPAL_VERSION is NOT supported - supported branches: $SUPPORTED_BRANCHES"
       fi
     fi
   fi
@@ -73,7 +73,7 @@ fi
 PERF_FILE=$(find "$APPROOT" -path "*/config/sync/system.performance.yml" ! -path "*/.git/*" 2>/dev/null | head -1)
 
 if [[ -z "$PERF_FILE" ]]; then
-  warn "system.performance.yml not found — skipping"
+  warn "system.performance.yml not found - skipping"
 else
   if grep -q "preprocess: false" "$PERF_FILE"; then
     fail "CSS/JS aggregation is DISABLED (preprocess: false)"
@@ -92,7 +92,7 @@ fi
 EXT_FILE=$(find "$APPROOT" -path "*/config/sync/core.extension.yml" ! -path "*/.git/*" 2>/dev/null | head -1)
 
 if [[ -z "$EXT_FILE" ]]; then
-  warn "core.extension.yml not found — skipping"
+  warn "core.extension.yml not found - skipping"
 else
   for mod in devel devel_php drush_endpoint; do
     if grep -qE "^\s+${mod}:" "$EXT_FILE"; then
@@ -110,7 +110,7 @@ else
     fi
   done
   if $BEHIND_CDN; then
-    pass "CDN detected: $CDN_NAME — Upsun route cache must be disabled"
+    pass "CDN detected: $CDN_NAME - Upsun route cache must be disabled"
   fi
 fi
 
@@ -118,12 +118,12 @@ fi
 FILES_VIEW="$APPROOT/config/sync/views.view.files.yml"
 
 if [[ ! -f "$FILES_VIEW" ]]; then
-  warn "config/sync/views.view.files.yml not found — skipping files view check"
+  warn "config/sync/views.view.files.yml not found - skipping files view check"
 else
   if grep -q "operations:" "$FILES_VIEW"; then
     pass "views.view.files.yml contains operations"
   else
-    fail "views.view.files.yml is missing 'operations' — fix: cp web/core/modules/file/config/optional/views.view.files.yml config/sync/views.view.files.yml && ddev exec drush cim"
+    fail "views.view.files.yml is missing 'operations' - fix: cp web/core/modules/file/config/optional/views.view.files.yml config/sync/views.view.files.yml && ddev exec drush cim"
   fi
 fi
 
@@ -140,7 +140,7 @@ if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
   fi
 
   if [[ ! -f "$SIMPLEI_FILE" ]]; then
-    warn "web/sites/default/settings.platformsh.php not found — skipping SimpleI checks"
+    warn "web/sites/default/settings.platformsh.php not found - skipping SimpleI checks"
   else
     if ! grep -q "simple_environment_indicator" "$SIMPLEI_FILE"; then
       warn "No SimpleI configuration found in settings.platformsh.php"
@@ -152,7 +152,7 @@ if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
       if $SIMPLEI_OK; then
         pass "SimpleI environment indicator colors are correct"
       else
-        warn "SimpleI environment indicator colors are missing or incorrect — expected #8B0000 LIVE, #59590D STAGE, #005B94 DEV"
+        warn "SimpleI environment indicator colors are missing or incorrect - expected #8B0000 LIVE, #59590D STAGE, #005B94 DEV"
       fi
     fi
   fi
@@ -162,7 +162,7 @@ fi
 IMAGE_STYLES=$(find "$APPROOT" -path "*/config/sync/image.style.*.yml" ! -path "*/.git/*" 2>/dev/null)
 
 if [[ -z "$IMAGE_STYLES" ]]; then
-  warn "No image style config files found — skipping AVIF check"
+  warn "No image style config files found - skipping AVIF check"
 else
   AVIF_MISSING=()
   WEBP_MISSING=()
@@ -216,22 +216,22 @@ fi
 
 
 if [[ ! -f "$LOCK_FILE" ]]; then
-  warn "composer.lock not found — skipping composer/installers check"
+  warn "composer.lock not found - skipping composer/installers check"
 else
   INSTALLERS_VERSION=$(grep -A3 '"name": "composer/installers"' "$LOCK_FILE" | grep '"version"' | sed 's/.*"version": "\(.*\)".*/\1/')
   if [[ -n "$INSTALLERS_VERSION" ]]; then
     INSTALLERS_MAJOR=$(echo "$INSTALLERS_VERSION" | sed 's/^v//' | cut -d. -f1)
     if [[ "$INSTALLERS_MAJOR" == "1" ]]; then
-      warn "composer/installers is version $INSTALLERS_VERSION — must be version 2.x"
+      warn "composer/installers is version $INSTALLERS_VERSION - must be version 2.x"
     fi
   fi
 
   if grep -q '"name": "zaporylie/composer-drupal-optimizations"' "$LOCK_FILE"; then
-    warn "zaporylie/composer-drupal-optimizations is present — this package must not be used"
+    warn "zaporylie/composer-drupal-optimizations is present - this package must not be used"
   fi
 
   if grep -q '"name": "anrt-tools/docksal-configuration"' "$LOCK_FILE"; then
-    warn "anrt-tools/docksal-configuration is present — this package must not be used"
+    warn "anrt-tools/docksal-configuration is present - this package must not be used"
   fi
 
   if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" || "$DDEV_UPSTREAM_PROVIDER" == "upsun" ]]; then
@@ -239,7 +239,7 @@ else
     if [[ -n "$CONFIG_READER_VERSION" ]]; then
       CONFIG_READER_MAJOR=$(echo "$CONFIG_READER_VERSION" | sed 's/^v//' | cut -d. -f1)
       if [[ "$CONFIG_READER_MAJOR" -lt "$CONFIG_READER_MIN" ]]; then
-        fail "platformsh/config-reader is version $CONFIG_READER_VERSION — upgrade to ${CONFIG_READER_MIN}.x required"
+        fail "platformsh/config-reader is version $CONFIG_READER_VERSION - upgrade to ${CONFIG_READER_MIN}.x required"
       else
         pass "platformsh/config-reader $CONFIG_READER_VERSION is up to date"
       fi
@@ -258,7 +258,7 @@ else
   VULN_LINE=$(echo "$AUDIT_OUTPUT" | grep -oE "Found [0-9]+ security vulnerability advisory affecting [0-9]+ package")
   if [[ -n "$VULN_LINE" ]]; then
     VULN_COUNT=$(echo "$VULN_LINE" | grep -oE "^Found [0-9]+" | grep -oE "[0-9]+")
-    warn "$VULN_COUNT security vulnerability advisories found — run 'ddev composer audit' for details"
+    warn "$VULN_COUNT security vulnerability advisories found - run 'ddev composer audit' for details"
   fi
 fi
 
@@ -268,13 +268,13 @@ group "DDEV"
 
 
 if [[ ! -f "$DDEV_CONFIG" ]]; then
-  warn ".ddev/config.yaml not found — skipping DDEV version checks"
+  warn ".ddev/config.yaml not found - skipping DDEV version checks"
 else
   DDEV_DB_TYPE=$(grep -A2 '^database:' "$DDEV_CONFIG" | grep 'type:' | sed 's/.*type:[[:space:]]*//' | tr -d '"' | xargs)
   DDEV_DB_VERSION=$(grep -A2 '^database:' "$DDEV_CONFIG" | grep 'version:' | sed 's/.*version:[[:space:]]*//' | tr -d '"' | xargs)
 
   if [[ -z "$DDEV_DB_VERSION" ]]; then
-    warn "database.version not set in .ddev/config.yaml — skipping database version check"
+    warn "database.version not set in .ddev/config.yaml - skipping database version check"
   elif [[ "$DDEV_DB_TYPE" == "mariadb" ]]; then
     if [[ "$(printf '%s\n' "$DB_MIN_MARIADB" "$DDEV_DB_VERSION" | sort -V | head -1)" != "$DB_MIN_MARIADB" ]]; then
       warn "Database version $DDEV_DB_TYPE:$DDEV_DB_VERSION is below required minimum $DB_MIN_MARIADB"
@@ -290,7 +290,7 @@ fi
 SOLR_MANIFEST="$APPROOT/.ddev/addon-metadata/solr/manifest.yaml"
 
 if [[ ! -f "$SOLR_MANIFEST" ]]; then
-  pass "ddev-drupal-solr not installed — project does not use Solr"
+  pass "ddev-drupal-solr not installed - project does not use Solr"
 else
   SOLR_VERSION=$(grep -E '^version:' "$SOLR_MANIFEST" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
   SOLR_REPO=$(grep -E '^repository:' "$SOLR_MANIFEST" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
@@ -298,14 +298,14 @@ else
   if [[ "$SOLR_REPO" == "ddev/ddev-drupal-solr" || "$SOLR_REPO" == "ddev/ddev-drupal9-solr" ]]; then
     pass "ddev-drupal-solr repository is correct ($SOLR_REPO)"
   else
-    fail "ddev-drupal-solr repository is '$SOLR_REPO' — expected 'ddev/ddev-drupal-solr' or 'ddev/ddev-drupal9-solr'"
+    fail "ddev-drupal-solr repository is '$SOLR_REPO' - expected 'ddev/ddev-drupal-solr' or 'ddev/ddev-drupal9-solr'"
     warn "Install the correct addon with: 'ddev add-on get ddev/ddev-drupal-solr --version $SOLR_REQUIRED_VERSION'"
   fi
 
   if [[ "$SOLR_VERSION" == "$SOLR_REQUIRED_VERSION" ]]; then
     pass "ddev-drupal-solr version is $SOLR_REQUIRED_VERSION"
   else
-    fail "ddev-drupal-solr version '$SOLR_VERSION' is not supported — only $SOLR_REQUIRED_VERSION is compatible"
+    fail "ddev-drupal-solr version '$SOLR_VERSION' is not supported - only $SOLR_REQUIRED_VERSION is compatible"
     warn "Install the correct version with: 'ddev add-on get ddev/ddev-drupal-solr --version $SOLR_REQUIRED_VERSION'"
   fi
 fi
@@ -316,18 +316,18 @@ group "UPSUN"
 # ════════════════════════════════════════════════════════════════════════════
 
 if [[ ! -f "$DDEV_CONFIG" ]]; then
-  warn "Upsun: .ddev/config.yaml not found — skipping version checks"
+  warn "Upsun: .ddev/config.yaml not found - skipping version checks"
 else
   DDEV_PHP=$(grep -E '^php_version:' "$DDEV_CONFIG" | sed 's/php_version:[[:space:]]*//' | tr -d '"' | xargs)
   UPSUN_PHP=$(grep -E '^[[:space:]]*type:' "$APP_YAML" | grep 'php:' | sed 's/.*php:\([0-9.]*\).*/\1/' | xargs)
 
   if [[ -z "$DDEV_PHP" ]]; then
-    warn "Upsun: php_version not set in .ddev/config.yaml — skipping PHP version check"
+    warn "Upsun: php_version not set in .ddev/config.yaml - skipping PHP version check"
   elif [[ -n "$UPSUN_PHP" ]]; then
     if [[ "$DDEV_PHP" == "$UPSUN_PHP" ]]; then
       pass "PHP $DDEV_PHP matches between DDEV and Upsun"
     else
-      fail "PHP version mismatch — DDEV: $DDEV_PHP, Upsun: $UPSUN_PHP"
+      fail "PHP version mismatch - DDEV: $DDEV_PHP, Upsun: $UPSUN_PHP"
     fi
 
     PHP_MIN="8.3"
@@ -342,7 +342,7 @@ else
       if [[ "$DDEV_DB_VERSION" == "$UPSUN_DB_VERSION" ]]; then
         pass "Database $DDEV_DB_TYPE:$DDEV_DB_VERSION matches between DDEV and Upsun"
       else
-        fail "Database version mismatch — DDEV: $DDEV_DB_TYPE:$DDEV_DB_VERSION, Upsun: $DDEV_DB_TYPE:$UPSUN_DB_VERSION"
+        fail "Database version mismatch - DDEV: $DDEV_DB_TYPE:$DDEV_DB_VERSION, Upsun: $DDEV_DB_TYPE:$UPSUN_DB_VERSION"
       fi
     fi
   fi
@@ -360,12 +360,12 @@ else
 fi
 
 if [[ ! -f "$ROUTES_FILE" ]]; then
-  warn "Upsun: .platform/routes.yaml not found — skipping cache check"
+  warn "Upsun: .platform/routes.yaml not found - skipping cache check"
 else
   if grep -qE "cache:" "$ROUTES_FILE"; then
     if $BEHIND_CDN; then
       if grep -qE "enabled:\s*false" "$ROUTES_FILE"; then
-        pass "Upsun route cache is disabled (correct — project is behind a CDN)"
+        pass "Upsun route cache is disabled (correct - project is behind a CDN)"
       else
         fail "Upsun route cache must be DISABLED when behind a CDN (fastly/cloudflare detected)"
       fi
@@ -373,19 +373,19 @@ else
       if grep -qE "enabled:\s*true" "$ROUTES_FILE"; then
         pass "Upsun route cache is enabled"
       elif grep -qE "enabled:\s*false" "$ROUTES_FILE"; then
-        fail "Upsun route cache is DISABLED but no CDN module detected — should be enabled"
+        fail "Upsun route cache is DISABLED but no CDN module detected - should be enabled"
       else
         pass "Upsun route cache key found in routes.yaml"
       fi
     fi
   else
-    warn "Upsun: no 'cache:' key found in .platform/routes.yaml — route caching may not be configured"
+    warn "Upsun: no 'cache:' key found in .platform/routes.yaml - route caching may not be configured"
   fi
 fi
 
 if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" && -n "$EXT_FILE" ]]; then
   if grep -qE "^\s+page_cache:" "$EXT_FILE"; then
-    fail "page_cache module is ENABLED — Upsun handles page caching; disable it"
+    fail "page_cache module is ENABLED - Upsun handles page caching; disable it"
   else
     pass "Drupal page_cache module is disabled (Upsun handles anonymous caches)"
   fi
@@ -402,7 +402,7 @@ if [[ -n "$EXT_FILE" && -f "$ROUTES_FILE" ]]; then
     if $BEHIND_CDN && [[ "$CDN_NAME" == "fastly" ]]; then
       FASTLY_SETTINGS=$(find "$APPROOT" -path "*/config/sync/fastly.settings.yml" ! -path "*/.git/*" 2>/dev/null | head -1)
       if [[ -z "$FASTLY_SETTINGS" ]]; then
-        warn "fastly.settings.yml not found — cannot verify botbuster_token cookie_cache_bypass"
+        warn "fastly.settings.yml not found - cannot verify botbuster_token cookie_cache_bypass"
       elif grep -q "cookie_cache_bypass: botbuster_token" "$FASTLY_SETTINGS"; then
         pass "botbuster_token is set as cookie_cache_bypass in fastly.settings.yml"
       else

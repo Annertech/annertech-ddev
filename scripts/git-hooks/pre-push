@@ -36,7 +36,7 @@ ddev sanity-check -s
 if [[ $? -ne 0 ]]; then
   echo ""
   if [[ "$CURRENT_BRANCH" == "dev" ]]; then
-    echo "⚠️  Sanity-check failed on 'dev' branch — pushing anyway."
+    echo "⚠️  Sanity-check failed on 'dev' branch - pushing anyway."
   else
     read -p "⚠️  Sanity-check failed. Continue pushing anyway? (y/N): " sanity_confirm </dev/tty
     sanity_confirm=${sanity_confirm:-N}
