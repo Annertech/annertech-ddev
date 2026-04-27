@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 #ddev-generated
 
+# ── Skip all checks for projects not yet live ────────────────────────────────
+ENV_FILE="$(git rev-parse --show-toplevel)/.ddev/.env.anner"
+LIVE=$(grep -E '^LIVE=' "$ENV_FILE" 2>/dev/null | cut -d'=' -f2 | tr -d '"')
+if [[ "$LIVE" == "0" ]]; then
+  exit 0
+elif [[ -z "$LIVE" ]]; then
+  echo "⚠️ LIVE is not set in .ddev/.env.anner, assuming live project."
+  echo " Run: ddev dotenv set .ddev/.env.anner --live=0 && ddev restart"
+fi
+
 # ── Skip all checks when pushing a tag ───────────────────────────────────────
 # Check stdin refs from git
 PUSH_REFS=$(cat)
