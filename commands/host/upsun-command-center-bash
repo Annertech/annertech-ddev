@@ -58,11 +58,11 @@ get_current_project_id() {
 fzf_select() {
     local header="$1"
     local query="$2"
-    local cmd="fzf --reverse --height=50% --header=${header} -1"
     if [[ -n "$query" ]]; then
-        cmd="$cmd --query=${query}"
+        fzf --reverse --height=50% --header="$header" --query="$query" -1
+    else
+        fzf --reverse --height=50% --header="$header" -1
     fi
-    eval "$cmd"
 }
 
 # Select action
