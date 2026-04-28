@@ -151,6 +151,7 @@ post_install_actions:
       cp ${DDEV_APPROOT}/.ddev/scripts/ddev/homeadditions/.bash_aliases ${DDEV_APPROOT}/.ddev/homeadditions/.bash_aliases
     fi
   # Remove deprecated commands
+  - rm -f ${DDEV_APPROOT}/.ddev/scripts/other/dotenvsetter.sh || true
   - rm -f ${DDEV_APPROOT}/.ddev/commands/host/platform-ulitool || true
   - rm -f ${DDEV_APPROOT}/.ddev/commands/host/platform-resume || true
   - rm -f ${DDEV_APPROOT}/.ddev/commands/host/timeslip || true

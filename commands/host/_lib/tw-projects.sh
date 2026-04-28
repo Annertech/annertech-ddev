@@ -1,10 +1,13 @@
 #ddev-generated
 #annertech-ddev
-set_teamwork_board() {
+
+# Fetches active Teamwork projects and prompts the user to select one via fzf.
+# Sets PROJECT_ID and PROJECT_NAME on success; exits on error or no selection.
+# Requires: TEAMWORK_API_KEY, jq, fzf, echo_red/echo_yellow helpers.
+tw_select_project() {
     TW_API_KEY="${TEAMWORK_API_KEY:-}"
     if [[ -z "$TW_API_KEY" ]]; then
         echo_red "Error: TEAMWORK_API_KEY environment variable not set"
-        echo_yellow "See README.md for setup instructions."
         exit 1
     fi
 
@@ -17,33 +20,31 @@ set_teamwork_board() {
     fi
 
     echo_yellow "Fetching active Teamwork projects..."
-    PROJECTS_RESPONSE=$(curl -s \
-        -u "${TW_API_KEY}:v" \
-        "https://projects.annertech.com/projects.json?status=active")
+    local response
+    response=$(curl -s -u "${TW_API_KEY}:v" "https://projects.annertech.com/projects.json?status=active")
 
-    if [[ -z "$PROJECTS_RESPONSE" ]]; then
+    if [[ -z "$response" ]]; then
         echo_red "Error: Failed to fetch projects from API"
         exit 1
     fi
 
-    STATUS=$(echo "$PROJECTS_RESPONSE" | jq -r '.STATUS')
-    if [[ "$STATUS" != "OK" ]]; then
-        echo_red "Error fetching projects: $(echo "$PROJECTS_RESPONSE" | jq -r '.MESSAGE // "Unknown error"')"
+    local status
+    status=$(echo "$response" | jq -r '.STATUS')
+    if [[ "$status" != "OK" ]]; then
+        echo_red "Error fetching projects: $(echo "$response" | jq -r '.MESSAGE // "Unknown error"')"
         exit 1
     fi
 
-    PROJECT_SELECTION=$(echo "$PROJECTS_RESPONSE" | \
+    local selection
+    selection=$(echo "$response" | \
         jq -r '.projects[] | "\(.id)\t\(.name) (\(.id))"' | \
         fzf --reverse --height=50% --header="Select Teamwork Project" --delimiter=$'\t' --with-nth=2 -1)
 
-    if [[ -z "$PROJECT_SELECTION" ]]; then
+    if [[ -z "$selection" ]]; then
         echo_red "No project selected. Aborting."
         exit 0
     fi
 
-    PROJECT_ID=$(echo "$PROJECT_SELECTION" | cut -f1)
-    PROJECT_NAME=$(echo "$PROJECT_SELECTION" | cut -f2-)
-
-    ddev dotenv set .ddev/.env.anner --teamwork-project-id="$PROJECT_ID"
-    echo_green "✓ Saved TEAMWORK_PROJECT_ID=$PROJECT_ID ($PROJECT_NAME) to .ddev/.env.anner"
+    PROJECT_ID=$(echo "$selection" | cut -f1)
+    PROJECT_NAME=$(echo "$selection" | cut -f2-)
 }

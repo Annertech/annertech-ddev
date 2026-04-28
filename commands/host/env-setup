@@ -12,7 +12,13 @@ echo_green()  { echo -e "${GREEN}$1${NC}"; }
 echo_yellow() { echo -e "${YELLOW}$1${NC}"; }
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
-. "$LIB_DIR/env-teamwork-board.sh"
+. "$LIB_DIR/tw-projects.sh"
+
+set_teamwork_board() {
+    tw_select_project
+    ddev dotenv set .ddev/.env.anner --teamwork-project-id="$PROJECT_ID"
+    echo_green "✓ Saved TEAMWORK_PROJECT_ID=$PROJECT_ID ($PROJECT_NAME) to .ddev/.env.anner"
+}
 
 OPTIONS=(
     "1. Set Teamwork Board"
