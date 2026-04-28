@@ -3,10 +3,13 @@
 #annertech-ddev
 
 ## Description: Create a new Teamwork task
-## Usage: tw-new
-## Example: "ddev tw-new"
+## Usage: tw-new [-i|--interactive]
+## Example: "ddev tw-new" or "ddev tw-new -i"
 
 set -eo pipefail
+
+INTERACTIVE=false
+[[ "$*" == *"-i"* || "$*" == *"--interactive"* ]] && INTERACTIVE=true
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 echo_red()    { echo -e "${RED}$1${NC}" >&2; }
@@ -43,7 +46,7 @@ if [ -f "$ENV_FILE" ]; then
 fi
 
 # Select project
-if [ -n "$TW_PROJECT_ID" ]; then
+if [ -n "$TW_PROJECT_ID" ] && ! $INTERACTIVE; then
     echo_yellow "Using project ID from .env.anner: $TW_PROJECT_ID"
     PROJECT_ID="$TW_PROJECT_ID"
 else
