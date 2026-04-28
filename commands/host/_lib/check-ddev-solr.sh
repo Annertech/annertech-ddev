@@ -12,13 +12,13 @@ else
     pass "ddev-drupal-solr repository is correct ($SOLR_REPO)"
   else
     fail "ddev-drupal-solr repository is '$SOLR_REPO' — expected 'ddev/ddev-drupal-solr' or 'ddev/ddev-drupal9-solr'"
-    warn "Install the correct addon with: 'ddev add-on get ddev/ddev-drupal-solr --version $SOLR_REQUIRED_VERSION'"
+    warn "Install the correct addon with: 'ddev add-on get ddev/ddev-drupal-solr --version $DDEV_SOLR_VERSION'"
   fi
 
-  if [[ "$SOLR_VERSION" == "$SOLR_REQUIRED_VERSION" ]]; then
-    pass "ddev-drupal-solr version is $SOLR_REQUIRED_VERSION"
+  if [[ "$SOLR_VERSION" == "$DDEV_SOLR_VERSION" ]]; then
+    pass "ddev-drupal-solr version is $DDEV_SOLR_VERSION"
   else
-    fail "ddev-drupal-solr version '$SOLR_VERSION' is not supported — only $SOLR_REQUIRED_VERSION is compatible"
-    warn "Install the correct version with: 'ddev add-on get ddev/ddev-drupal-solr --version $SOLR_REQUIRED_VERSION'"
+    fail "ddev-drupal-solr version '$SOLR_VERSION' is not supported — only $DDEV_SOLR_VERSION is compatible"
+    warn "Install the correct version with: 'ddev add-on get ddev/ddev-drupal-solr --version $DDEV_SOLR_VERSION'"
   fi
 fi

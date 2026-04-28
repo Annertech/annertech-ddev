@@ -41,4 +41,15 @@ else
       fi
     fi
   fi
+
+  if [[ -f "$SERVICES_FILE" ]]; then
+    UPSUN_SOLR_VERSION=$(grep -E "type:.*solr:" "$SERVICES_FILE" | head -1 | sed 's/.*solr:\([0-9.]*\).*/\1/' | xargs)
+    if [[ -n "$UPSUN_SOLR_VERSION" ]]; then
+      if [[ "$(printf '%s\n' "$UPSUN_SOLR_MIN" "$UPSUN_SOLR_VERSION" | sort -V | head -1)" != "$UPSUN_SOLR_MIN" ]]; then
+        fail "Solr version $UPSUN_SOLR_VERSION in services.yaml is below required version ($UPSUN_SOLR_MIN)"
+      else
+        pass "Solr $UPSUN_SOLR_VERSION meets required version ($UPSUN_SOLR_MIN)"
+      fi
+    fi
+  fi
 fi

@@ -24,7 +24,8 @@ group() { echo -e "\n${BOLD}$1${NC}"; }
 PHP_MIN="8.3"
 DB_MIN_MARIADB="10.11"
 REDIS_REQUIRED_VERSION="8"
-SOLR_REQUIRED_VERSION="v1.2.3"
+DDEV_SOLR_VERSION="v1.2.3"
+UPSUN_SOLR_MIN="9.1"
 CONFIG_READER_MIN=3
 # ─────────────────────────────────────────────────────────────────────────────
 
