@@ -5,6 +5,7 @@
 ## Description: Quickly open the current issue you are working on
 ## Usage: open-issue
 ## Example: "ddev open-issue"
+## Aliases: tw-open
 
 DOMAIN="${TEAMWORK_DOMAIN}"
 

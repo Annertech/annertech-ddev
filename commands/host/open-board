@@ -5,6 +5,7 @@
 ## Description: Open the Teamwork board for this project in the browser
 ## Usage: open-board
 ## Example: "ddev open-board"
+## Aliases: tw-board
 
 ENV_FILE="${DDEV_APPROOT:-.}/.ddev/.env.anner"
 [[ -f "$ENV_FILE" ]] && source "$ENV_FILE"
