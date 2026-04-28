@@ -8,7 +8,7 @@
 ## ProjectTypes: drupal10,drupal11
 
 BACKSTOP_DATA="${DDEV_APPROOT}/tests/backstop/backstop_data"
-DEST="${DDEV_APPROOT}/web/sites/default/files/backstop_data"
+DEST="${DDEV_APPROOT:?}/web/sites/default/files/backstop_data"
 
 if [ ! -d "${BACKSTOP_DATA}/html_report" ]; then
   echo "Report directory not found: ${BACKSTOP_DATA}/html_report"
