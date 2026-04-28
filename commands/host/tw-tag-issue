@@ -26,8 +26,9 @@ LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
 . "$LIB_DIR/tw-curl.sh"
 
 TW_API_KEY="${TEAMWORK_API_KEY:-}"
-if [[ -z "$TW_API_KEY" ]]; then
-    echo_red "Error: TEAMWORK_API_KEY environment variable not set"
+DOMAIN="${TEAMWORK_DOMAIN:-}"
+if [[ -z "$TW_API_KEY" || -z "$DOMAIN" ]]; then
+    echo_red "Error: TEAMWORK_API_KEY and TEAMWORK_DOMAIN environment variables must be set"
     exit 1
 fi
 
@@ -61,7 +62,7 @@ fi
 
 # Fetch task and its current tags
 echo_yellow "Fetching task $TASK_ID..."
-TASK_RESPONSE=$(tw_curl -s "https://projects.annertech.com/tasks/${TASK_ID}.json")
+TASK_RESPONSE=$(tw_curl -s "https://${DOMAIN}/tasks/${TASK_ID}.json")
 EXISTING_TAGS_JSON=$(echo "$TASK_RESPONSE" | jq -c '.task.tags // .["todo-item"].tags // []')
 
 CURRENT_TAG_NAMES=$(echo "$EXISTING_TAGS_JSON" | jq -r '.[].name' | tr '\n' ',' | sed 's/,$//')
@@ -73,7 +74,7 @@ fi
 
 # Fetch all available tags
 echo_yellow "Fetching available tags..."
-TAGS_RESPONSE=$(tw_curl -s "https://projects.annertech.com/tags.json")
+TAGS_RESPONSE=$(tw_curl -s "https://${DOMAIN}/tags.json")
 TAG_LIST=$(echo "$TAGS_RESPONSE" | jq -r '.tags[] | "\(.id)\t\(.name)"')
 
 if [[ -z "$TAG_LIST" ]]; then
@@ -103,7 +104,7 @@ RESPONSE=$(tw_curl -s -w "\n%{http_code}" \
     -H "Content-Type: application/json" \
     -X PUT \
     -d "$PAYLOAD" \
-    "https://projects.annertech.com/tasks/${TASK_ID}.json")
+    "https://${DOMAIN}/tasks/${TASK_ID}.json")
 
 HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
 

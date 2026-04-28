@@ -21,7 +21,7 @@ tw_select_project() {
 
     echo_yellow "Fetching active Teamwork projects..."
     local response
-    response=$(tw_curl -s "https://projects.annertech.com/projects.json?status=active")
+    response=$(tw_curl -s "https://${TEAMWORK_DOMAIN}/projects.json?status=active")
 
     if [[ -z "$response" ]]; then
         echo_red "Error: Failed to fetch projects from API"

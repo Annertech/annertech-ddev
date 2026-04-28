@@ -15,7 +15,7 @@ if [[ -z "$TEAMWORK_PROJECT_ID" ]]; then
   exit 1
 fi
 
-URL="https://projects.annertech.com/app/projects/${TEAMWORK_PROJECT_ID}/tasks/board"
+URL="https://${TEAMWORK_DOMAIN}/app/projects/${TEAMWORK_PROJECT_ID}/tasks/board"
 
 case $OSTYPE in
   linux-gnu)

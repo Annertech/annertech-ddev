@@ -40,9 +40,9 @@ LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
 . "$LIB_DIR/tw-curl.sh"
 
 TW_API_KEY="${TEAMWORK_API_KEY:-}"
-if [ -z "$TW_API_KEY" ]; then
-    echo_red "Error: TEAMWORK_API_KEY environment variable not set"
-    echo_yellow "Set it with: export TEAMWORK_API_KEY='your-api-key'"
+DOMAIN="${TEAMWORK_DOMAIN:-}"
+if [[ -z "$TW_API_KEY" || -z "$DOMAIN" ]]; then
+    echo_red "Error: TEAMWORK_API_KEY and TEAMWORK_DOMAIN environment variables must be set"
     exit 1
 fi
 
@@ -173,7 +173,7 @@ fi
 
 # Fetch the task
 TASK_RESPONSE=$(tw_curl -s \
-    "https://projects.annertech.com/tasks/${TASK_ID}.json")
+    "https://${DOMAIN}/tasks/${TASK_ID}.json")
 
 # Debug: Check if we got a valid response
 if [ -z "$TASK_RESPONSE" ]; then
@@ -233,13 +233,13 @@ echo_yellow "Updating task $TASK_ID..."
 RESPONSE=$(tw_curl -s -w "\n%{http_code}" -X PUT \
     -H "Content-Type: application/json" \
     -d "{\"task\":{\"description\":${DESCRIPTION_JSON}}}" \
-    "https://projects.annertech.com/tasks/${TASK_ID}.json")
+    "https://${DOMAIN}/tasks/${TASK_ID}.json")
 
 HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
 
 if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 204 ]; then
     echo_green "✓ Task description updated successfully"
-    echo_green "https://projects.annertech.com/tasks/${TASK_ID}"
+    echo_green "https://${DOMAIN}/tasks/${TASK_ID}"
 else
     echo_red "✗ Failed to update task (HTTP $HTTP_CODE)"
     echo "$RESPONSE" | head -n-1

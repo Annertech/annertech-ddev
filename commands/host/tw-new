@@ -21,8 +21,9 @@ LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
 . "$LIB_DIR/tw-curl.sh"
 
 TW_API_KEY="${TEAMWORK_API_KEY:-}"
-if [[ -z "$TW_API_KEY" ]]; then
-    echo_red "Error: TEAMWORK_API_KEY environment variable not set"
+DOMAIN="${TEAMWORK_DOMAIN:-}"
+if [[ -z "$TW_API_KEY" || -z "$DOMAIN" ]]; then
+    echo_red "Error: TEAMWORK_API_KEY and TEAMWORK_DOMAIN environment variables must be set"
     exit 1
 fi
 
@@ -44,7 +45,7 @@ fi
 # Fetch task lists for selected project
 echo_yellow "Fetching task lists..."
 TASKLISTS_RESPONSE=$(tw_curl -s \
-    "https://projects.annertech.com/projects/${PROJECT_ID}/tasklists.json")
+    "https://${DOMAIN}/projects/${PROJECT_ID}/tasklists.json")
 
 if [ -z "$TASKLISTS_RESPONSE" ]; then
     echo_red "Error: Failed to fetch task lists from API"
@@ -96,7 +97,7 @@ echo_yellow "Creating task..."
 RESPONSE=$(tw_curl -s -w "\n%{http_code}" -X POST \
     -H "Content-Type: application/json" \
     -d "$DATA" \
-    "https://projects.annertech.com/tasklists/${TASKLIST_ID}/tasks.json")
+    "https://${DOMAIN}/tasklists/${TASKLIST_ID}/tasks.json")
 
 HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
 BODY=$(echo "$RESPONSE" | head -n-1)
@@ -104,7 +105,7 @@ BODY=$(echo "$RESPONSE" | head -n-1)
 if [ "$HTTP_CODE" -eq 201 ] || [ "$HTTP_CODE" -eq 200 ]; then
     NEW_TASK_ID=$(echo "$BODY" | jq -r '.id')
     echo_green "✓ Task created successfully"
-    echo_green "https://projects.annertech.com/tasks/${NEW_TASK_ID}"
+    echo_green "https://${DOMAIN}/tasks/${NEW_TASK_ID}"
     ddev tw-tag-issue -t "$NEW_TASK_ID"
 else
     echo_red "✗ Failed to create task (HTTP $HTTP_CODE)"
