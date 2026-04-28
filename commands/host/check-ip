@@ -26,8 +26,7 @@ response=$(curl -sG https://api.abuseipdb.com/api/v2/check \
   --data-urlencode "ipAddress=$IP_ADDRESS" \
   -d maxAgeInDays=90 \
   -d verbose \
-  -H "Key: $ABUSEIPDB_API_KEY" \
-  -H "Accept: application/json")
+  --config <(printf 'header = "Key: %s"\nheader = "Accept: application/json"\n' "$ABUSEIPDB_API_KEY"))
 
 # Parse and display results using jq
 echo "=========================================="
