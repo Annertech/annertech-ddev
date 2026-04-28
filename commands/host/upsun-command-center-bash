@@ -32,6 +32,7 @@ OPTIONS=(
     "9. Download access.log (for local advanced forensics)"
     "10. Backup Environment"
     "11. Fastly API Token"
+    "12. Open Dashboard"
 )
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
@@ -46,6 +47,7 @@ LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
 . "$LIB_DIR/upsun-download-access-log.sh"
 . "$LIB_DIR/upsun-backup.sh"
 . "$LIB_DIR/upsun-fastly-api-token.sh"
+. "$LIB_DIR/upsun-dashboard.sh"
 
 # Get current project ID from .ddev/config.yaml
 get_current_project_id() {
@@ -175,6 +177,7 @@ main() {
             upsun_download_access_log) action_label="Download access.log" ;;
             upsun_backup) action_label="Backup Environment" ;;
             upsun_fastly_api_token) action_label="Fastly API Token" ;;
+            upsun_dashboard) action_label="Open Dashboard" ;;
             *)
                 echo_red "Unknown action: $action_arg"
                 echo_yellow "Available actions: upsun_ssh, upsun_uli, upsun_resume, upsun_activities, upsun_activity_in_progress, upsun_disk_helper, upsun_log_checker, upsun_log_checker_goaccess, upsun_download_access_log, upsun_backup, upsun_fastly_api_token"
@@ -340,6 +343,10 @@ main() {
             fi
             print_command "upsun_fastly_api_token" "$project_id" "$env"
             upsun_fastly_api_token "$project_id" "$project_name" "$env"
+            ;;
+        "Open Dashboard")
+            print_command "upsun_dashboard" "$project_id"
+            upsun_dashboard "$project_id"
             ;;
         *)
             echo_red "Unknown action: $action_label"

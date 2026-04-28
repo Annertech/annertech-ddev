@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Open Upsun project dashboard in browser
+## Usage: upsun-dashboard
+## Example: "ddev upsun-dashboard"
+
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
+. "$LIB_DIR/upsun-dashboard.sh"
+
+PROJECT_ID="${PLATFORM_PROJECT:-$(grep -oP 'PLATFORM_PROJECT[=:]\s*\K[^\s\n]+' "${DDEV_APPROOT:-.}/.ddev/config.yaml" 2>/dev/null)}"
+if [[ -z "$PROJECT_ID" ]]; then
+    echo "Error: PLATFORM_PROJECT not found in environment or .ddev/config.yaml"
+    exit 1
+fi
+
+upsun_dashboard "$PROJECT_ID"
