@@ -127,6 +127,11 @@ EOF
 )
 fi
 
+if ! [[ "$TASK_ID" =~ ^[0-9]+$ ]]; then
+  echo "Error: Task ID must be numeric"
+  exit 1
+fi
+
 URL="https://${DOMAIN}/tasks/${TASK_ID}/comments.json"
 
 if [ "$VERBOSE" = true ]; then

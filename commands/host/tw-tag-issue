@@ -54,6 +54,11 @@ else
     fi
 fi
 
+if ! [[ "$TASK_ID" =~ ^[0-9]+$ ]]; then
+    echo_red "Error: Task ID must be numeric"
+    exit 1
+fi
+
 # Fetch task and its current tags
 echo_yellow "Fetching task $TASK_ID..."
 TASK_RESPONSE=$(tw_curl -s "https://projects.annertech.com/tasks/${TASK_ID}.json")
