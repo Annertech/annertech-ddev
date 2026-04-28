@@ -22,6 +22,9 @@ while [[ "$1" == -* ]]; do
   esac
 done
 
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
+. "$LIB_DIR/tw-curl.sh"
+
 TW_API_KEY="${TEAMWORK_API_KEY:-}"
 if [[ -z "$TW_API_KEY" ]]; then
     echo_red "Error: TEAMWORK_API_KEY environment variable not set"
@@ -53,7 +56,7 @@ fi
 
 # Fetch task and its current tags
 echo_yellow "Fetching task $TASK_ID..."
-TASK_RESPONSE=$(curl -s -u "${TW_API_KEY}:v" "https://projects.annertech.com/tasks/${TASK_ID}.json")
+TASK_RESPONSE=$(tw_curl -s "https://projects.annertech.com/tasks/${TASK_ID}.json")
 EXISTING_TAGS_JSON=$(echo "$TASK_RESPONSE" | jq -c '.task.tags // .["todo-item"].tags // []')
 
 CURRENT_TAG_NAMES=$(echo "$EXISTING_TAGS_JSON" | jq -r '.[].name' | tr '\n' ',' | sed 's/,$//')
@@ -65,7 +68,7 @@ fi
 
 # Fetch all available tags
 echo_yellow "Fetching available tags..."
-TAGS_RESPONSE=$(curl -s -u "${TW_API_KEY}:v" "https://projects.annertech.com/tags.json")
+TAGS_RESPONSE=$(tw_curl -s "https://projects.annertech.com/tags.json")
 TAG_LIST=$(echo "$TAGS_RESPONSE" | jq -r '.tags[] | "\(.id)\t\(.name)"')
 
 if [[ -z "$TAG_LIST" ]]; then
@@ -91,10 +94,9 @@ NEW_TAG_IDS=$(echo "$EXISTING_TAGS_JSON" | jq -c "map(.id) + $SELECTED_IDS | uni
 # Update task
 echo_yellow "Adding tags..."
 PAYLOAD=$(jq -n --argjson ids "$NEW_TAG_IDS" '{"todo-item":{"tag-ids":$ids}}')
-RESPONSE=$(curl -s -w "\n%{http_code}" \
+RESPONSE=$(tw_curl -s -w "\n%{http_code}" \
     -H "Content-Type: application/json" \
     -X PUT \
-    -u "${TW_API_KEY}:v" \
     -d "$PAYLOAD" \
     "https://projects.annertech.com/tasks/${TASK_ID}.json")
 

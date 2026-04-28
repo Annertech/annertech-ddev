@@ -36,6 +36,9 @@ while [[ "$1" == -* ]]; do
 done
 
 # Get Teamwork API key from environment
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
+. "$LIB_DIR/tw-curl.sh"
+
 TW_API_KEY="${TEAMWORK_API_KEY:-}"
 if [ -z "$TW_API_KEY" ]; then
     echo_red "Error: TEAMWORK_API_KEY environment variable not set"
@@ -169,8 +172,7 @@ if ! command -v jq &> /dev/null; then
 fi
 
 # Fetch the task
-TASK_RESPONSE=$(curl -s \
-    -u "${TW_API_KEY}:v" \
+TASK_RESPONSE=$(tw_curl -s \
     "https://projects.annertech.com/tasks/${TASK_ID}.json")
 
 # Debug: Check if we got a valid response
@@ -228,9 +230,8 @@ DESCRIPTION_JSON=$(echo "$FULL_DESCRIPTION" | jq -Rs .)
 
 # Make API call
 echo_yellow "Updating task $TASK_ID..."
-RESPONSE=$(curl -s -w "\n%{http_code}" -X PUT \
+RESPONSE=$(tw_curl -s -w "\n%{http_code}" -X PUT \
     -H "Content-Type: application/json" \
-    -u "${TW_API_KEY}:v" \
     -d "{\"task\":{\"description\":${DESCRIPTION_JSON}}}" \
     "https://projects.annertech.com/tasks/${TASK_ID}.json")
 

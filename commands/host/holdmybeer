@@ -64,10 +64,13 @@ echo_green "
 ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝
 "
 
-API_KEY="${TEAMWORK_API_KEY}"
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
+. "$LIB_DIR/tw-curl.sh"
+
+TW_API_KEY="${TEAMWORK_API_KEY}"
 DOMAIN="${TEAMWORK_DOMAIN}"
 
-if [[ -z "$API_KEY" || -z "$DOMAIN" ]]; then
+if [[ -z "$TW_API_KEY" || -z "$DOMAIN" ]]; then
   echo_red "Error: TEAMWORK_API_KEY and TEAMWORK_DOMAIN environment variables must be set."
   exit 1
 fi
@@ -94,7 +97,7 @@ fi
 
 # Fetch card title via Teamwork API
 printf "  %-50s" "Fetching card title..."
-API_RESPONSE=$(curl -s -u "${API_KEY}:xxx" "https://${DOMAIN}/tasks/${TASK_ID}.json")
+API_RESPONSE=$(tw_curl -s "https://${DOMAIN}/tasks/${TASK_ID}.json")
 TITLE=$(echo "$API_RESPONSE" | jq -r '."todo-item".content' 2>/dev/null)
 if [[ -z "$TITLE" || "$TITLE" == "null" ]]; then
   echo -e " ${RED}✗${NC}"

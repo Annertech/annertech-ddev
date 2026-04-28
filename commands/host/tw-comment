@@ -33,10 +33,13 @@ done
 
 COMMENT=$1
 
-API_KEY="${TEAMWORK_API_KEY}"
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
+. "$LIB_DIR/tw-curl.sh"
+
+TW_API_KEY="${TEAMWORK_API_KEY}"
 DOMAIN="${TEAMWORK_DOMAIN}"
 
-if [[ -z "$API_KEY" || -z "$DOMAIN" ]]; then
+if [[ -z "$TW_API_KEY" || -z "$DOMAIN" ]]; then
   echo "Error: TEAMWORK_API_KEY and TEAMWORK_DOMAIN environment variables must be set."
   exit 1
 fi
@@ -133,16 +136,14 @@ if [ "$VERBOSE" = true ]; then
   echo "Payload: $DATA"
 
   # Execute Request with verbose output
-  curl -v \
-    -u "${API_KEY}:xxx" \
+  tw_curl -v \
     -H "Content-Type: application/json" \
     -X POST "$URL" \
     -d "$DATA"
   echo "" # Newline for clean output
 else
   # Execute Request silently
-  RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null \
-    -u "${API_KEY}:xxx" \
+  RESPONSE=$(tw_curl -s -w "%{http_code}" -o /dev/null \
     -H "Content-Type: application/json" \
     -X POST "$URL" \
     -d "$DATA")
