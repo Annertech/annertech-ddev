@@ -152,6 +152,7 @@ post_install_actions:
     fi
   # Remove deprecated commands
   - rm -f ${DDEV_APPROOT}/.ddev/scripts/other/dotenvsetter.sh || true
+  - rm -f ${DDEV_APPROOT}/.ddev/commands/host/upsun-command-center-python || true
   - rm -f ${DDEV_APPROOT}/.ddev/commands/host/platform-ulitool || true
   - rm -f ${DDEV_APPROOT}/.ddev/commands/host/platform-resume || true
   - rm -f ${DDEV_APPROOT}/.ddev/commands/host/timeslip || true
