@@ -106,6 +106,7 @@ if [ "$HTTP_CODE" -eq 201 ] || [ "$HTTP_CODE" -eq 200 ]; then
     NEW_TASK_ID=$(echo "$BODY" | jq -r '.id')
     echo_green "✓ Task created successfully"
     echo_green "https://projects.annertech.com/tasks/${NEW_TASK_ID}"
+    ddev tw-tag-issue -t "$NEW_TASK_ID"
 else
     echo_red "✗ Failed to create task (HTTP $HTTP_CODE)"
     echo "$BODY"
