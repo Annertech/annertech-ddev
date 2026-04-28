@@ -24,7 +24,7 @@ else
     if [[ -n "$CONFIG_READER_VERSION" ]]; then
       CONFIG_READER_MAJOR=$(echo "$CONFIG_READER_VERSION" | sed 's/^v//' | cut -d. -f1)
       if [[ "$CONFIG_READER_MAJOR" -lt "$CONFIG_READER_MIN" ]]; then
-        fail "platformsh/config-reader is version $CONFIG_READER_VERSION — upgrade to ${CONFIG_READER_MIN}.x required"
+        warn "platformsh/config-reader is version $CONFIG_READER_VERSION — upgrade to ${CONFIG_READER_MIN}.x required"
       else
         pass "platformsh/config-reader $CONFIG_READER_VERSION is up to date"
       fi

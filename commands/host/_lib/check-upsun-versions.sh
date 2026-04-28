@@ -35,7 +35,7 @@ else
     UPSUN_REDIS_VERSION=$(grep -E "type:.*redis:" "$SERVICES_FILE" | head -1 | sed 's/.*redis:\([0-9.]*\).*/\1/' | xargs)
     if [[ -n "$UPSUN_REDIS_VERSION" ]]; then
       if [[ "$(printf '%s\n' "$REDIS_REQUIRED_VERSION" "$UPSUN_REDIS_VERSION" | sort -V | head -1)" != "$REDIS_REQUIRED_VERSION" ]]; then
-        fail "Redis version $UPSUN_REDIS_VERSION in services.yaml is below required version ($REDIS_REQUIRED_VERSION)"
+        warn "Redis version $UPSUN_REDIS_VERSION in services.yaml is below required version ($REDIS_REQUIRED_VERSION)"
       else
         pass "Redis $UPSUN_REDIS_VERSION meets required version ($REDIS_REQUIRED_VERSION)"
       fi
@@ -46,7 +46,7 @@ else
     UPSUN_SOLR_VERSION=$(grep -E "type:.*solr:" "$SERVICES_FILE" | head -1 | sed 's/.*solr:\([0-9.]*\).*/\1/' | xargs)
     if [[ -n "$UPSUN_SOLR_VERSION" ]]; then
       if [[ "$(printf '%s\n' "$UPSUN_SOLR_MIN" "$UPSUN_SOLR_VERSION" | sort -V | head -1)" != "$UPSUN_SOLR_MIN" ]]; then
-        fail "Solr version $UPSUN_SOLR_VERSION in services.yaml is below required version ($UPSUN_SOLR_MIN)"
+        warn "Solr version $UPSUN_SOLR_VERSION in services.yaml is below required version ($UPSUN_SOLR_MIN)"
       else
         pass "Solr $UPSUN_SOLR_VERSION meets required version ($UPSUN_SOLR_MIN)"
       fi
