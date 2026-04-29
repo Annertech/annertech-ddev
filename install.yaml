@@ -198,6 +198,7 @@ post_install_actions:
   - rm -f ~/.ddev/commands/web/robo || true
   - rm -f ~/.ddev/commands/web/solr-update-config || true
   - rm -f ~/.ddev/commands/web/upsun || true
+  - rm -rf ${DDEV_APPROOT}/.ddev/commands/common || true
   # Install new git hooks on add-on install because people don't restart their projects.
   - cp ${DDEV_APPROOT}/.ddev/scripts/git-hooks/pre-commit ${DDEV_APPROOT}/.git/hooks/pre-commit
   - cp ${DDEV_APPROOT}/.ddev/scripts/git-hooks/commit-msg ${DDEV_APPROOT}/.git/hooks/commit-msg

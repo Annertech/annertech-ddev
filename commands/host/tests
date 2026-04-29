@@ -19,17 +19,14 @@ echo
 # Backstop
 # ---------------------------------------------------------------------------
 if [ -f "${DDEV_APPROOT}/tests/backstop/backstop.json" ]; then
-  backstop_addon="$(
-    ddev check-addon ddev/ddev-backstopjs "Backstop tests"
-  )"
-
-  if [ "$backstop_addon" = "installed" ]; then
-    echo "${bold}Backstop:${normal}"
-    echo "  ddev backstop reference"
-    echo "  ddev backstop test"
-    echo "  ddev backstop-results"
-    echo
+  echo "${bold}Backstop:${normal}"
+  echo "  ddev backstop reference"
+  echo "  ddev backstop test"
+  echo "  ddev backstop-results"
+  if [ ! -f "${DDEV_APPROOT}/.ddev/addon-metadata/ddev-backstopjs/manifest.yaml" ]; then
+    echo "  ⚠️  Add-on not installed. Run: ddev add-on get ddev/ddev-backstopjs"
   fi
+  echo
 fi
 
 # ---------------------------------------------------------------------------
@@ -56,20 +53,17 @@ fi
 # Cypress
 # ---------------------------------------------------------------------------
 if [ -f "${DDEV_APPROOT}/cypress.config.js" ]; then
-  cypress_addon="$(
-    ddev check-addon ddev/ddev-cypress "Cypress tests"
-  )"
-
-  if [ "$cypress_addon" = "installed" ]; then
-    echo "${bold}Cypress:${normal}"
-    echo "  ddev cypress-run"
-    echo "  ddev cypress-run --headed"
-    echo "  ddev cypress-open"
-    echo
-    echo "If getting X related errors run xhost ${bold}first${normal}!"
-    echo "  xhost +local:"
-    echo
+  echo "${bold}Cypress:${normal}"
+  echo "  ddev cypress-run"
+  echo "  ddev cypress-run --headed"
+  echo "  ddev cypress-open"
+  if [ ! -f "${DDEV_APPROOT}/.ddev/addon-metadata/ddev-cypress/manifest.yaml" ]; then
+    echo "  ⚠️  Add-on not installed. Run: ddev add-on get ddev/ddev-cypress"
   fi
+  echo
+  echo "If getting X related errors run xhost ${bold}first${normal}!"
+  echo "  xhost +local:"
+  echo
 fi
 
 # ---------------------------------------------------------------------------
