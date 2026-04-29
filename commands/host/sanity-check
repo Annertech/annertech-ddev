@@ -77,6 +77,7 @@ if [[ -n "$APP_YAML" ]] && [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" || "$DDEV_
 group "UPSUN"
 # ════════════════════════════════════════════════════════════════════════════
 . "$LIB_DIR/check-upsun-versions.sh"
+. "$LIB_DIR/check-upsun-apcu.sh"
 . "$LIB_DIR/check-drupal-cdn.sh"
 . "$LIB_DIR/check-upsun-botbuster.sh"
 fi
