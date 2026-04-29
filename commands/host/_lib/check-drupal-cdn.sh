@@ -37,7 +37,7 @@ else
   fi
 fi
 
-if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" && -n "$EXT_FILE" ]]; then
+if [[ ( "$DDEV_UPSTREAM_PROVIDER" == "platform" || "$DDEV_UPSTREAM_PROVIDER" == "upsun" ) && -n "$EXT_FILE" ]]; then
   if grep -qE "^\s+page_cache:" "$EXT_FILE"; then
     fail "page_cache module is ENABLED — Upsun handles page caching; disable it"
   else
