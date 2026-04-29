@@ -19,27 +19,37 @@ DDEV workflow.
 
 - Provides **host** commands:
 - - [`ai` - `ai-prompts`](commands/host/ai-prompts): **Interactive** AI Prompts Operations Centre using CLI version of AI agents
-- - [`branch`](commands/host/branch): Creates an opinionated git branch name from a Teamwork ticket ID
+- - [`backstop-public`](commands/host/backstop-public): Copy BackstopJS HTML report into the web root to serve it via the web server
+- - [`branch` - `br`](commands/host/branch): Creates an opinionated git branch name from a Teamwork ticket ID
 - - [`check-ip`](commands/host/check-ip): Check IP address reputation using AbuseIPDB API
 - - [`cloudflare`](commands/host/cloudflare): Shares the project with the outside world over a Cloudflare tunnel
-- - [`comment`](commands/host/comment): Post a comment to a Teamwork task
 - - [`devmode [on|off]`](commands/host/devmode): Adds custom settings.local.php file and allows easy toggle between production and development mode
 - - [`drupal-updater`](commands/host/drupal-updater): Automatically updates Core and Contrib. Usage `drupal-updater -cugado`.
+- - [`env-setup`](commands/host/env-setup): Configure project settings (Teamwork board, live/build mode)
 - - [`githooks`](commands/host/githooks): Installs git-hooks (also happens on project start)
+- - [`glab-mr-link` - `mr-link`](commands/host/glab-mr-link): Opens MR for current branch in browser and copies link to clipboard
+- - [`holdmybeer` - `hmb`](commands/host/holdmybeer): Turnkey start to work on a card: Branch, start, pull DB, export config in one go
 - - [`lints`](commands/host/lints): Shows available linters and the way to run them
+- - [`loghound`](commands/host/loghound): Fast offline Apache access log forensics (5xx, botnets, floods, crawlers, spikes)
 - - [`login`](commands/host/login): Opens a browser and logs you in to Drupal (works on local environments only)
-- - [`open-issue`](commands/host/open-issue): Opens teamwork issue for current branch
+- - [`mr`](commands/host/mr): Quickly make a GitLab MR and prefill it
+- - [`open-board` - `tw-board`](commands/host/open-board): Open the Teamwork board for this project in the browser
+- - [`open-issue` - `tw-open`](commands/host/open-issue): Opens Teamwork issue for current branch
 - - [`protect [on|off|reset]`](commands/host/protect): Enable or disable basic auth on a nixsal hosted dev project - [see file](commands/host/protect)
 - - [`remote-db`](commands/host/remote-db): Get latest DB from live site
 - - [`sanity-check`](commands/host/sanity-check): Sanity-check project settings, configs etc
-- - [`tw` - `teamwork-operations`](commands/host/teamwork-operations): **Interactive** Teamwork Operations Centre (open-issue, comment, timelog).
-- - [`tw-description`](commands/host/tw-description): Update Teamwork task description with MR link and deploy/test notes
 - - [`tests`](commands/host/tests): Informs about available tests for current project
-- - [`timelog`](commands/host/timelog): Log time to a Teamwork task
 - - [`timew`](commands/host/timew): Tags current timewarrior tracking with Teamwork ID and project name
+- - [`timewarrior-timelog` - `twl`](commands/host/timewarrior-timelog): Log timewarrior summary to a Teamwork task
 - - [`travel-mode`](commands/host/travel-mode): Removes all DB dumps downloaded via `ddev pull`, also provides info on how to remove all DDEV projects and their databases
+- - [`tw` - `teamwork-operations`](commands/host/teamwork-operations): **Interactive** Teamwork Operations Centre (open-issue, comment, timelog)
+- - [`tw-comment` - `comment`](commands/host/tw-comment): Post a comment to a Teamwork task
+- - [`tw-description`](commands/host/tw-description): Update Teamwork task description with MR link and deploy/test notes
+- - [`tw-new`](commands/host/tw-new): Create a new Teamwork task
+- - [`tw-tag-issue` - `tw-tag`](commands/host/tw-tag-issue): Add tags to a Teamwork task
+- - [`tw-timelog` - `timelog`](commands/host/tw-timelog): Log time to a Teamwork task (rounded)
 - - [`ucc` - `upsun-command-center-bash`](commands/host/upsun-command-center-bash): Upsun Command Centre - interactive mode or with arguments
-- - _[`uccp` - `upsun-command-center-python`](commands/host/upsun-command-center-bash): **WIP** Interactive Upsun Command Centre (python version)_
+- - [`upsun-dashboard`](commands/host/upsun-dashboard): Open Upsun project dashboard in browser
 - Provides **web container** commands:
 - - [`behat`](commands/web/behat): Runs behat
 - - [`install-bruno`](commands/web/install-bruno): Prepare bruno configuration
@@ -129,7 +139,7 @@ if (isset($platformsh->branch)) {
 
 ### Teamwork Integration
 
-Several commands integrate with Teamwork (`comment`, `timelog`, `open-issue`, `timew`, `tw-description`). These require the following environment variables to be set on your host machine:
+Several commands integrate with Teamwork (`tw-comment`, `tw-timelog`, `open-issue`, `timew`, `tw-description`). These require the following environment variables to be set on your host machine:
 
 ```bash
 export TEAMWORK_DOMAIN="projects.yourcompany.com"
