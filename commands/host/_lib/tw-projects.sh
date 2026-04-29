@@ -1,6 +1,8 @@
 #ddev-generated
 #annertech-ddev
 
+. "$(dirname "${BASH_SOURCE[0]}")/tw-curl.sh"
+
 # Fetches active Teamwork projects and prompts the user to select one via fzf.
 # Sets PROJECT_ID and PROJECT_NAME on success; exits on error or no selection.
 # Requires: TEAMWORK_API_KEY, jq, fzf, echo_red/echo_yellow helpers.
