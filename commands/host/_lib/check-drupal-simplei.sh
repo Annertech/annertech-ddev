@@ -1,6 +1,6 @@
 #ddev-generated
 #annertech-ddev
-if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
+if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" || "$DDEV_UPSTREAM_PROVIDER" == "upsun" ]]; then
   SIMPLEI_FILE="$APPROOT/web/sites/default/settings.platformsh.php"
 
   if [[ -n "$EXT_FILE" ]]; then
@@ -15,7 +15,7 @@ if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" ]]; then
     warn "web/sites/default/settings.platformsh.php not found — skipping SimpleI checks"
   else
     if ! grep -q "simple_environment_indicator" "$SIMPLEI_FILE"; then
-      warn "No SimpleI configuration found in settings.platformsh.php"
+      warn "No SimpleI configuration found in $(basename "$SIMPLEI_FILE")"
     else
       SIMPLEI_OK=true
       grep -qE "['\"]#8B0000 LIVE['\"]" "$SIMPLEI_FILE" || SIMPLEI_OK=false
