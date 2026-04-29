@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Un-stuck available updates page with 'no releases available'.
+## Usage: cr-updates
+## Example: "ddev cr-updates"
+## ProjectTypes: drupal10,drupal11
+
+ddev drush php:eval "\Drupal::keyValue('update_fetch_task')->deleteAll();"
+echo Done
