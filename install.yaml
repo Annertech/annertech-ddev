@@ -162,6 +162,7 @@ post_install_actions:
   - rm -f ${DDEV_APPROOT}/.ddev/commands/host/upbash || true
   - rm -f ${DDEV_APPROOT}/.ddev/commands/web/platform-disk-helper || true
   - rm -f ${DDEV_APPROOT}/.ddev/commands/web/platform-log-checker || true
+  - rm -f ${DDEV_APPROOT}/.ddev/scripts/git-hooks/pre-push.wip || true
   # Remove all old global commands (no longer installing globally)
   - rm -f ~/.ddev/commands/host/platform-ulitool || true
   - rm -f ~/.ddev/commands/host/platform-resume || true
