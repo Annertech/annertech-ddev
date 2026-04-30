@@ -12,4 +12,12 @@ else
       pass "Dev module '$mod' is not enabled"
     fi
   done
+
+  for mod in anner_sso health_check_url; do
+    if grep -qE "^\s+${mod}:" "$EXT_FILE"; then
+      pass "Required module '$mod' is enabled"
+    else
+      fail "Required module '$mod' is NOT enabled"
+    fi
+  done
 fi
