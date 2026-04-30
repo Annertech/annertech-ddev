@@ -24,7 +24,7 @@ DDEV workflow.
 - - [`check-ip`](commands/host/check-ip): Check IP address reputation using AbuseIPDB API
 - - [`cloudflare`](commands/host/cloudflare): Shares the project with the outside world over a Cloudflare tunnel
 - - [`devmode [on|off]`](commands/host/devmode): Adds custom settings.local.php file and allows easy toggle between production and development mode
-- - [`drupal-updater`](commands/host/drupal-updater): Automatically updates Core and Contrib. Usage `drupal-updater -cugado`.
+- - [`drupal-updater`](commands/host/drupal-updater): Automatically updates Core and Contrib. Usage `drupal-updater -cgado`.
 - - [`env-setup`](commands/host/env-setup): Configure project settings (Teamwork board, live/build mode)
 - - [`githooks`](commands/host/githooks): Installs git-hooks (also happens on project start)
 - - [`glab-mr-link` - `mr-link`](commands/host/glab-mr-link): Opens MR for current branch in browser and copies link to clipboard

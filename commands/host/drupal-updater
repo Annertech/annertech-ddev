@@ -4,17 +4,14 @@
 
 ## Description: Update Drupal modules and core, optionally committing each step
 ## Usage: drupal-updater
-## Example: "ddev drupal-updater -cugado" \n"ddev drupal-updater drupal/module-name --commit-steps" \n"ddev drupal-updater --all --with-core --commit-steps" \n"ddev drupal-updater --dry-run --omit-snapshot"
-## Flags: [{"Name":"commit-steps","Shorthand":"g","Usage":"Create a git commit for each update step","Type":"bool"},{"Name":"with-core","Shorthand":"c", "Usage":"Include core updates in --all","Type":"bool"},{"Name":"all","Shorthand":"a","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot", "Shorthand": "o", "Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"update-changelog","Shorthand":"u","Usage":"Update the CHANGELOG.md with the latest changes","Type":"bool"},{"Name":"run-db-updates","Shorthand":"d","Usage":"Run database updates between module updates","Type":"bool"}]
+## Example: "ddev drupal-updater -cgado" \n"ddev drupal-updater drupal/module-name --commit-steps" \n"ddev drupal-updater --all --with-core --commit-steps" \n"ddev drupal-updater --dry-run --omit-snapshot"
+## Flags: [{"Name":"commit-steps","Shorthand":"g","Usage":"Create a git commit for each update step","Type":"bool"},{"Name":"with-core","Shorthand":"c", "Usage":"Include core updates in --all","Type":"bool"},{"Name":"all","Shorthand":"a","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot", "Shorthand": "o", "Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"run-db-updates","Shorthand":"d","Usage":"Run database updates between module updates","Type":"bool"}]
 ## ProjectTypes: drupal10,drupal11
 
 ## This script is brought to you by:
 ## - Valentin Zsigmond (drupal.org/u/vzsigmond)
 ## - Bill Seremetis (drupal.org/u/bserem)
 ## - Annertech (annertech.com)
-
-CHANGELOG_FILE="CHANGELOG.md"
-CHANGELOG_CONTENT=""
 
 # Determine docroot or fallback to web
 if [ -z ${DDEV_DOCROOT+x} ]; then
@@ -74,8 +71,6 @@ update_module() {
         ddev drush cex -y
       fi
 
-      echo -e "- $MODULE_NAME updated from $FROM_VERSION to $MODULE_VERSION\n$(cat $CHANGELOG_FILE)" > $CHANGELOG_FILE
-
       # Commit if --commit-steps flag is provided
       if [ "$commit_steps" = true ]; then
         git add -u
@@ -113,9 +108,6 @@ update_all_modules() {
     done
   fi
 
-  DATE=$(date +"%Y-%m-%d")
-  sed -i "1s/^/# Date: $DATE\n\n/" "$CHANGELOG_FILE"
-
   # if [ "$commit_steps" != true ]; then
   #   git add -A
   #   git commit -m "Updated all applicable Drupal modules and core packages"
@@ -131,7 +123,6 @@ while [[ $# -gt 0 ]]; do
         opt="${OPTS:$i:1}"
         case $opt in
           c) with_core=true ;;
-          u) update_changelog=true ;;
           g) commit_steps=true ;;
           a) action="update_all" ;;
           d) updb=true ;;
@@ -146,7 +137,6 @@ while [[ $# -gt 0 ]]; do
     --all) action="update_all"; shift ;;
     --dry-run) dry_run=true; shift ;;
     --omit-snapshot) omit_snapshot=true; shift ;;
-    --update-changelog) update_changelog=true; shift ;;
     --run-db-updates) updb=true; shift ;;
     --) shift; break ;;
     *) break ;;

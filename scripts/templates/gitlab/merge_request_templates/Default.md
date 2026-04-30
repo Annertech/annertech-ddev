@@ -7,7 +7,6 @@
   - Using correct branch name via `ddev branch` (`202509_T-[id]__maintenance`)
   - Commits follow `T-[teamworkId] description` format
   - MR title updated to match `T-[teamworkId] description`, with auto-link to Teamwork
-- [ ] `CHANGELOG.md` updated
 
 ### Documentation
 - [ ] **Code documented, READMEs updated as required!**
@@ -15,7 +14,7 @@
 ### Automated tests
 - [ ] **I have added and/or updated tests as required!**
 - [ ] I've run automated tests (if applicable)
-  - `ddev backstop test` and inspected the visual output
+  - `ddev backstop test` and inspect the visual output
   - `ddev behat`
   - `ddev cypress run`
 - [ ] There is no need for tests for this one / There are no tests yet
