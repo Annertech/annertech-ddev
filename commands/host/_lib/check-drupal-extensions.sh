@@ -34,7 +34,7 @@ else
     if grep -q "pages: /anner-sso" "$OIDC_BLOCK"; then
       pass "OpenID Connect block is restricted to /anner-sso"
     else
-      fail "OpenID Connect block does not have 'pages: /anner-sso'"
+      fail "OpenID Connect block does not have 'pages: /anner_sso'"
     fi
   else
     warn "No OpenID block found!"
