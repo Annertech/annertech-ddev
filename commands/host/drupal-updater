@@ -82,7 +82,14 @@ update_module() {
         git add vendor/
         # Strip drupal prefix to get installation path
         git add ${PROJECT_DOCROOT}/modules/contrib${MODULE_NAME#drupal}
+        git add config/
         git commit -m "$MODULE_NAME updated from $FROM_VERSION to $MODULE_VERSION (#drupal-updater)"
+
+        # Commit any remaining changes in modules/contrib/ (e.g. updated dependencies)
+        if git status --short "${PROJECT_DOCROOT}/modules/contrib/" | grep -q .; then
+          git add ${PROJECT_DOCROOT}/modules/contrib/
+          git commit -m "$MODULE_NAME updated from $FROM_VERSION to $MODULE_VERSION (#drupal-updater) EXTRA FILES"
+        fi
       fi
     fi
   fi
