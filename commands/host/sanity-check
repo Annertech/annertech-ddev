@@ -76,6 +76,7 @@ group "DDEV"
 if [[ -n "$APP_YAML" ]] && [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" || "$DDEV_UPSTREAM_PROVIDER" == "upsun" ]]; then
 group "UPSUN"
 # ════════════════════════════════════════════════════════════════════════════
+. "$LIB_DIR/check-upsun-project-id.sh"
 . "$LIB_DIR/check-upsun-versions.sh"
 . "$LIB_DIR/check-upsun-apcu.sh"
 . "$LIB_DIR/check-drupal-cdn.sh"
