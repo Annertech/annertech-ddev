@@ -123,3 +123,17 @@ $project_settings = __DIR__ . "/settings.project.php";
 if (file_exists($project_settings)) {
     include $project_settings;
 }
+
+// Prepare the environment for tests. The flag file is created by the
+// ddev behat command and removed on exit, since env vars are not shared
+// between the CLI process and PHP-FPM.
+if (file_exists(DRUPAL_ROOT . '/.behat_testing')) {
+  // Disable captcha during Behat test runs.
+  $config['captcha.captcha_point.user_login_form']['status'] = FALSE;
+  // Enable aggregation
+  $config['system.performance']['css']['preprocess'] = TRUE;
+  $config['system.performance']['js']['preprocess'] = TRUE;
+  // Enable advagg.
+  $config['advagg.settings']['enabled'] = TRUE;
+  // @todo: Decide on cache-bins for tests
+}
