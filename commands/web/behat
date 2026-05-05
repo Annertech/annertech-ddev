@@ -29,3 +29,16 @@ fi
 touch /var/www/html/web/.behat_testing
 trap "rm -f /var/www/html/web/.behat_testing" EXIT INT TERM
 bin/behat "$@"
+
+# big_pipe
+# Please use following php code in FeatureContext.php to deal with big_pipe module and failing tests:
+#
+#  /** @BeforeSuite */
+#  public static function disableBigPipe(): void {
+#    \Drupal::service('module_installer')->uninstall(['big_pipe']);
+#  }
+#
+#  /** @AfterSuite */
+#  public static function enableBigPipe(): void {
+#    \Drupal::service('module_installer')->install(['big_pipe']);
+#  }
