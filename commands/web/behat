@@ -24,5 +24,8 @@ if [ ! -f "bin/behat" ]; then
     composer install
 fi
 
-# Run behat with the provided flags/arguments
+# Signal to PHP-FPM (via shared filesystem) that behat is running, so settings.php
+# can disable modules like captcha and antibot that block automated requests.
+touch /var/www/html/web/.behat_testing
+trap "rm -f /var/www/html/web/.behat_testing" EXIT INT TERM
 bin/behat "$@"
