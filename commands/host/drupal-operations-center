@@ -19,6 +19,7 @@ echo_yellow() { echo -e "${YELLOW}$1${NC}" >&2; }
 
 OPTIONS=(
     "1. Download js-cookie library"
+    "2. Fix updates page (refresh available releases)"
 )
 
 echo_green "Drupal"
@@ -44,6 +45,10 @@ case "$action_label" in
             https://cdn.jsdelivr.net/npm/js-cookie@3.0.5/dist/js.cookie.min.js
         echo ""
         echo_yellow "See README: https://git.drupalcode.org/project/js_cookie/-/blob/2.x/README.md"
+        ;;
+    "Fix updates page (refresh available releases)")
+        ddev drush php:eval "\Drupal::keyValue('update_fetch_task')->deleteAll();"
+        echo_green "Done"
         ;;
     *)
         echo_red "Unknown action: $action_label"
