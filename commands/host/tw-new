@@ -66,7 +66,7 @@ fi
 
 TASKLIST_SELECTION=$(echo "$TASKLISTS_RESPONSE" | \
     jq -r '.tasklists[] | "\(.id)\t\(.name)"' | \
-    fzf --reverse --height=50% --header="Select Task List" --delimiter=$'\t' --with-nth=2 -1)
+    fzf --reverse --height=50% --header="Select Task List" --delimiter=$'\t' --with-nth=2 -1 --query "Cards")
 
 if [ -z "$TASKLIST_SELECTION" ]; then
     echo_red "No task list selected. Aborting."
