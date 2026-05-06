@@ -19,7 +19,7 @@ if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" || "$DDEV_UPSTREAM_PROVIDER" == "u
     else
       SIMPLEI_OK=true
       grep -qE "['\"]#8B0000 LIVE['\"]" "$SIMPLEI_FILE" || SIMPLEI_OK=false
-      grep -qE "['\"]#59590D STAGE['\"]" "$SIMPLEI_FILE" || SIMPLEI_OK=false
+      grep -qE "['\"]#59590D STAG(E|ING)['\"]" "$SIMPLEI_FILE" || SIMPLEI_OK=false
       grep -qE "['\"]#005B94 DEV['\"]" "$SIMPLEI_FILE" || SIMPLEI_OK=false
       if $SIMPLEI_OK; then
         pass "SimpleI environment indicator colors are correct"

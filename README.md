@@ -124,7 +124,7 @@ if (isset($platformsh->branch)) {
     $settings['simple_environment_indicator'] = '#8B0000 LIVE';
   }
   // Staging type environment
-  else if ($platformsh->branch == 'stage') {
+  else if ($platformsh->branch == 'stage' || $platformsh->branch == 'staging') {
     $settings['simple_environment_indicator'] = '#59590D STAGE';
   }
   // Development type environment.
