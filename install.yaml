@@ -143,8 +143,8 @@ post_install_actions:
     fi
   # Remove old files that are no longer needed.
   - |
-    if [ -f ${DDEV_APPROOT}/nginx/noindex.conf ]; then
-      rm ${DDEV_APPROOT}/nginx/noindex.conf
+    if [ -f ${DDEV_APPROOT}/.ddev/nginx/noindex.conf ]; then
+      rm ${DDEV_APPROOT}/.ddev/nginx/noindex.conf
     fi
   - |
     if [ ! -f ${DDEV_APPROOT}/homeadditions/.bash_aliases ]; then
