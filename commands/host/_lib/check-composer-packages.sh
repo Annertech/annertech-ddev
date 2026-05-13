@@ -19,6 +19,16 @@ else
     warn "anrt-tools/docksal-configuration is present — this package must not be used"
   fi
 
+  COMPOSER_MANIFEST_VERSION=$(grep -A3 '"name": "joachim-n/composer-manifest"' "$LOCK_FILE" | grep '"version"' | sed 's/.*"version": "\(.*\)".*/\1/')
+  if [[ -n "$COMPOSER_MANIFEST_VERSION" ]]; then
+    COMPOSER_MANIFEST_CLEAN=$(echo "$COMPOSER_MANIFEST_VERSION" | sed 's/^v//')
+    if [[ "$(printf '%s\n' "1.1.7" "$COMPOSER_MANIFEST_CLEAN" | sort -V | head -1)" != "1.1.7" ]]; then
+      warn "joachim-n/composer-manifest is version $COMPOSER_MANIFEST_VERSION — upgrade to 1.1.7 or higher required"
+    else
+      pass "joachim-n/composer-manifest $COMPOSER_MANIFEST_VERSION is up to date"
+    fi
+  fi
+
   if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" || "$DDEV_UPSTREAM_PROVIDER" == "upsun" ]]; then
     CONFIG_READER_VERSION=$(grep -A3 '"name": "platformsh/config-reader"' "$LOCK_FILE" | grep '"version"' | sed 's/.*"version": "\(.*\)".*/\1/')
     if [[ -n "$CONFIG_READER_VERSION" ]]; then
