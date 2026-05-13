@@ -26,6 +26,13 @@ $config['search_api.server.solr']['backend_config']['connector_config']['port'] 
 $config['search_api.server.solr']['backend_config']['connector_config']['path'] = '/';
 $config['search_api.server.solr']['backend_config']['connector_config']['core'] = 'dev';
 
+// Override SMTP configuration for DDEV.
+$config['smtp.settings']['smtp_host'] = 'localhost';
+$config['smtp.settings']['smtp_port'] = '1025';
+$config['smtp.settings']['smtp_protocol'] = 'standard';
+$config['smtp.settings']['smtp_username'] = '';
+$config['smtp.settings']['smtp_password'] = '';
+
 // Set $settings['file_private_path'] if not set in settings.php.
 if (empty($settings['file_private_path'])) {
   $settings['file_private_path'] = '../private';
