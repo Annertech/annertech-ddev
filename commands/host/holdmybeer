@@ -120,13 +120,9 @@ run "Stashing any uncommitted local changes"              git stash
 run "Switching to ${DEFAULT_BRANCH}"                      git checkout "$DEFAULT_BRANCH"
 run "Pulling latest from origin/${DEFAULT_BRANCH}"        git pull origin "$DEFAULT_BRANCH"
 run "Creating git branch from card #${TASK_ID}"           ddev branch "$CARD_URL" "$TITLE"
-printf "  %-50s" "Posting 'working on this' comment to card..."
-sleep 1
-echo -e " ${GREEN}✓${NC}"
 run "Starting DDEV"                                       ddev start
 run "Pulling database from remote environment"            ddev remote-db
 run "Exporting config from database (drush cex)"          ddev exec drush cex -y
-run "Committing exported config to branch"                bash -c 'git add config/ && (git diff --cached --quiet || git commit -m "capture production config")'
 
 ELAPSED=$(( $(date +%s) - START_TIME ))
 echo ""
