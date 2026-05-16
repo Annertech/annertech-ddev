@@ -16,7 +16,15 @@ OFFLINE=false
 [[ "$*" == *"-o"* || "$*" == *"--offline"* ]] && OFFLINE=true
 pass()  { $SILENT || echo -e "${GREEN}  ✓ $1${NC}"; }
 fail()  { echo -e "${RED}  ✗ $1${NC}"; ERRORS=$((ERRORS + 1)); }
+critical_fail() { echo -e "${RED}${BOLD}  ✗ CRITICAL: $1${NC}"; ERRORS=$((ERRORS + 1)); CRITICAL_ERRORS=$((CRITICAL_ERRORS + 1)); }
 warn()  { echo -e "${YELLOW}  ! $1${NC}"; WARNINGS=$((WARNINGS + 1)); }
+bail_if_critical() {
+  if [[ $CRITICAL_ERRORS -gt 0 ]]; then
+    echo ""
+    echo -e "${RED}${BOLD}── $CRITICAL_ERRORS critical error(s) — subsequent checks skipped, push must be blocked ──${NC}"
+    exit 2
+  fi
+}
 title() { echo -e "\n── $1 ──"; }
 group() { echo -e "\n${BOLD}$1${NC}"; }
 
@@ -31,6 +39,7 @@ CONFIG_READER_MIN=3
 
 ERRORS=0
 WARNINGS=0
+CRITICAL_ERRORS=0
 APPROOT="${DDEV_APPROOT:-.}"
 BEHIND_CDN=false
 CDN_NAME=""
@@ -54,6 +63,7 @@ group "DRUPAL"
 . "$LIB_DIR/check-drupal-version.sh"
 . "$LIB_DIR/check-drupal-performance.sh"
 . "$LIB_DIR/check-drupal-extensions.sh"
+. "$LIB_DIR/check-drupal-safe-uninstall.sh"
 . "$LIB_DIR/check-drupal-files-view.sh"
 . "$LIB_DIR/check-drupal-simplei.sh"
 . "$LIB_DIR/check-drupal-gin.sh"
@@ -85,7 +95,10 @@ fi
 
 # ── Summary ─────────────────────────────────────────────────────────────────
 echo ""
-if [[ $ERRORS -gt 0 ]]; then
+if [[ $CRITICAL_ERRORS -gt 0 ]]; then
+  echo -e "${RED}${BOLD}── $CRITICAL_ERRORS critical error(s), $ERRORS total error(s) — push must be blocked ──${NC}"
+  exit 2
+elif [[ $ERRORS -gt 0 ]]; then
   echo -e "${RED}── $ERRORS error(s) found ──${NC}"
   exit 1
 elif [[ $WARNINGS -gt 0 ]]; then
