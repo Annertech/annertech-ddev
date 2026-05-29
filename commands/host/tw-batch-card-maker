@@ -2,9 +2,9 @@
 #ddev-generated
 #annertech-ddev
 
-## Description: Create 'Maintenance and Updates' cards in Teamwork support projects
-## Usage: tw-maintenance-cards
-## Example: "ddev tw-maintenance-cards"
+## Description: Create cards in bulk across Teamwork support projects
+## Usage: tw-batch-card-maker
+## Example: "ddev tw-batch-card-maker"
 
 set -eo pipefail
 
@@ -33,6 +33,13 @@ fi
 
 read -e -r -p "$(echo -e "${YELLOW}Card title [Maintenance and Updates]: ${NC}")" CARD_TITLE
 CARD_TITLE="${CARD_TITLE:-Maintenance and Updates}"
+
+echo_yellow "Enter description (Ctrl+D on empty line to finish, blank for none):"
+CARD_DESC=""
+while IFS= read -r line; do
+    CARD_DESC+="${line}"$'\n'
+done
+CARD_DESC="${CARD_DESC%$'\n'}"
 
 echo_yellow "Fetching active Teamwork projects..."
 RESPONSE=$(tw_curl -s "https://${DOMAIN}/projects.json?status=active")
@@ -114,7 +121,7 @@ while IFS=$'\t' read -r PROJECT_ID PROJECT_NAME; do
         continue
     fi
 
-    DATA=$(jq -n --arg name "$CARD_TITLE" '{"todo-item": {"content": $name}}')
+    DATA=$(jq -n --arg name "$CARD_TITLE" --arg desc "$CARD_DESC" '{"todo-item": {"content": $name, "description": $desc}}')
 
     CREATE_RESPONSE=$(tw_curl -s -w "\n%{http_code}" -X POST \
         -H "Content-Type: application/json" \
