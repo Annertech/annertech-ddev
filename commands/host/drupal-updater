@@ -5,7 +5,7 @@
 ## Description: Update Drupal modules and core, optionally committing each step
 ## Usage: drupal-updater
 ## Example: "ddev drupal-updater -cgado" \n"ddev drupal-updater drupal/module-name --commit-steps" \n"ddev drupal-updater --all --with-core --commit-steps" \n"ddev drupal-updater --dry-run --omit-snapshot"
-## Flags: [{"Name":"commit-steps","Shorthand":"g","Usage":"Create a git commit for each update step","Type":"bool"},{"Name":"with-core","Shorthand":"c", "Usage":"Include core updates in --all","Type":"bool"},{"Name":"all","Shorthand":"a","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot", "Shorthand": "o", "Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"run-db-updates","Shorthand":"d","Usage":"Run database updates between module updates","Type":"bool"}]
+## Flags: [{"Name":"commit-steps","Shorthand":"g","Usage":"Create a git commit for each update step","Type":"bool"},{"Name":"with-core","Shorthand":"c", "Usage":"Include core updates in --all","Type":"bool"},{"Name":"all","Shorthand":"a","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot", "Shorthand": "o", "Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"run-db-updates","Shorthand":"d","Usage":"Run database updates between module updates","Type":"bool"},{"Name":"security-only","Shorthand":"s","Usage":"Only update packages with security advisories","Type":"bool"}]
 ## ProjectTypes: drupal10,drupal11
 
 ## This script is brought to you by:
@@ -49,7 +49,7 @@ update_module() {
 
   # Get the current version before updating
   local FROM_VERSION
-  FROM_VERSION=$(ddev composer show "$MODULE_NAME" | grep versions | awk '{print $4}')
+  FROM_VERSION=$(ddev composer show "$MODULE_NAME" 2>/dev/null | awk '/^versions/ {print $NF}')
 
   if [ "$dry_run" = true ]; then
     ddev composer update "$MODULE_NAME" --with-all-dependencies --dry-run
@@ -59,7 +59,7 @@ update_module() {
 
     # Get the updated version after the update
     local MODULE_VERSION
-    MODULE_VERSION=$(ddev composer show "$MODULE_NAME" | grep versions | awk '{print $4}')
+    MODULE_VERSION=$(ddev composer show "$MODULE_NAME" 2>/dev/null | awk '/^versions/ {print $NF}')
 
     # Check if the version has changed
     if [ "$FROM_VERSION" = "$MODULE_VERSION" ]; then
@@ -90,28 +90,122 @@ update_module() {
   fi
 }
 
+# Function to update the core metapackage SET together.
+# Drupal projects pin core-recommended to an EXACT version (e.g. 11.3.10), which
+# composer update cannot move past. Core must be bumped with `composer require`,
+# and all installed core metapackages must move together or composer cannot resolve.
+update_core() {
+  # Real version lives on drupal/core itself, present in every install
+  local FROM_VERSION
+  FROM_VERSION=$(ddev composer show drupal/core 2>/dev/null | awk '/^versions/ {print $NF}')
+
+  # Installed core metapackages we directly require (exclude plain drupal/core)
+  local CORE_METAPACKAGES
+  CORE_METAPACKAGES=$(ddev composer show 2>/dev/null | awk '$1 ~ /^drupal\/core-/ {print $1}')
+  if [ -z "$CORE_METAPACKAGES" ]; then
+    echo "No core metapackages found to update."
+    return
+  fi
+
+  # Latest stable version available (ignore -dev branches), highest by version sort
+  local TARGET
+  TARGET=$(ddev composer show drupal/core-recommended --all --format=json 2>/dev/null \
+    | grep -oE '"[0-9]+\.[0-9]+\.[0-9]+"' | tr -d '"' | sort -V | tail -n1)
+  if [ -z "$TARGET" ]; then
+    echo "Could not determine latest core version."
+    return
+  fi
+
+  if [ "$FROM_VERSION" = "$TARGET" ]; then
+    echo "No update needed for Drupal core. The version is already $TARGET."
+    return
+  fi
+
+  # Build "pkg:~TARGET" require args so future patch releases are allowed
+  local REQUIRE_ARGS=()
+  local PKG
+  for PKG in $CORE_METAPACKAGES; do
+    REQUIRE_ARGS+=("$PKG:~$TARGET")
+  done
+
+  echo "Requiring Drupal core ~$TARGET (from $FROM_VERSION)"
+  if [ "$dry_run" = true ]; then
+    ddev composer require "${REQUIRE_ARGS[@]}" --update-with-all-dependencies --dry-run
+    return
+  fi
+
+  ddev composer require "${REQUIRE_ARGS[@]}" --update-with-all-dependencies --no-progress
+
+  local CORE_VERSION
+  CORE_VERSION=$(ddev composer show drupal/core 2>/dev/null | awk '/^versions/ {print $NF}')
+
+  if [ "$FROM_VERSION" = "$CORE_VERSION" ]; then
+    echo "No update needed for Drupal core. The version is already $CORE_VERSION."
+    return
+  fi
+
+  if [ "$updb" = true ]; then
+    ddev drush updb -y
+    ddev drush cex -y
+  fi
+
+  if [ "$commit_steps" = true ]; then
+    git add -u
+    # Stage NEW files too (git add -u only tracks already-tracked paths)
+    git add vendor/
+    git add "${PROJECT_DOCROOT}/core"
+    git add config/
+    git commit -m "Drupal core updated from $FROM_VERSION to $CORE_VERSION (#drupal-updater)"
+  fi
+}
+
+# Function to list ALL packages that have a security advisory
+security_packages_all() {
+  ddev composer audit --locked --format=json 2>/dev/null \
+    | grep -oE '"packageName": *"[^"]+"' \
+    | awk -F'"' '{print $4}' \
+    | sort -u
+}
+
 # Function to update all modules and core based on flags
 update_all_modules() {
-  local MODULES
-  MODULES=$(ddev composer outdated --direct --minor-only | grep "drupal/" | grep -v "drupal/core" | awk '{print $1}')
-  local CORE_PACKAGES
-  CORE_PACKAGES=$(ddev composer show | grep "drupal/core" | awk '{print $1}')
+  local MODULES need_core=false
+
+  if [ "$security_only" = true ]; then
+    local ADVISORIES
+    ADVISORIES=$(security_packages_all)
+    # Contrib/custom drupal modules with advisories
+    MODULES=$(echo "$ADVISORIES" | grep "^drupal/" | grep -v "^drupal/core")
+    # Core advisory directly, OR a core dependency (symfony/*, twig/*, etc.) advisory
+    if echo "$ADVISORIES" | grep -q "^drupal/core"; then
+      need_core=true
+    elif echo "$ADVISORIES" | grep -vq "^drupal/"; then
+      # A non-drupal advisory (symfony/*, twig/*, ...) is a core dependency
+      echo "Non-Drupal advisory found (e.g. symfony/twig) — updating core to pull fixed dependencies."
+      need_core=true
+    fi
+  else
+    # Only packages that actually have a pending update (not all installed)
+    MODULES=$(ddev composer outdated --direct --minor-only | grep "drupal/" | grep -v "drupal/core" | awk '{print $1}')
+    if [ "$with_core" = true ] && ddev composer outdated --minor-only | grep -q "^drupal/core"; then
+      need_core=true
+    fi
+  fi
+
+  if [ -z "$MODULES" ] && [ "$need_core" != true ]; then
+    echo "Nothing to update."
+    return
+  fi
 
   for MODULE in $MODULES; do
-    echo "Updating: " $MODULE
+    echo "Updating: $MODULE"
     update_module "$MODULE"
   done
 
-  if [ "$with_core" = true ]; then
-    for CORE_PACKAGE in $CORE_PACKAGES; do
-      update_module "$CORE_PACKAGE"
-    done
+  if [ "$need_core" = true ]; then
+    echo "Updating: Drupal core"
+    update_core
   fi
-
-  # if [ "$commit_steps" != true ]; then
-  #   git add -A
-  #   git commit -m "Updated all applicable Drupal modules and core packages"
-  # fi
 }
 
 # Parse flags and arguments
@@ -127,6 +221,7 @@ while [[ $# -gt 0 ]]; do
           a) action="update_all" ;;
           d) updb=true ;;
           o) omit_snapshot=true ;;
+          s) security_only=true; action="update_all" ;;
           *) echo "WARN: Unknown option -$opt" ;;
         esac
       done
@@ -138,6 +233,7 @@ while [[ $# -gt 0 ]]; do
     --dry-run) dry_run=true; shift ;;
     --omit-snapshot) omit_snapshot=true; shift ;;
     --run-db-updates) updb=true; shift ;;
+    --security-only) security_only=true; action="update_all"; shift ;;
     --) shift; break ;;
     *) break ;;
   esac
