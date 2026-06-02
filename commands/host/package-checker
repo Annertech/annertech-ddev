@@ -14,31 +14,97 @@ set -euo pipefail
 # ------------------------------------------------------------------------------
 # Offline scan of every project under a GitLab group (default: clients) for a
 # given composer package, by reading each project's composer-manifest.yaml via
-# the GitLab API. No clone, no composer, no network beyond GitLab.
+# the GitLab API. No clone, no composer.
+#
+# Two backends, auto-selected:
+#   * glab  - used when `glab` is installed. Auth + host come from glab itself
+#             (`glab auth login` once); no tokens or URLs needed. Host is
+#             auto-detected from the project git remote, or set GITLAB_HOST.
+#   * curl  - fallback. Requires GITLAB_URL + GITLAB_TOKEN (read_api scope).
+# Force one with PACKAGE_CHECKER_BACKEND=glab|curl.
 #
 #   ddev package-checker drupal/token        # list every project using it
 #   ddev package-checker drupal/token 1.6     # flag installs <= 1.6
 #
-# Env (set in your shell):
-#   GITLAB_URL    required, your GitLab base URL
-#   GITLAB_TOKEN  required, read_api scope
-#   GITLAB_GROUP  group path to scan (default: clients)
-#   DEBUG         if set (e.g. DEBUG=1), log every scanned project and every
-#                 project missing composer-manifest.yaml to stderr.
-# Deps: curl jq python3
+# Env:
+#   GITLAB_GROUP   group path to scan (default: clients)
+#   GITLAB_HOST    (glab mode) force a glab host instead of auto-detect
+#   GITLAB_URL     (curl mode) GitLab base URL, required
+#   GITLAB_TOKEN   (curl mode) token with read_api scope, required
+#   DEBUG          if set, log every scanned project + every missing manifest
+#   PACKAGE_CHECKER_BACKEND  force "glab" or "curl"
+# Deps: jq, plus either glab OR curl
 # ==============================================================================
 
 PKG="${1:?usage: ddev package-checker <vendor/package> [version]}"
 MAX="${2:-}"   # optional; empty => report any usage
 
-GITLAB_URL="${GITLAB_URL:?set GITLAB_URL to your GitLab base URL}"
-TOKEN="${GITLAB_TOKEN:?set GITLAB_TOKEN (read_api scope)}"
 GROUP="${GITLAB_GROUP:-clients}"
 MANIFEST="composer-manifest.yaml"
-ENC=$(python3 -c "import urllib.parse;print(urllib.parse.quote('$MANIFEST',safe=''))")
-hdr=(--header "PRIVATE-TOKEN: $TOKEN")
+GID="${GROUP//\//%2F}"   # url-encode any subgroup slashes
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+
+# --- pick backend -------------------------------------------------------------
+BACKEND="${PACKAGE_CHECKER_BACKEND:-}"
+if [ -z "$BACKEND" ]; then
+  if command -v glab >/dev/null 2>&1; then BACKEND=glab; else BACKEND=curl; fi
+fi
+
+if [ "$BACKEND" = "glab" ]; then
+  command -v glab >/dev/null 2>&1 || { echo "ERROR: glab not installed." >&2; exit 1; }
+  api=(glab api)
+  [ -n "${GITLAB_HOST:-}" ] && api+=(--hostname "$GITLAB_HOST")
+
+  list_projects() {
+    "${api[@]}" --paginate \
+      "groups/$GID/projects?include_subgroups=true&archived=false&per_page=100" \
+      | jq -rs '.[][] | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")"'
+  }
+  get_manifest() { # <id> <branch>
+    "${api[@]}" "projects/$1/repository/files/$MANIFEST/raw?ref=$2" 2>/dev/null
+  }
+  preflight() {
+    # glab defaults to gitlab.com when the host can't be inferred from the git
+    # remote, silently returning 0 projects. Treat empty as a config error.
+    local n
+    n=$(list_projects 2>/dev/null | grep -c . || true)
+    if [ "${n:-0}" -eq 0 ]; then
+      echo "ERROR: glab returned 0 projects for group '$GROUP'." >&2
+      echo "  Run from a project on the right GitLab, 'glab auth login'," >&2
+      echo "  or set GITLAB_HOST to your GitLab host." >&2
+      exit 1
+    fi
+  }
+else
+  : "${GITLAB_URL:?curl backend needs GITLAB_URL (your GitLab base URL)}"
+  : "${GITLAB_TOKEN:?curl backend needs GITLAB_TOKEN (read_api scope)}"
+  hdr=(--header "PRIVATE-TOKEN: $GITLAB_TOKEN")
+
+  list_projects() {
+    local page=1 resp
+    while :; do
+      resp=$(curl -sf "${hdr[@]}" \
+        "$GITLAB_URL/api/v4/groups/$GID/projects?include_subgroups=true&archived=false&per_page=100&page=$page")
+      [ "$(jq length <<<"$resp")" -eq 0 ] && break
+      jq -r '.[] | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")"' <<<"$resp"
+      page=$((page+1))
+    done
+  }
+  get_manifest() { # <id> <branch>
+    curl -sf "${hdr[@]}" "$GITLAB_URL/api/v4/projects/$1/repository/files/$MANIFEST/raw?ref=$2"
+  }
+  preflight() {
+    local probe
+    probe=$(curl -s -o /dev/null -w '%{http_code}' "${hdr[@]}" "$GITLAB_URL/api/v4/groups/$GID")
+    case "$probe" in
+      200) ;;
+      401) echo "ERROR: 401 unauthorized - bad/expired GITLAB_TOKEN." >&2; exit 1 ;;
+      404) echo "ERROR: 404 - group '$GROUP' not found or token lacks access." >&2; exit 1 ;;
+      *)   echo "ERROR: GitLab returned HTTP $probe for group '$GROUP'." >&2; exit 1 ;;
+    esac
+  }
+fi
 
 # installed <= MAX ?  (strip leading v, compare with sort -V)
 is_insecure() {
@@ -47,53 +113,35 @@ is_insecure() {
   [ "$(printf '%s\n%s\n' "$v" "$m" | sort -V | head -1)" = "$v" ]
 }
 
-GID=$(python3 -c "import urllib.parse;print(urllib.parse.quote('$GROUP',safe=''))")
-page=1; found=0; scanned=0; nomanifest=0
+echo "Scanning group '$GROUP' (backend: $BACKEND) ..." >&2
+preflight
 
-echo "Scanning group '$GROUP' on $GITLAB_URL ..." >&2
+found=0; scanned=0; nomanifest=0
+while IFS=$'\t' read -r id name branch; do
+  scanned=$((scanned+1))
+  [ -n "${DEBUG:-}" ] && echo "  scanning: $name ($branch)" >&2
 
-# sanity: verify token + group reachable before looping
-probe=$(curl -s -o /dev/null -w '%{http_code}' "${hdr[@]}" "$GITLAB_URL/api/v4/groups/$GID")
-case "$probe" in
-  200) ;;
-  401) echo "ERROR: 401 unauthorized - bad/expired GITLAB_TOKEN." >&2; exit 1 ;;
-  404) echo "ERROR: 404 - group '$GROUP' not found or token lacks access." >&2; exit 1 ;;
-  *)   echo "ERROR: GitLab returned HTTP $probe for group '$GROUP'." >&2; exit 1 ;;
-esac
+  if ! raw=$(get_manifest "$id" "$branch"); then
+    nomanifest=$((nomanifest+1))
+    [ -n "${DEBUG:-}" ] && echo "  no manifest: $name ($branch)" >&2
+    continue
+  fi
 
-while :; do
-  resp=$(curl -sf "${hdr[@]}" \
-    "$GITLAB_URL/api/v4/groups/$GID/projects?include_subgroups=true&archived=false&per_page=100&page=$page")
-  [ "$(jq length <<<"$resp")" -eq 0 ] && break
+  # manifest line: "    vendor/pkg: version"  (exact package match)
+  # `|| true` so a non-match (grep exit 1) does not trip pipefail/set -e.
+  line=$(grep -E "^[[:space:]]+${PKG//\//\\/}:[[:space:]]" <<<"$raw" || true)
+  [ -z "$line" ] && continue   # project does not use the package
+  ver=$(head -1 <<<"$line" | sed -E 's/.*:[[:space:]]*//; s/[[:space:]]*$//')
 
-  while IFS=$'\t' read -r id name branch; do
-    scanned=$((scanned+1))
-    [ -n "${DEBUG:-}" ] && echo "  scanning: $name ($branch)" >&2
-    if ! raw=$(curl -sf "${hdr[@]}" \
-      "$GITLAB_URL/api/v4/projects/$id/repository/files/$ENC/raw?ref=$branch"); then
-      nomanifest=$((nomanifest+1))
-      [ -n "${DEBUG:-}" ] && echo "  no manifest: $name ($branch)" >&2
-      continue
-    fi
-
-    # manifest line: "    vendor/pkg: version"  (exact package match)
-    # `|| true` so a non-match (grep exit 1) does not trip pipefail/set -e.
-    line=$(grep -E "^[[:space:]]+${PKG//\//\\/}:[[:space:]]" <<<"$raw" || true)
-    [ -z "$line" ] && continue   # project does not use the package
-    ver=$(head -1 <<<"$line" | sed -E 's/.*:[[:space:]]*//; s/[[:space:]]*$//')
-
-    if [ -z "$MAX" ]; then
-      echo -e "${GREEN}$name${NC} REQUIRES $PKG $ver"
-      found=$((found+1))
-    elif is_insecure "$ver"; then
-      echo -e "${RED}$name${NC} REQUIRES $PKG ($ver <= $MAX)"
-      found=$((found+1))
-    fi
-    # secure versions are not printed
-  done < <(jq -r '.[] | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")"' <<<"$resp")
-
-  page=$((page+1))
-done
+  if [ -z "$MAX" ]; then
+    echo -e "${GREEN}$name${NC} REQUIRES $PKG $ver"
+    found=$((found+1))
+  elif is_insecure "$ver"; then
+    echo -e "${RED}$name${NC} REQUIRES $PKG ($ver <= $MAX)"
+    found=$((found+1))
+  fi
+  # secure versions are not printed
+done < <(list_projects)
 
 echo "------------------------------------------------"
 echo "Scanned $scanned project(s); $nomanifest without $MANIFEST on default branch." >&2
