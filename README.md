@@ -98,16 +98,27 @@ ddev package-checker drupal/token 1.6.0   # highlights projects using drupal/tok
 DEBUG=1 ddev package-checker drupal/token # debug mode, ultra verbose
 ```
 
-It is a **host** command, so the following environment variables must be set in
-your host shell (e.g. in `~/.bashrc`) or in `.ddev/.env.anner`:
+It is a **host** command with two backends, auto-selected:
 
-| Variable        | Required | Default   | Notes                                                                    |
-|-----------------|----------|-----------|--------------------------------------------------------------------------|
-| `GITLAB_TOKEN`  | yes      | -         | Personal access token with `read_api` scope, member of the scanned group |
-| `GITLAB_URL`    | yes      | -         | GitLab base URL                                                          |
-| `GITLAB_GROUP`  | no       | `clients` | Group path to scan (subgroups included)                                  |
+- **`glab`** (preferred): used when [`glab`](https://gitlab.com/gitlab-org/cli)
+  is installed. Auth and host come from glab itself, run `glab auth login` once.
+  No tokens or URLs needed. The host is auto-detected from the project's git
+  remote; set `GITLAB_HOST` to override.
+- **`curl`** (fallback): used when `glab` is absent. Needs `GITLAB_TOKEN` and
+  `GITLAB_URL`.
 
-Requires `curl`, `jq` and `python3` on the host. The scan reads each project's
+Force a backend with `PACKAGE_CHECKER_BACKEND=glab|curl`.
+
+| Variable                  | Used by    | Required        | Default   | Notes                                                  |
+|---------------------------|------------|-----------------|-----------|--------------------------------------------------------|
+| `GITLAB_GROUP`            | both       | no              | `clients` | Group path to scan (subgroups included)                |
+| `GITLAB_HOST`             | glab       | no              | -         | Force glab host instead of git-remote auto-detect      |
+| `GITLAB_TOKEN`            | curl       | yes (curl mode) | -         | Token with `read_api` scope, member of the group       |
+| `GITLAB_URL`              | curl       | yes (curl mode) | -         | GitLab base URL                                        |
+| `DEBUG`                   | both       | no              | -         | Log every scanned project and every missing manifest   |
+| `PACKAGE_CHECKER_BACKEND` | both       | no              | auto      | Force `glab` or `curl`                                  |
+
+Deps: `jq`, plus either `glab` or `curl`. The scan reads each project's
 **default branch**, so a manifest change must be pushed/merged before it shows up.
 
 ## Automated Tests for a Project
