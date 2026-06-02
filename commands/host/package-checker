@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Scan all GitLab projects for a composer package, flag insecure versions
+## Usage: package-checker <vendor/package> [max-insecure-version]
+## Example: "ddev package-checker drupal/token" \n"ddev package-checker drupal/token 1.6"
+## Aliases: wtfiow
+
+set -euo pipefail
+
+# ==============================================================================
+# package-checker (alias: wtfiow - "what the f* is on where")
+# ------------------------------------------------------------------------------
+# Offline scan of every project under a GitLab group (default: clients) for a
+# given composer package, by reading each project's composer-manifest.yaml via
+# the GitLab API. No clone, no composer, no network beyond GitLab.
+#
+#   ddev package-checker drupal/token        # list every project using it
+#   ddev package-checker drupal/token 1.6     # flag installs <= 1.6
+#
+# Env (set in your shell):
+#   GITLAB_URL    required, your GitLab base URL
+#   GITLAB_TOKEN  required, read_api scope
+#   GITLAB_GROUP  group path to scan (default: clients)
+#   DEBUG         if set (e.g. DEBUG=1), log every scanned project and every
+#                 project missing composer-manifest.yaml to stderr.
+# Deps: curl jq python3
+# ==============================================================================
+
+PKG="${1:?usage: ddev package-checker <vendor/package> [version]}"
+MAX="${2:-}"   # optional; empty => report any usage
+
+GITLAB_URL="${GITLAB_URL:?set GITLAB_URL to your GitLab base URL}"
+TOKEN="${GITLAB_TOKEN:?set GITLAB_TOKEN (read_api scope)}"
+GROUP="${GITLAB_GROUP:-clients}"
+MANIFEST="composer-manifest.yaml"
+ENC=$(python3 -c "import urllib.parse;print(urllib.parse.quote('$MANIFEST',safe=''))")
+hdr=(--header "PRIVATE-TOKEN: $TOKEN")
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+
+# installed <= MAX ?  (strip leading v, compare with sort -V)
+is_insecure() {
+  local v="${1#v}" m="${MAX#v}"
+  [ "$v" = "$m" ] && return 0
+  [ "$(printf '%s\n%s\n' "$v" "$m" | sort -V | head -1)" = "$v" ]
+}
+
+GID=$(python3 -c "import urllib.parse;print(urllib.parse.quote('$GROUP',safe=''))")
+page=1; found=0; scanned=0; nomanifest=0
+
+echo "Scanning group '$GROUP' on $GITLAB_URL ..." >&2
+
+# sanity: verify token + group reachable before looping
+probe=$(curl -s -o /dev/null -w '%{http_code}' "${hdr[@]}" "$GITLAB_URL/api/v4/groups/$GID")
+case "$probe" in
+  200) ;;
+  401) echo "ERROR: 401 unauthorized - bad/expired GITLAB_TOKEN." >&2; exit 1 ;;
+  404) echo "ERROR: 404 - group '$GROUP' not found or token lacks access." >&2; exit 1 ;;
+  *)   echo "ERROR: GitLab returned HTTP $probe for group '$GROUP'." >&2; exit 1 ;;
+esac
+
+while :; do
+  resp=$(curl -sf "${hdr[@]}" \
+    "$GITLAB_URL/api/v4/groups/$GID/projects?include_subgroups=true&archived=false&per_page=100&page=$page")
+  [ "$(jq length <<<"$resp")" -eq 0 ] && break
+
+  while IFS=$'\t' read -r id name branch; do
+    scanned=$((scanned+1))
+    [ -n "${DEBUG:-}" ] && echo "  scanning: $name ($branch)" >&2
+    if ! raw=$(curl -sf "${hdr[@]}" \
+      "$GITLAB_URL/api/v4/projects/$id/repository/files/$ENC/raw?ref=$branch"); then
+      nomanifest=$((nomanifest+1))
+      [ -n "${DEBUG:-}" ] && echo "  no manifest: $name ($branch)" >&2
+      continue
+    fi
+
+    # manifest line: "    vendor/pkg: version"  (exact package match)
+    # `|| true` so a non-match (grep exit 1) does not trip pipefail/set -e.
+    line=$(grep -E "^[[:space:]]+${PKG//\//\\/}:[[:space:]]" <<<"$raw" || true)
+    [ -z "$line" ] && continue   # project does not use the package
+    ver=$(head -1 <<<"$line" | sed -E 's/.*:[[:space:]]*//; s/[[:space:]]*$//')
+
+    if [ -z "$MAX" ]; then
+      echo -e "${GREEN}$name${NC} REQUIRES $PKG $ver"
+      found=$((found+1))
+    elif is_insecure "$ver"; then
+      echo -e "${RED}$name${NC} REQUIRES $PKG ($ver <= $MAX)"
+      found=$((found+1))
+    fi
+    # secure versions are not printed
+  done < <(jq -r '.[] | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")"' <<<"$resp")
+
+  page=$((page+1))
+done
+
+echo "------------------------------------------------"
+echo "Scanned $scanned project(s); $nomanifest without $MANIFEST on default branch." >&2
+if [ -z "$MAX" ]; then
+  echo -e "${YELLOW}$found project(s) use $PKG.${NC}"
+elif [ "$found" -gt 0 ]; then
+  echo -e "${YELLOW}$found project(s) need maintenance for $PKG.${NC}"
+else
+  echo -e "${GREEN}No uses of $PKG found.${NC}"
+fi

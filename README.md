@@ -35,6 +35,7 @@ DDEV workflow.
 - - [`mr`](commands/host/mr): Quickly make a GitLab MR and prefill it
 - - [`open-board` - `tw-board`](commands/host/open-board): Open the Teamwork board for this project in the browser
 - - [`open-issue` - `tw-open`](commands/host/open-issue): Opens Teamwork issue for current branch
+- - [`package-checker` - `wtfiow`](commands/host/package-checker): Scan all GitLab projects' `composer-manifest.yaml` for a composer package and flag insecure versions (needs `GITLAB_TOKEN`, see [install notes](#package-checker-setup))
 - - [`protect [on|off|reset]`](commands/host/protect): Enable or disable basic auth on a nixsal hosted dev project - [see file](commands/host/protect)
 - - [`remote-db`](commands/host/remote-db): Get latest DB from live site
 - - [`sanity-check`](commands/host/sanity-check): Sanity-check project settings, configs etc
@@ -84,6 +85,30 @@ automatically configured to compile and use ImageMagick v7 in DDEV. See
 `scripts/ddev/web-build` for details.
 
 Upsun is using v7 while DDEV is still running v6 by default.
+
+## package-checker
+
+`ddev package-checker` (alias `ddev wtfiow`) scans every project under a GitLab
+group, reads each project's `composer-manifest.yaml` over the API (no clone, no
+composer), and reports which projects require a given package.
+
+```bash
+ddev package-checker drupal/token         # list every project using it
+ddev package-checker drupal/token 1.6.0   # highlights projects using drupal/token <= 1.6.0
+DEBUG=1 ddev package-checker drupal/token # debug mode, ultra verbose
+```
+
+It is a **host** command, so the following environment variables must be set in
+your host shell (e.g. in `~/.bashrc`) or in `.ddev/.env.anner`:
+
+| Variable        | Required | Default   | Notes                                                                    |
+|-----------------|----------|-----------|--------------------------------------------------------------------------|
+| `GITLAB_TOKEN`  | yes      | -         | Personal access token with `read_api` scope, member of the scanned group |
+| `GITLAB_URL`    | yes      | -         | GitLab base URL                                                          |
+| `GITLAB_GROUP`  | no       | `clients` | Group path to scan (subgroups included)                                  |
+
+Requires `curl`, `jq` and `python3` on the host. The scan reads each project's
+**default branch**, so a manifest change must be pushed/merged before it shows up.
 
 ## Automated Tests for a Project
 
