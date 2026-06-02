@@ -41,6 +41,28 @@ while IFS= read -r line; do
 done
 CARD_DESC="${CARD_DESC%$'\n'}"
 
+echo_yellow "Fetching available tags..."
+TAGS_RESPONSE=$(tw_curl -s "https://${DOMAIN}/tags.json")
+TAG_LIST=$(echo "$TAGS_RESPONSE" | jq -r '.tags[] | "\(.id)\t\(.name)"')
+
+TAG_IDS_JSON="[]"
+if [[ -n "$TAG_LIST" ]]; then
+    TAG_SELECTION=$(echo "$TAG_LIST" | \
+        fzf --multi \
+            --reverse \
+            --height=50% \
+            --header="Select tags (Tab: toggle | Enter: confirm, skip to add none)" \
+            --bind="ctrl-a:select-all" \
+            --delimiter=$'\t' \
+            --with-nth=2 \
+            --prompt="Tags > ")
+    if [[ -n "$TAG_SELECTION" ]]; then
+        TAG_IDS_JSON=$(echo "$TAG_SELECTION" | cut -f1 | jq -Rs '[split("\n")[] | select(length > 0) | tonumber]')
+    fi
+else
+    echo_yellow "No tags found, skipping."
+fi
+
 echo_yellow "Fetching active Teamwork projects..."
 RESPONSE=$(tw_curl -s "https://${DOMAIN}/projects.json?status=active")
 
@@ -121,7 +143,8 @@ while IFS=$'\t' read -r PROJECT_ID PROJECT_NAME; do
         continue
     fi
 
-    DATA=$(jq -n --arg name "$CARD_TITLE" --arg desc "$CARD_DESC" '{"todo-item": {"content": $name, "description": $desc}}')
+    DATA=$(jq -n --arg name "$CARD_TITLE" --arg desc "$CARD_DESC" --argjson tags "$TAG_IDS_JSON" \
+        '{"todo-item": {"content": $name, "description": $desc, "tag-ids": $tags}}')
 
     CREATE_RESPONSE=$(tw_curl -s -w "\n%{http_code}" -X POST \
         -H "Content-Type: application/json" \
