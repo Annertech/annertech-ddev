@@ -24,6 +24,7 @@ OPTIONS=(
     "3. Log Time"
     "4. Update Description"
     "5. New Card"
+    "6. Batch Card Maker"
 )
 
 # Select action
@@ -139,6 +140,11 @@ main() {
             echo_green "Create New Teamwork Card"
             echo ""
             ddev tw-new
+            ;;
+        "Batch Card Maker")
+            echo_green "Create Cards in Bulk Across Support Projects"
+            echo ""
+            ddev tw-batch-card-maker
             ;;
         *)
             echo_red "Unknown action: $action_label"
