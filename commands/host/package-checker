@@ -59,7 +59,7 @@ if [ "$BACKEND" = "glab" ]; then
   list_projects() {
     "${api[@]}" --paginate \
       "groups/$GID/projects?include_subgroups=true&archived=false&per_page=100" \
-      | jq -rs '.[][] | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")"'
+      | jq -rs '.[][] | select(.archived != true) | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")"'
   }
   get_manifest() { # <id> <branch>
     "${api[@]}" "projects/$1/repository/files/$MANIFEST/raw?ref=$2" 2>/dev/null
@@ -87,7 +87,7 @@ else
       resp=$(curl -sf "${hdr[@]}" \
         "$GITLAB_URL/api/v4/groups/$GID/projects?include_subgroups=true&archived=false&per_page=100&page=$page")
       [ "$(jq length <<<"$resp")" -eq 0 ] && break
-      jq -r '.[] | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")"' <<<"$resp"
+      jq -r '.[] | select(.archived != true) | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")"' <<<"$resp"
       page=$((page+1))
     done
   }
