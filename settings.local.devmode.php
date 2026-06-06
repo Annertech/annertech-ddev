@@ -205,6 +205,8 @@ if (file_exists($project_settings)) {
 if (file_exists(DRUPAL_ROOT . '/.behat_testing')) {
   // Disable captcha during Behat test runs.
   $config['captcha.captcha_point.user_login_form']['status'] = FALSE;
+  // Disable Antibot protection during tests.
+  $config['antibot.settings']['form_ids'] = NULL;
   // Enable aggregation
   $config['system.performance']['css']['preprocess'] = TRUE;
   $config['system.performance']['js']['preprocess'] = TRUE;
