@@ -29,6 +29,18 @@ else
     fi
   fi
 
+  for mod in variationcache advagg; do
+    if grep -q "\"name\": \"drupal/${mod}\"" "$LOCK_FILE"; then
+      ENABLED=false
+      [[ -n "$EXT_FILE" ]] && grep -qE "^\s+${mod}:" "$EXT_FILE" && ENABLED=true
+      if $ENABLED; then
+        warn "drupal/${mod} is present and ENABLED — uninstall it (drush pmu $mod) then remove the package (composer remove drupal/$mod)"
+      else
+        warn "drupal/${mod} is present in composer.lock but not enabled — remove the package (composer remove drupal/$mod)"
+      fi
+    fi
+  done
+
   if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" || "$DDEV_UPSTREAM_PROVIDER" == "upsun" ]]; then
     CONFIG_READER_VERSION=$(grep -A3 '"name": "platformsh/config-reader"' "$LOCK_FILE" | grep '"version"' | sed 's/.*"version": "\(.*\)".*/\1/')
     if [[ -n "$CONFIG_READER_VERSION" ]]; then
