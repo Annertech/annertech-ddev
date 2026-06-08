@@ -6,6 +6,8 @@ ENV_FILE="$(git rev-parse --show-toplevel)/.ddev/.env.anner"
 LIVE=$(grep -E '^LIVE=' "$ENV_FILE" 2>/dev/null | cut -d'=' -f2 | tr -d '"')
 if [[ -z "$LIVE" ]]; then
   echo "⚠️ LIVE is not set in .ddev/.env.anner, assuming live project."
+elif [[ "$LIVE" == "0" ]]; then
+  exit 0
 fi
 
 # ── Skip all checks when pushing a tag ───────────────────────────────────────
