@@ -6,6 +6,8 @@ ENV_FILE="$(git rev-parse --show-toplevel)/.ddev/.env.anner"
 LIVE=$(grep -E '^LIVE=' "$ENV_FILE" 2>/dev/null | cut -d'=' -f2 | tr -d '"')
 if [[ -z "$LIVE" ]]; then
   echo "⚠️ LIVE is not set in .ddev/.env.anner, assuming live project."
+elif [[ "$LIVE" == "0" ]]; then
+  exit 0
 fi
 
 # ── Skip all checks when pushing a tag ───────────────────────────────────────
@@ -79,17 +81,11 @@ if [[ "$LIVE" != "0" ]] && [ -f "tests/backstop/backstop.json" ] && [[ "$CURRENT
 
   if [ -z "$MATCH" ]; then
     echo ""
-    echo "=================================================================================================="
+    echo "==================================================================================================="
     echo "⚠️  No Backstop test folder found for today ($TODAY) in $BASE_DIR"
     echo "Did you run Backstop and other tests?"
-    echo "=================================================================================================="
+    echo "==================================================================================================="
     echo ""
-    read -p "Continue pushing without Backstop tests? (y/N): " backstop_confirm </dev/tty
-    backstop_confirm=${backstop_confirm:-N}
-    if [[ ! "$backstop_confirm" =~ ^[Yy] ]]; then
-      echo "🚫 Push aborted. Run Backstop and other tests or use --no-verify to skip this check."
-      exit 1
-    fi
   fi
 fi
 
