@@ -141,6 +141,15 @@ post_install_actions:
         git rm .env
       fi
     fi
+  # Rename upstream provider from platform to upsun
+  - |
+    if [ -f .env.anner ]; then
+      source ".env.anner"
+      if [ "${DDEV_UPSTREAM_PROVIDER:-}" = "platform" ]; then
+        ddev dotenv set .ddev/.env.anner --ddev-upstream-provider upsun
+        git add .env.anner
+      fi
+    fi
   # Remove old files that are no longer needed.
   - |
     if [ -f ${DDEV_APPROOT}/.ddev/nginx/noindex.conf ]; then
