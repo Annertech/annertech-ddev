@@ -45,10 +45,10 @@ fi
 # Abort commit if you are **enabling** modules that should not be enabled
 FILES_PATTERN='core\.extension\.yml$'
 FORBIDDEN_PATTERNS=('devel: 0' 'devel_php: 0' 'drush_endpoint: 0')
-if [ -f ".ddev/.env" ]; then
-    source ".ddev/.env"
+if [ -f ".ddev/.env.anner" ]; then
+    source ".ddev/.env.anner"
     # Also include page_cache in forbidden modules for Platform (Upsun)
-    if [ "$DDEV_UPSTREAM_PROVIDER" = "platform" ]; then
+    if [ "$DDEV_UPSTREAM_PROVIDER" = "platform" ] || [ "$DDEV_UPSTREAM_PROVIDER" = "upsun" ]; then
         # Do NOT remove the empty space before the module name for this one!
         # It will match dynamic_page_cache too if you do so.
         FORBIDDEN_PATTERNS+=( ' page_cache: 0')
