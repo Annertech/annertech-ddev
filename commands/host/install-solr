@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+#annertech-ddev
+
+## Description: Install ddev/ddev-solr addon
+## Usage: install-solr
+## Example: "ddev install-solr"
+
+set -e
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+echo_red() { echo -e "${RED}$1${NC}" >&2; }
+echo_green() { echo -e "${GREEN}$1${NC}"; }
+echo_yellow() { echo -e "${YELLOW}$1${NC}"; }
+
+SERVICES_FILE=".platform/services.yaml"
+SOLR_CONF_SOURCE="web/modules/contrib/search_api_solr/solr-conf-templates/9.x"
+
+echo_yellow "Installing ddev/ddev-solr addon..."
+
+remove_old_config() {
+  echo_yellow "Removing old ddev solr configuration..."
+
+  if [ -f .ddev/docker-compose.solr.yaml ]; then
+    git rm .ddev/docker-compose.solr.yaml
+  else
+    echo_yellow "↳ .ddev/docker-compose.solr.yaml not found, skipping."
+  fi
+
+  if [ -d .ddev/solr ]; then
+    git rm -rf .ddev/solr/
+  else
+    echo_yellow "↳ .ddev/solr/ not found, skipping."
+  fi
+
+  git commit -m "remove the ddev drupal solr" || echo_yellow "↳ Nothing to commit for old config removal."
+  echo_green "✓ Old ddev solr configuration removed."
+}
+
+install_new_addon() {
+  echo_yellow "Installing ddev/ddev-solr..."
+  ddev add-on get ddev/ddev-solr
+  git add .ddev/
+  git commit -m "install ddev/ddev-solr"
+  echo_green "✓ ddev/ddev-solr installed."
+}
+
+configure_upsun() {
+  echo_yellow "Configuring upsun solr..."
+
+  # Replace solr conf directory
+  if [ ! -d "$SOLR_CONF_SOURCE" ]; then
+    echo_red "✗ Solr config templates not found at $SOLR_CONF_SOURCE. Is search_api_solr installed?"
+    exit 1
+  fi
+
+  echo_yellow "↳ Removing old solr conf for upsun..."
+  if [ -d .platform/solr-conf/8.x ]; then
+    git rm -rf .platform/solr-conf/8.x
+    git commit -m "remove the old solr configuration"
+  else
+    echo_yellow "↳ .platform/solr-conf/8.x not found, skipping removal."
+  fi
+
+  echo_yellow "↳ Copying new solr 9 configuration..."
+  cp -r "$SOLR_CONF_SOURCE" .platform/solr-conf
+  git add .platform/solr-conf
+  git commit -m "add new solr 9 configuration"
+  echo_green "✓ Old solr configuration replaced with solr 9 configuration."
+
+  # Update services.yaml
+  if [ ! -f "$SERVICES_FILE" ]; then
+    echo_red "✗ File not found: $SERVICES_FILE"
+    exit 1
+  fi
+
+  echo_yellow "Updating $SERVICES_FILE..."
+
+  # Solr version
+  if grep -q "solr:9.4" "$SERVICES_FILE"; then
+    echo_yellow "↳ Solr version already updated, skipping."
+  else
+    sed -i 's/type: solr:8\.0/type: solr:9.4/g' "$SERVICES_FILE"
+    echo_green "✓ solr 8.0 -> 9.4"
+  fi
+
+  # Solr core name
+  if grep -q "maincore" "$SERVICES_FILE"; then
+    echo_yellow "↳ Solr core name already updated, skipping."
+  else
+    sed -i 's/solr8core/maincore/g' "$SERVICES_FILE"
+    echo_green "✓ solr8core -> maincore"
+  fi
+
+  # Solr conf_dir
+  if grep -q "solr-conf/9.x" "$SERVICES_FILE"; then
+    echo_yellow "↳ Solr conf_dir already updated, skipping."
+  else
+    sed -i 's|conf_dir: !archive "solr-conf/8\.x"|conf_dir: !archive "solr-conf/9.x"|g' "$SERVICES_FILE"
+    echo_green "✓ solr-conf/8.x -> solr-conf/9.x"
+  fi
+
+  echo ""
+  echo_yellow "Review changes with: 'git diff $SERVICES_FILE'"
+  echo_yellow "If changes look good, commit with: 'git commit $SERVICES_FILE -m \"update solr 8 to 9 configuration\"'"
+}
+
+remove_old_config
+install_new_addon
+configure_upsun
+
+echo ""
+echo_green "✓ ddev-solr installed successfully."
+echo_yellow "↳ Run 'ddev restart' to apply changes."
+echo_yellow "↳ After restart, run 'ddev solr9 -c' to configure Solr and rebuild the index."
+echo_green "✓ Done. Solr will be available at: ${DDEV_PRIMARY_URL}:8983"
