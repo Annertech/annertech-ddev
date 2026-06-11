@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+#annertech-ddev
+
+## Description: Install ddev/ddev-solr addon
+## Usage: solr9 [-c]
+## Example: "ddev solr9"
+## Example: "ddev solr9 -c"
+## Flags: [{"Name":"c","Usage":"Run Solr setup and configuration"}]
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+echo_red() { echo -e "${RED}$1${NC}" >&2; }
+echo_green() { echo -e "${GREEN}$1${NC}"; }
+echo_yellow() { echo -e "${YELLOW}$1${NC}"; }
+
+SOLR_SERVER_NAME="solr"
+SOLR_COLLECTION="collection_1"
+RUN_SETUP=false
+
+# Optional setup argument
+if [ "$1" = "-c" ] || [ "$1" = "c" ]; then
+  RUN_SETUP=true
+fi
+
+echo_yellow "Configuring ddev/ddev-solr for local development"
+
+collection_exists() {
+  ddev solr status 2>/dev/null | grep -q "${SOLR_COLLECTION}"
+}
+
+module_enabled() {
+  ddev drush pm:list --status=enabled --field=name 2>/dev/null | grep -q "search_api_solr_admin"
+}
+
+configset_uploaded() {
+  ddev solr zk ls /configs 2>/dev/null | grep -q "${SOLR_COLLECTION}"
+}
+
+configure_local_drupal_setup() {
+  if collection_exists; then
+    echo_yellow "↳ Collection '${SOLR_COLLECTION}' already exists, skipping creation."
+  else
+    echo_yellow "↳ Creating collection '${SOLR_COLLECTION}'..."
+    ddev solr create_collection --name=${SOLR_COLLECTION}
+  fi
+
+  if module_enabled; then
+    echo_yellow "↳ Module 'search_api_solr_admin' already enabled, skipping."
+  else
+    echo_yellow "↳ Enabling search_api_solr_admin module..."
+    ddev drush en search_api_solr_admin -y
+  fi
+
+  if configset_uploaded; then
+    echo_yellow "↳ Configset already uploaded, skipping."
+  else
+    echo_yellow "↳ Uploading configset..."
+    ddev drush --numShards=1 search-api-solr:upload-configset ${SOLR_SERVER_NAME}
+  fi
+}
+
+rebuild_index() {
+  echo_yellow "↳ Rebuilding search index..."
+  ddev drush search-api:reset-tracker
+  ddev drush search-api:index
+}
+
+if [ "$RUN_SETUP" = true ]; then
+  if ! configure_local_drupal_setup; then
+    echo_red "✗ Setup failed."
+    exit 1
+  fi
+fi
+
+if collection_exists; then
+  echo_yellow "Running search index rebuild..."
+  if ! rebuild_index; then
+    echo_red "✗ Index rebuild failed."
+    exit 1
+  fi
+else
+  echo_yellow "↳ No collection found, skipping index rebuild. Run with -c to configure."
+  exit 0
+fi
+
+echo_green "✓ Solr setup complete and search index rebuilt successfully."
+echo_green "Visit ${DDEV_PRIMARY_URL}/admin/config/search/search-api/server/${SOLR_SERVER_NAME}"
