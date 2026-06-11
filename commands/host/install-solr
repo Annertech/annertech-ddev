@@ -54,17 +54,25 @@ configure_upsun() {
   fi
 
   echo_yellow "↳ Removing old solr conf for upsun..."
-  if [ -d .platform/solr-conf/8.x ]; then
-    git rm -rf .platform/solr-conf/8.x
-    git commit -m "remove the old solr configuration"
+  OLD_SOLR_CONF=$(find .platform/solr-conf -mindepth 1 -maxdepth 1 -type d ! -name "9.x" 2>/dev/null | head -1)
+
+  if [ -n "$OLD_SOLR_CONF" ]; then
+    echo_yellow "↳ Found old solr conf: $OLD_SOLR_CONF, removing..."
+    git rm -rf "$OLD_SOLR_CONF"
+    git commit -m "remove the old solr configuration ($OLD_SOLR_CONF)"
   else
-    echo_yellow "↳ .platform/solr-conf/8.x not found, skipping removal."
+    echo_yellow "↳ No old solr conf directory found, skipping removal."
   fi
 
   echo_yellow "↳ Copying new solr 9 configuration..."
+  if [ -d ".platform/solr-conf/9.x" ]; then
+    echo_yellow "↳ .platform/solr-conf/9.x already exists, overwriting..."
+    rm -rf .platform/solr-conf/9.x
+  fi
+
   cp -r "$SOLR_CONF_SOURCE" .platform/solr-conf
   git add .platform/solr-conf
-  git commit -m "add new solr 9 configuration"
+  git commit -m "add new solr 9 configuration" || echo_yellow "↳ Nothing to commit for solr 9 configuration."
   echo_green "✓ Old solr configuration replaced with solr 9 configuration."
 
   # Update services.yaml
@@ -76,11 +84,12 @@ configure_upsun() {
   echo_yellow "Updating $SERVICES_FILE..."
 
   # Solr version
-  if grep -q "solr:9.4" "$SERVICES_FILE"; then
+  if grep -q "type: solr:9.4" "$SERVICES_FILE"; then
     echo_yellow "↳ Solr version already updated, skipping."
   else
-    sed -i 's/type: solr:8\.0/type: solr:9.4/g' "$SERVICES_FILE"
-    echo_green "✓ solr 8.0 -> 9.4"
+    CURRENT_VERSION=$(grep -E 'type: solr:' "$SERVICES_FILE" | awk -F'solr:' '{print $2}' | xargs)
+    sed -i 's/type: solr:[0-9]\+\.[0-9]\+/type: solr:9.4/g' "$SERVICES_FILE"
+    echo_green "✓ solr:${CURRENT_VERSION} -> 9.4"
   fi
 
   # Solr core name
@@ -101,7 +110,7 @@ configure_upsun() {
 
   echo ""
   echo_yellow "Review changes with: 'git diff $SERVICES_FILE'"
-  echo_yellow "If changes look good, commit with: 'git commit $SERVICES_FILE -m \"update solr 8 to 9 configuration\"'"
+  echo_yellow "If changes look good, commit with: 'git commit $SERVICES_FILE -m \"update solr to 9 configuration\"'"
 }
 
 remove_old_config
@@ -110,6 +119,7 @@ configure_upsun
 
 echo ""
 echo_green "✓ ddev-solr installed successfully."
-echo_yellow "↳ Run 'ddev restart' to apply changes."
+echo_yellow "↳ Running 'ddev restart' to apply changes."
 echo_yellow "↳ After restart, run 'ddev solr9 -c' to configure Solr and rebuild the index."
+ddev restart
 echo_green "✓ Done. Solr will be available at: ${DDEV_PRIMARY_URL}:8983"
