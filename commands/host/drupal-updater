@@ -5,7 +5,7 @@
 ## Description: Update Drupal modules and core, optionally committing each step
 ## Usage: drupal-updater
 ## Example: "ddev drupal-updater -cgado" \n"ddev drupal-updater drupal/module-name --commit-steps" \n"ddev drupal-updater --all --with-core --commit-steps" \n"ddev drupal-updater --dry-run --omit-snapshot"
-## Flags: [{"Name":"commit-steps","Shorthand":"g","Usage":"Create a git commit for each update step","Type":"bool"},{"Name":"with-core","Shorthand":"c", "Usage":"Include core updates in --all","Type":"bool"},{"Name":"all","Shorthand":"a","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot", "Shorthand": "o", "Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"run-db-updates","Shorthand":"d","Usage":"Run database updates between module updates","Type":"bool"},{"Name":"security-only","Shorthand":"s","Usage":"Only update packages with security advisories","Type":"bool"}]
+## Flags: [{"Name":"commit-steps","Shorthand":"g","Usage":"Create a git commit for each update step","Type":"bool"},{"Name":"with-core","Shorthand":"c", "Usage":"Include core updates in --all","Type":"bool"},{"Name":"all","Shorthand":"a","Usage":"Update all modules","Type":"bool"},{"Name":"dry-run","Usage":"Run the update steps without making changes","Type":"bool"},{"Name":"omit-snapshot", "Shorthand": "o", "Usage":"Omit snapshot creation before updating","Type":"bool"},{"Name":"run-db-updates","Shorthand":"d","Usage":"Run database updates between module updates","Type":"bool"},{"Name":"security-only","Shorthand":"s","Usage":"Only update packages with security advisories","Type":"bool"},{"Name":"interactive","Shorthand":"i","Usage":"Ask for confirmation before updating each module/core","Type":"bool"}]
 ## ProjectTypes: drupal10,drupal11
 
 ## This script is brought to you by:
@@ -159,6 +159,20 @@ update_core() {
   fi
 }
 
+# Function to ask for confirmation before updating an item (interactive mode)
+confirm_update() {
+  local NAME=$1
+  if [ "$interactive" != true ]; then
+    return 0
+  fi
+  local REPLY
+  read -r -p "Update $NAME? [y/N] " REPLY < /dev/tty
+  case "$REPLY" in
+    [yY]|[yY][eE][sS]) return 0 ;;
+    *) echo "Skipping $NAME."; return 1 ;;
+  esac
+}
+
 # Function to list ALL packages that have a security advisory
 security_packages_all() {
   ddev composer audit --locked --format=json 2>/dev/null \
@@ -198,13 +212,17 @@ update_all_modules() {
   fi
 
   for MODULE in $MODULES; do
-    echo "Updating: $MODULE"
-    update_module "$MODULE"
+    if confirm_update "$MODULE"; then
+      echo "Updating: $MODULE"
+      update_module "$MODULE"
+    fi
   done
 
   if [ "$need_core" = true ]; then
-    echo "Updating: Drupal core"
-    update_core
+    if confirm_update "Drupal core"; then
+      echo "Updating: Drupal core"
+      update_core
+    fi
   fi
 }
 
@@ -222,6 +240,7 @@ while [[ $# -gt 0 ]]; do
           d) updb=true ;;
           o) omit_snapshot=true ;;
           s) security_only=true; action="update_all" ;;
+          i) interactive=true ;;
           *) echo "WARN: Unknown option -$opt" ;;
         esac
       done
@@ -234,6 +253,7 @@ while [[ $# -gt 0 ]]; do
     --omit-snapshot) omit_snapshot=true; shift ;;
     --run-db-updates) updb=true; shift ;;
     --security-only) security_only=true; action="update_all"; shift ;;
+    --interactive) interactive=true; shift ;;
     --) shift; break ;;
     *) break ;;
   esac
