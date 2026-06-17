@@ -24,6 +24,9 @@ if [ ! -f "bin/behat" ]; then
     composer install
 fi
 
+# Set composer bin-dir to drupal root
+export COMPOSER_BIN_DIR=/var/www/html/vendor/bin
+
 # Signal to PHP-FPM (via shared filesystem) that behat is running, so settings.php
 # can disable modules like captcha and antibot that block automated requests.
 touch /var/www/html/web/.behat_testing
