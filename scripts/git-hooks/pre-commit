@@ -123,27 +123,31 @@ if [ -n "$STAGED_FILES" ]; then
 fi
 
 #
-# Abort commit if you are using an incompatible or unexpected ddev-drupal-solr addon
+# Abort commit if you are using an incompatible Solr version
 #
-SOLR_MANIFEST_FILE=".ddev/addon-metadata/solr/manifest.yaml"
+SOLR_MANIFEST_FILE=".ddev/addon-metadata/ddev-solr/manifest.yaml"
 STAGED_FILES=$(git diff --cached --name-only | grep -F "$SOLR_MANIFEST_FILE")
 
 if [ -n "$STAGED_FILES" ]; then
-  SOLR_VERSION=$(grep -E '^version:' "$SOLR_MANIFEST_FILE" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
-  SOLR_REPO=$(grep -E '^repository:' "$SOLR_MANIFEST_FILE" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
+  SOLR_VERSION_OUTPUT=$(ddev solr --version 2>/dev/null)
 
-  if [[ "$SOLR_REPO" != "ddev/ddev-drupal-solr" ]]; then
-    echo "COMMIT REJECTED: Unexpected Solr addon repository: '$SOLR_REPO'"
-    echo "Expected: 'ddev/ddev-drupal-solr'"
-    echo "Install the correct addon with: 'ddev add-on get ddev/ddev-drupal-solr --version v1.2.3'"
+  if [[ -z "$SOLR_VERSION_OUTPUT" ]]; then
+    echo "COMMIT REJECTED: Could not determine Solr version. Is ddev running?"
+    echo "Run 'ddev start' and try again."
     exit 1
   fi
 
-  if [[ "$SOLR_VERSION" != "v1.2.3" ]]; then
-    echo "COMMIT REJECTED: ddev-drupal-solr version '$SOLR_VERSION' is not supported."
-    echo "Only v1.2.3 is compatible. Install it with: 'ddev add-on get ddev/ddev-drupal-solr --version v1.2.3'"
+  SOLR_VERSION=$(echo "$SOLR_VERSION_OUTPUT" | awk '{print $NF}')
+  MAJOR_VERSION=$(echo "$SOLR_VERSION" | cut -d'.' -f1)
+
+  if [[ "$MAJOR_VERSION" != "9" ]]; then
+    echo "COMMIT REJECTED: Solr version '$SOLR_VERSION' is not supported."
+    echo "Only Solr 9.x is compatible."
+    echo "Reinstall with: 'ddev add-on get ddev/ddev-solr'"
     exit 1
   fi
+
+  echo "✓ Solr version $SOLR_VERSION is compatible."
 fi
 
 #
