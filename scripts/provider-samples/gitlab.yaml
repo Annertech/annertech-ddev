@@ -1,0 +1,16 @@
+# Gitlab Provider.
+
+# This will pull a database from gitlab artifacts using `glab` command.
+#
+# To use this configuration run:
+#
+# - `ddev remote-db`
+# - `ddev pull gitlab --skip-files`
+
+db_pull_command:
+  command: |
+    # set -x   # You can enable bash debugging output by uncommenting
+    set -eu -o pipefail
+    glab ci artifact dev db:artifact  --path=".ddev/.downloads"
+    ddev import-db --file=.ddev/.downloads/db.sql.gz
+  service: host
