@@ -56,6 +56,10 @@ jobs:
             --allowedTools "Bash(git diff:*),Bash(git log:*),Read,Write,Edit,Glob,Grep"
 
       - name: Commit and push doc updates
+        env:
+          # claude-code-action revokes its own token in cleanup, so push with
+          # the workflow GITHUB_TOKEN explicitly rather than the stored remote.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -z "$(git status --porcelain)" ]; then
             echo "No doc changes; nothing to commit."
@@ -67,4 +71,5 @@ jobs:
           git commit -m "docs: sync with PR #${{ github.event.pull_request.number }} changes
 
           Co-Authored-By: Claude <noreply@anthropic.com>"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" \
+            HEAD:${{ github.event.pull_request.head.ref }}
