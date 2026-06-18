@@ -25,6 +25,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
+      # Claude only edits files in the working tree. It does NOT commit/push:
+      # claude-code-action in prompt mode does not push results back. The
+      # commit + push is handled by the explicit step below.
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -45,9 +48,23 @@ jobs:
             Do NOT document Varnish.
 
             If docs/ does not exist, create it covering the scope above.
-            Read the actual changed files so the prose is accurate.
-            Commit any doc changes directly to this PR's branch with a
-            Co-Authored-By: Claude trailer. If docs already match the code,
-            make no changes.
+            Read the actual changed files so the prose is accurate. Edit the
+            doc files in place. Do NOT run git commit or git push yourself -
+            a later workflow step handles committing. If docs already match
+            the code, make no changes.
           claude_args: |
-            --allowedTools "Bash,Read,Write,Edit,Glob,Grep"
+            --allowedTools "Bash(git diff:*),Bash(git log:*),Read,Write,Edit,Glob,Grep"
+
+      - name: Commit and push doc updates
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No doc changes; nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "docs: sync with PR #${{ github.event.pull_request.number }} changes
+
+          Co-Authored-By: Claude <noreply@anthropic.com>"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
