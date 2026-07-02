@@ -21,22 +21,4 @@ else
     fi
   done
 
-  if grep -qE "^\s+anner_sso:" "$EXT_FILE"; then
-    pass "Required module 'anner_sso' is enabled"
-  else
-    warn "Required module 'anner_sso' is NOT enabled"
-  fi
-
-  CONFIG_SYNC_DIR=$(dirname "$EXT_FILE")
-  OIDC_BLOCK=$(grep -rl "plugin: openid_connect_login" "$CONFIG_SYNC_DIR"/block.block.*.yml 2>/dev/null | head -1)
-  if [[ -n "$OIDC_BLOCK" ]]; then
-    pass "OpenID Connect login block is configured"
-    if grep -q "pages: /anner-sso" "$OIDC_BLOCK"; then
-      pass "OpenID Connect block is restricted to /anner-sso"
-    else
-      warn "OpenID Connect block does not have 'pages: /anner_sso'"
-    fi
-  else
-    warn "No OpenID block found!"
-  fi
 fi

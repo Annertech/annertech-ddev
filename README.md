@@ -90,12 +90,15 @@ Upsun is using v7 while DDEV is still running v6 by default.
 
 `ddev package-checker` (alias `ddev wtfiow`) scans every project under a GitLab
 group, reads each project's `composer-manifest.yaml` over the API (no clone, no
-composer), and reports which projects require a given package.
+composer), and reports which projects require the given package(s). Pass several
+packages (composer notation, version after a colon) to OR-match them.
 
 ```bash
-ddev package-checker drupal/token         # list every project using it
-ddev package-checker drupal/token 1.6.0   # highlights projects using drupal/token <= 1.6.0
-DEBUG=1 ddev package-checker drupal/token # debug mode, ultra verbose
+ddev package-checker drupal/token                       # list every project using it
+ddev package-checker drupal/token:1.6.0                  # highlights projects using drupal/token <= 1.6.0
+ddev package-checker drupal/ai:2.8 drupal/paragraphs:1.9 # multiple packages, OR-matched
+ddev package-checker drupal/ai drupal/paragraphs         # multiple, no version filter
+DEBUG=1 ddev package-checker drupal/token               # debug mode, ultra verbose
 ```
 
 It is a **host** command with two backends, auto-selected:
