@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #annertech-ddev
 
-## Description: Install ddev/ddev-solr addon
+## Description: setup ddev-solr for local use, creates a collection & rebuilds index
 ## Usage: solr9-local [-c]
 ## Example: "ddev solr9-local"
 ## Example: "ddev solr9-local -c"

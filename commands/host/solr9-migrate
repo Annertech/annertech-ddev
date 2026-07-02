@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #annertech-ddev
 
-## Description: Install ddev/ddev-solr addon
+## Description: Installs ddev/ddev-solr addon and will attempt to update solr for upsun configuration
 ## Usage: solr9-migrate
 ## Example: "ddev solr9-migrate"
 
