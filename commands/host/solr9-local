@@ -2,9 +2,9 @@
 #annertech-ddev
 
 ## Description: Install ddev/ddev-solr addon
-## Usage: solr9 [-c]
-## Example: "ddev solr9"
-## Example: "ddev solr9 -c"
+## Usage: solr9-local [-c]
+## Example: "ddev solr9-local"
+## Example: "ddev solr9-local -c"
 ## Flags: [{"Name":"c","Usage":"Run Solr setup and configuration"}]
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'

@@ -2,8 +2,8 @@
 #annertech-ddev
 
 ## Description: Install ddev/ddev-solr addon
-## Usage: install-solr
-## Example: "ddev install-solr"
+## Usage: solr9-migrate
+## Example: "ddev solr9-migrate"
 
 set -e
 
