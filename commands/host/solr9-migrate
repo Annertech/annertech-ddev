@@ -26,10 +26,10 @@ remove_old_config() {
     echo_yellow "↳ .ddev/docker-compose.solr.yaml not found, skipping."
   fi
 
-  if [ -d .ddev/solr ]; then
-    git rm -rf .ddev/solr/
+  if git ls-files .ddev/solr | grep -q .; then
+      git rm -rf .ddev/solr
   else
-    echo_yellow "↳ .ddev/solr/ not found, skipping."
+      echo_yellow "↳ No tracked files in .ddev/solr, skipping."
   fi
 
   git commit -m "remove the ddev drupal solr" || echo_yellow "↳ Nothing to commit for old config removal."
