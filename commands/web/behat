@@ -6,6 +6,17 @@
 ## Usage: behat [flags] [args]
 ## Example: "ddev behat --tags ~wip"
 
+# Signal to PHP-FPM (via shared filesystem) that behat is running, so settings.php
+# can disable modules like captcha and antibot that block automated requests.
+touch /var/www/html/web/.behat_testing
+trap "rm -f /var/www/html/web/.behat_testing" EXIT INT TERM
+
+# Use project-root vendor/bin/behat if present
+if [ -f "vendor/bin/behat" ]; then
+    vendor/bin/behat -c tests/behat/behat.yml "$@"
+    exit $?
+fi
+
 # Check if the tests/behat directory exists
 if [ ! -d "tests/behat" ]; then
     echo
@@ -18,16 +29,9 @@ fi
 # Navigate to the behat directory
 cd tests/behat
 
-# Check if the behat binary exists
-if [ ! -f "bin/behat" ]; then
-    echo "Behat binary not found. Running 'composer install'..."
-    composer install
-fi
+# Always run 'composer install' in tests/behat to ensure dependencies are up-to-date
+composer install
 
-# Signal to PHP-FPM (via shared filesystem) that behat is running, so settings.php
-# can disable modules like captcha and antibot that block automated requests.
-touch /var/www/html/web/.behat_testing
-trap "rm -f /var/www/html/web/.behat_testing" EXIT INT TERM
 bin/behat "$@"
 
 # big_pipe

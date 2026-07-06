@@ -1,0 +1,75 @@
+name: docs-sync
+
+# On every PR, keep docs/ in sync with the code the PR touches.
+# Pairs with the weekly "Weekly docs sync from main" cloud routine which
+# catches commits landed directly on main.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: docs-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  docs-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      # Claude only edits files in the working tree. It does NOT commit/push:
+      # claude-code-action in prompt mode does not push results back. The
+      # commit + push is handled by the explicit step below.
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            This PR (#${{ github.event.pull_request.number }}) changes the
+            Annertech DDEV add-on. Update the Markdown docs under docs/ to
+            reflect ONLY what this PR changes.
+
+            Scope of documentation:
+              - host commands (commands/host/)
+              - web container commands (commands/web/)
+              - git hooks (scripts/git-hooks/)
+              - custom DDEV providers
+              - lifecycle hooks in config.annertech.yaml
+              - settings.*.php (settings.local.devmode.php, settings.local.perfmode.php)
+
+            IGNORE everything related to Varnish (scripts/varnish/, VCL configs).
+            Do NOT document Varnish.
+
+            If docs/ does not exist, create it covering the scope above.
+            Read the actual changed files so the prose is accurate. Edit the
+            doc files in place. Do NOT run git commit or git push yourself -
+            a later workflow step handles committing. If docs already match
+            the code, make no changes.
+          claude_args: |
+            --allowedTools "Bash(git diff:*),Bash(git log:*),Read,Write,Edit,Glob,Grep"
+
+      - name: Commit and push doc updates
+        env:
+          # claude-code-action revokes its own token in cleanup, so push with
+          # the workflow GITHUB_TOKEN explicitly rather than the stored remote.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No doc changes; nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "docs: sync with PR #${{ github.event.pull_request.number }} changes
+
+          Co-Authored-By: Claude <noreply@anthropic.com>"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" \
+            HEAD:${{ github.event.pull_request.head.ref }}
