@@ -64,6 +64,9 @@ if [ -f "${DDEV_APPROOT}/cypress.config.js" ]; then
   echo "If getting X related errors run xhost ${bold}first${normal}!"
   echo "  xhost +local:"
   echo
+  echo "You might need to enable drush_endpoint module ${bold}first${normal}!"
+  echo "  drush en drush_endpoint"
+  echo
 fi
 
 # ---------------------------------------------------------------------------
