@@ -36,7 +36,7 @@ These commands run on the developer's host machine (via `ddev <command>`), from 
 - `remote-files` — Pulls the latest files (skipping the DB) from the upstream provider via `ddev pull <provider> --skip-db -y`.
 - `sanity-check` — Runs a suite of Drupal/Composer/DDEV/Upsun health checks (version constraints, performance settings, extensions, safe-uninstall, composer audit, Solr, Upsun project config, APCu, CDN, botbuster) by sourcing scripts from `commands/host/_lib/`. Supports `-s` (silent), `-b`/`--best-practices`, `-o`/`--offline`; exits 2 on critical errors (used to block pushes), 1 on regular errors.
 - `teamwork-operations` — Interactive fzf "Teamwork Operations Centre" dispatching to `open-issue`, `tw-comment`, `tw-timelog`, `tw-description`, `tw-new`, `tw-batch-card-maker`, plus branch creation/switching helpers. Aliases: `tw`.
-- `tests` — Detects which test suites (Backstop, Behat, Bruno, Cypress, PHPUnit) are configured in the project and prints the commands to run each.
+- `tests` — Detects which test suites (Backstop, Behat, Bruno, Cypress, PHPUnit) are configured in the project and prints the commands to run each; for Cypress it also reminds you to run `xhost +local:` and enable the `drush_endpoint` module first.
 - `timew` — Tags the current Timewarrior interval with the branch's `T-<id>` task and the project directory name.
 - `timewarrior-timelog` — Pulls the Timewarrior summary for the current task and pipes it into `tw-timelog` to log time to Teamwork. Aliases: `twl`.
 - `travel-mode` — Finds and deletes (after confirmation) all unsanitized DB dump files under `.ddev/.downloads/` across every project in a chosen folder, then suggests a `ddev delete --all` cleanup.
