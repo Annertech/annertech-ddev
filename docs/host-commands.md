@@ -8,7 +8,7 @@ These commands run on the developer's host machine (via `ddev <command>`), from 
 
 ## Commands
 
-- `ai-prompts` — Interactive fzf menu ("AI Prompts Operations Centre") offering BackstopJS-init prompt generation (extracts test/reference domains, feeds a templated prompt to a chosen AI agent) and access-log forensics (GDPR-safe IP masking via `mask_ips.py` before sending log excerpts to an LLM). Aliases: `ai`.
+- `ai-prompts` — Interactive fzf menu ("AI Prompts Operations Centre") offering two operations: **BackstopJS Init** (extracts `DDEV_PRIMARY_URL`/`STAGE_FILE_PROXY_URL`, populates `scripts/prompts/backstop-init.md`, and sends it to a chosen AI agent — Gemini, Copilot, Claude `sonnet --effort low`, Antigravity `agy --prompt`, or Prompt which simply echoes the content for copy-paste) and **Access Log Forensics** (GDPR-safe prefix-preserving IPv4 masking via `mask_ips.py` before sending to Gemini, Copilot, or Claude). Aliases: `ai`.
 - `annertech-tip-of-the-day` — Installs (or removes with `-u`/`--uninstall`) a custom DDEV "tip of the day" remote-config entry in `~/.ddev/global_config.yaml` pointing at Annertech's tips repo, clearing DDEV state so the change takes effect. Note: header `## Usage` says `install-tips`, which is stale/inconsistent with the actual filename.
 - `backstop-public` — Copies the BackstopJS HTML report into the web root so it's reachable over HTTP, prints the URL, and deletes the copy automatically after 5 minutes.
 - `branch` — Creates a git branch named `YYYYMM_T-<taskid>__<description>` from a Teamwork card URL/ID and description. Blocks branching from forbidden base branches (dev/develop/development/stage/staging) and warns to pull first when branching from main/master. Aliases: `branch`, `br`.
