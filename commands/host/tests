@@ -32,11 +32,21 @@ fi
 # ---------------------------------------------------------------------------
 # Behat
 # ---------------------------------------------------------------------------
+if [ -f "${DDEV_APPROOT}/.ddev/.env.anner" ]; then
+  set -a
+  source "${DDEV_APPROOT}/.ddev/.env.anner"
+  set +a
+fi
+
 if [ -f "${DDEV_APPROOT}/tests/behat/behat.yml" ]; then
   echo "${bold}Behat:${normal}"
-  echo "  ddev ssh"
-  echo "  cd tests/behat"
-  echo "  bin/behat"
+  if [ "${MULTISITE:-0}" = "1" ]; then
+    echo "  ddev robo"
+  else
+    echo "  ddev ssh"
+    echo "  cd tests/behat"
+    echo "  bin/behat"
+  fi
   echo
 fi
 
