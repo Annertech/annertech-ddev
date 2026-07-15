@@ -15,7 +15,17 @@ echo_yellow() { echo -e "${YELLOW}$1${NC}"; }
 SERVICES_FILE=".platform/services.yaml"
 SOLR_CONF_SOURCE="web/modules/contrib/search_api_solr/solr-conf-templates/9.x"
 
-echo_yellow "Installing ddev/ddev-solr addon..."
+if [ ! -f "$SERVICES_FILE" ]; then
+  echo_red "✗ File not found: $SERVICES_FILE"
+  exit 1
+fi
+
+if [ ! -d "$SOLR_CONF_SOURCE" ]; then
+  echo_red "✗ Solr config templates not found at $SOLR_CONF_SOURCE. Is search_api_solr installed?"
+  exit 1
+fi
+
+echo_yellow "Starting Solr migration..."
 
 remove_old_config() {
   echo_yellow "Removing old ddev/ddev-drupal-solr addon..."
@@ -33,12 +43,6 @@ install_new_addon() {
 
 configure_upsun() {
   echo_yellow "Configuring upsun solr..."
-
-  # Replace solr conf directory
-  if [ ! -d "$SOLR_CONF_SOURCE" ]; then
-    echo_red "✗ Solr config templates not found at $SOLR_CONF_SOURCE. Is search_api_solr installed?"
-    exit 1
-  fi
 
   echo_yellow "↳ Removing old solr conf for upsun..."
   OLD_SOLR_CONFS=$(find .platform/solr-conf -mindepth 1 -maxdepth 1 -type d ! -name "9.x" 2>/dev/null)
@@ -65,11 +69,6 @@ configure_upsun() {
   echo_green "✓ Old solr configuration replaced with solr 9 configuration."
 
   # Update services.yaml
-  if [ ! -f "$SERVICES_FILE" ]; then
-    echo_red "✗ File not found: $SERVICES_FILE"
-    exit 1
-  fi
-
   echo_yellow "Updating $SERVICES_FILE..."
 
   # Solr version
