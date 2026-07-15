@@ -41,12 +41,14 @@ configure_upsun() {
   fi
 
   echo_yellow "↳ Removing old solr conf for upsun..."
-  OLD_SOLR_CONF=$(find .platform/solr-conf -mindepth 1 -maxdepth 1 -type d ! -name "9.x" 2>/dev/null | head -1)
+  OLD_SOLR_CONFS=$(find .platform/solr-conf -mindepth 1 -maxdepth 1 -type d ! -name "9.x" 2>/dev/null)
 
-  if [ -n "$OLD_SOLR_CONF" ]; then
-    echo_yellow "↳ Found old solr conf: $OLD_SOLR_CONF, removing..."
-    git rm -rf "$OLD_SOLR_CONF"
-    git commit -m "remove the old solr configuration ($OLD_SOLR_CONF)"
+  if [ -n "$OLD_SOLR_CONFS" ]; then
+    while IFS= read -r old_conf; do
+      echo_yellow "↳ Removing: $old_conf"
+      git rm -rf "$old_conf"
+    done <<< "$OLD_SOLR_CONFS"
+    git commit -m "remove old solr configurations"
   else
     echo_yellow "↳ No old solr conf directory found, skipping removal."
   fi
