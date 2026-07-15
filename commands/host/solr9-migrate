@@ -28,9 +28,34 @@ fi
 echo_yellow "Starting Solr migration..."
 
 remove_old_config() {
-  echo_yellow "Removing old ddev/ddev-drupal-solr addon..."
-  ddev add-on remove ddev/ddev-drupal-solr || echo_yellow "↳ ddev/ddev-drupal-solr not installed, skipping."
-  echo_green "✓ Old ddev solr configuration removed."
+  if ddev add-on list --installed | grep -q "ddev-drupal-solr"; then
+    echo_yellow "Removing old ddev/ddev-drupal-solr addon..."
+    ddev add-on remove ddev/ddev-drupal-solr
+    echo_green "✓ Old ddev solr configuration removed."
+  else
+    echo_yellow "ddev/ddev-drupal-solr addon not installed, checking for manual files..."
+
+    FILES_REMOVED=0
+
+    if [ -f .ddev/docker-compose.solr.yaml ]; then
+      echo_yellow "↳ Found .ddev/docker-compose.solr.yaml, removing..."
+      git rm .ddev/docker-compose.solr.yaml
+      FILES_REMOVED=1
+    fi
+
+    if git ls-files .ddev/solr | grep -q .; then
+      echo_yellow "↳ Found tracked files in .ddev/solr, removing..."
+      git rm -rf .ddev/solr
+      FILES_REMOVED=1
+    fi
+
+    if [ $FILES_REMOVED -eq 1 ]; then
+      git commit -m "remove manually installed solr configuration" || echo_yellow "↳ Nothing to commit."
+      echo_green "✓ Old solr configuration removed."
+    else
+      echo_yellow "↳ No old solr files found, skipping."
+    fi
+  fi
 }
 
 install_new_addon() {
