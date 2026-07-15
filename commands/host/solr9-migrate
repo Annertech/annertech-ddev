@@ -18,21 +18,8 @@ SOLR_CONF_SOURCE="web/modules/contrib/search_api_solr/solr-conf-templates/9.x"
 echo_yellow "Installing ddev/ddev-solr addon..."
 
 remove_old_config() {
-  echo_yellow "Removing old ddev solr configuration..."
-
-  if [ -f .ddev/docker-compose.solr.yaml ]; then
-    git rm .ddev/docker-compose.solr.yaml
-  else
-    echo_yellow "↳ .ddev/docker-compose.solr.yaml not found, skipping."
-  fi
-
-  if git ls-files .ddev/solr | grep -q .; then
-      git rm -rf .ddev/solr
-  else
-      echo_yellow "↳ No tracked files in .ddev/solr, skipping."
-  fi
-
-  git commit -m "remove the ddev drupal solr" || echo_yellow "↳ Nothing to commit for old config removal."
+  echo_yellow "Removing old ddev/ddev-drupal-solr addon..."
+  ddev add-on remove ddev/ddev-drupal-solr || echo_yellow "↳ ddev/ddev-drupal-solr not installed, skipping."
   echo_green "✓ Old ddev solr configuration removed."
 }
 
