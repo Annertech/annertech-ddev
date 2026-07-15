@@ -20,14 +20,19 @@ $settings['simple_environment_indicator'] = '#4A0080 LOCAL DEVMODE';
 $config['stage_file_proxy.settings']['origin'] = getenv('STAGE_FILE_PROXY_URL');
 
 // Override SOLR configuration for DDEV.
-$config['search_api.server.solr']['backend_config']['connector'] = 'solr_cloud_basic_auth';
-$config['search_api.server.solr']['backend_config']['connector_config']['username'] = 'solr';
-$config['search_api.server.solr']['backend_config']['connector_config']['password'] = 'SolrRocks';
+$config['search_api.server.solr']['backend_config']['connector_config']['scheme'] = 'http';
 $config['search_api.server.solr']['backend_config']['connector_config']['host'] = 'solr';
-$config['search_api.server.solr']['backend_config']['connector_config']['core'] = 'collection_1';
 $config['search_api.server.solr']['backend_config']['connector_config']['port'] = '8983';
 $config['search_api.server.solr']['backend_config']['connector_config']['path'] = '/';
-$config['search_api.server.solr']['backend_config']['connector_config']['scheme'] = 'http';
+$config['search_api.server.solr']['backend_config']['connector_config']['core'] = 'dev';
+
+// These changes are for ddev-solr only.
+if (getenv('DDEV_SOLR') === 'ddev-solr') {
+  $config['search_api.server.solr']['backend_config']['connector'] = 'solr_cloud_basic_auth';
+  $config['search_api.server.solr']['backend_config']['connector_config']['username'] = 'solr';
+  $config['search_api.server.solr']['backend_config']['connector_config']['password'] = 'SolrRocks';
+  $config['search_api.server.solr']['backend_config']['connector_config']['core'] = 'collection_1';
+}
 
 // Override SMTP configuration for DDEV.
 $config['smtp.settings']['smtp_host'] = 'localhost';
