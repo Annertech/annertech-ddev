@@ -109,4 +109,9 @@ echo_green "✓ ddev-solr installed successfully."
 echo_yellow "↳ Running 'ddev restart' to apply changes."
 echo_yellow "↳ After restart, run 'ddev solr9 -c' to configure Solr and rebuild the index."
 ddev restart
-echo_green "✓ Done. Solr will be available at: ${DDEV_PRIMARY_URL}:8983"
+
+if [ -z "$DDEV_PRIMARY_URL" ]; then
+  echo_green "✓ Done."
+else
+  echo_green "✓ Done. Solr will be available at: ${DDEV_PRIMARY_URL}:8983"
+fi
