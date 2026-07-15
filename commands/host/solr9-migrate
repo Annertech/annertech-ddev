@@ -66,6 +66,23 @@ install_new_addon() {
   echo_green "✓ ddev/ddev-solr installed."
 }
 
+update_env_anner() {
+  echo_yellow "Updating .ddev/.env..."
+
+  if [ ! -f .ddev/.env ]; then
+    touch .ddev/.env
+  fi
+
+  if grep -q "^DDEV_SOLR=" .ddev/.env; then
+    sed -i '/^DDEV_SOLR=/d' .ddev/.env
+  fi
+
+  echo 'DDEV_SOLR="ddev-solr"' >> .ddev/.env
+  git add .ddev/.env
+  git commit -m "add DDEV_SOLR to .ddev/.env" || echo_yellow "↳ Nothing to commit for .ddev/.env"
+  echo_green "✓ .ddev/.env updated with DDEV_SOLR=ddev-solr"
+}
+
 configure_upsun() {
   echo_yellow "Configuring upsun solr..."
 
@@ -129,6 +146,7 @@ configure_upsun() {
 remove_old_config
 install_new_addon
 configure_upsun
+update_env_anner
 
 echo ""
 echo_green "✓ ddev-solr installed successfully."
