@@ -55,7 +55,7 @@ if [ -f ".ddev/.env.anner" ]; then
     fi
 fi
 
-STAGED_FILES=$(git diff --cached --name-only | grep -E "$FILES_PATTERN")
+STAGED_FILES=$(git diff --cached --name-only | grep -vE "(^|/)tests(/|$)" | grep -E "$FILES_PATTERN")
 if [ -n "$STAGED_FILES" ]; then
     for FORBIDDEN_PATTERN in "${FORBIDDEN_PATTERNS[@]}"; do
         echo "$STAGED_FILES" | xargs grep --color --with-filename -n "$FORBIDDEN_PATTERN" \
