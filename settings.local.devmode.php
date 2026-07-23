@@ -49,6 +49,9 @@ $config['shield.settings']['shield_enable'] = FALSE;
 // Disable TFA locally.
 $config['tfa.settings']['enabled'] = FALSE;
 
+// Disable OpenTelemetry locally.
+$config['opentelemetry.settings']['disable'] = true;
+
 // Disable any IP restrictions.
 $config['restrict_ip.settings']['enable'] = FALSE;
 
