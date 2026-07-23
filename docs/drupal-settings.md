@@ -12,7 +12,7 @@ Both files share most of their baseline overrides:
 - Overrides the Search API Solr connector to use the local `solr` service (`http://solr:8983/`, core `dev`).
 - Overrides SMTP settings to point at `localhost:1025` (a local mail-capture tool such as Mailhog), with blank credentials.
 - Defaults `file_private_path` to `../private` if not already set.
-- Disables Shield, TFA, IP restriction (`restrict_ip`), and clears the Fastly API key/site ID — security/CDN modules that shouldn't be active locally.
+- Disables Shield, TFA, IP restriction (`restrict_ip`), OpenTelemetry (`opentelemetry.settings.disable`), and clears the Fastly API key/site ID — security/CDN/observability modules that shouldn't be active locally.
 - Sets `rebuild_access = TRUE` and `skip_permissions_hardening = TRUE`.
 - Excludes `devel`, `devel_a11y`, `devel_php`, `stage_file_proxy`, `twig_vardumper`, `upgrade_status`, and `drush_endpoint` from configuration sync (`config_exclude_modules`), so these dev-only modules never leak into exported config.
 - Includes an optional `settings.project.php` (in the same directory) if present, for project-specific overrides.
