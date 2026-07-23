@@ -26,9 +26,23 @@ if [[ -n "$EXT_FILE" ]] && git -C "$APPROOT" rev-parse --git-dir >/dev/null 2>&1
     while IFS= read -r mod; do
       [[ -z "$mod" ]] && continue
 
-      MOD_PATH=""
+      IS_COMPOSER_PACKAGE=false
+      if git -C "$APPROOT" show "$DIFF_FROM:$LOCK_FILE" 2>/dev/null | grep -q "\"name\": \"drupal/${mod}\""; then
+        IS_COMPOSER_PACKAGE=true
+      fi
+
+      HAD_CODE_BEFORE=false
       if [[ ${#SEARCH_DIRS[@]} -gt 0 ]]; then
-        MOD_PATH=$(find "${SEARCH_DIRS[@]}" -maxdepth 5 -type d -name "$mod" ! -path "*/.git/*" 2>/dev/null | head -1)
+        if git -C "$APPROOT" ls-tree -r "$DIFF_FROM" -- "${SEARCH_DIRS[@]}" 2>/dev/null | grep -q "/${mod}/"; then
+          HAD_CODE_BEFORE=true
+        fi
+      fi
+
+      HAS_CODE_NOW=false
+      if [[ ${#SEARCH_DIRS[@]} -gt 0 ]]; then
+        if find "${SEARCH_DIRS[@]}" -maxdepth 5 -type d -name "$mod" ! -path "*/.git/*" 2>/dev/null | grep -q .; then
+          HAS_CODE_NOW=true
+        fi
       fi
 
       COMPOSER_REMOVED=false
@@ -36,9 +50,12 @@ if [[ -n "$EXT_FILE" ]] && git -C "$APPROOT" rev-parse --git-dir >/dev/null 2>&1
         COMPOSER_REMOVED=true
       fi
 
-      if [[ -z "$MOD_PATH" ]] || $COMPOSER_REMOVED; then
+      if $IS_COMPOSER_PACKAGE && $COMPOSER_REMOVED; then
+        UNSAFE+=("$mod")
+      elif ! $IS_COMPOSER_PACKAGE && $HAD_CODE_BEFORE && ! $HAS_CODE_NOW; then
         UNSAFE+=("$mod")
       fi
+
     done <<< "$REMOVED_MODULES"
 
     if [[ ${#UNSAFE[@]} -gt 0 ]]; then
