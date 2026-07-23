@@ -50,6 +50,8 @@ AI_AGENTS=(
     "1. Gemini"
     "2. Copilot"
     "3. Claude"
+    "4. Antigravity"
+    "5. Prompt"
 )
 
 # Select action
@@ -118,6 +120,12 @@ backstop_init() {
             ;;
         "Claude")
             claude --model sonnet --effort low "$prompt_content"
+            ;;
+	"Antigravity")
+	    agy --prompt "$prompt_content"
+            ;;
+	"Prompt")
+	   echo "$prompt_content"
             ;;
         *)
             echo_red "Unknown agent: $agent_label"
