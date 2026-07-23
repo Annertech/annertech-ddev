@@ -139,3 +139,9 @@ if (file_exists(DRUPAL_ROOT . '/.behat_testing')) {
   $config['advagg.settings']['enabled'] = TRUE;
   // @todo: Decide on cache-bins for tests
 }
+
+// Include settings required for Redis cache.
+// File will only exist if the redis addon installed.
+if (getenv('IS_DDEV_PROJECT') == 'true' && file_exists(__DIR__ . '/settings.ddev.redis.php')) {
+  include __DIR__ . '/settings.ddev.redis.php';
+}
