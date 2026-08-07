@@ -1,0 +1,115 @@
+{
+    "extends": ["config:recommended"],
+    "automerge": false,
+    "branchPrefix": "deps/",
+    "labels": ["dependencies"],
+    "assignees": ["bserem"],
+    "rangeStrategy": "update-lockfile",
+    "timezone": "Etc/UTC",
+    "schedule": ["after 12am and before 6am"],
+    "enabledManagers": ["composer"],
+    "osvVulnerabilityAlerts": true,
+    "prConcurrentLimit": 3,
+    "prHourlyLimit": 0,
+    "ignorePaths": [
+        "**/node_modules/**",
+        "**/bower_components/**",
+        "**/vendor/**",
+        "**/examples/**",
+        "**/__tests__/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/__fixtures__/**",
+        "web/core/**",
+        "web/modules/contrib/**",
+        "web/themes/contrib/**",
+        "web/profiles/contrib/**",
+        "web/libraries/**"
+    ],
+    "postUpgradeTasks": {
+        "commands": ["composer install --no-interaction --no-progress"],
+        "fileFilters": [
+            "vendor/**",
+            "web/**",
+            "composer.json",
+            "composer.lock",
+            "composer-manifest.yaml"
+        ],
+        "executionMode": "branch"
+    },
+    "vulnerabilityAlerts": {
+        "enabled": true,
+        "groupName": "Security updates",
+        "vulnerabilityFixStrategy": "lowest",
+        "labels": ["dependencies", "security"]
+    },
+    "packageRules": [
+        {
+            "matchPackageNames": ["php"],
+            "enabled": false
+        },
+        {
+            "groupName": "Major all - skipped to update manually",
+            "matchDatasources": ["packagist"],
+            "matchUpdateTypes": ["major"],
+            "enabled": false,
+            "matchPackageNames": ["/.*/"]
+        },
+        {
+            "groupName": "Drupal core minor - skipped to update manually",
+            "matchDatasources": ["packagist"],
+            "matchUpdateTypes": ["minor"],
+            "enabled": false,
+            "matchPackageNames": [
+                "drupal/core-composer-scaffold",
+                "drupal/core-project-message",
+                "drupal/core-recommended"
+            ]
+        },
+        {
+            "groupName": "Drupal core patch",
+            "groupSlug": "core-patch",
+            "matchDatasources": ["packagist"],
+            "matchUpdateTypes": ["patch"],
+            "prPriority": 10,
+            "matchPackageNames": [
+                "drupal/core-composer-scaffold",
+                "drupal/core-project-message",
+                "drupal/core-recommended"
+            ]
+        },
+        {
+            "groupName": "Core security minor/major - skipped, not auto-fixed",
+            "matchDatasources": ["packagist"],
+            "isVulnerabilityAlert": true,
+            "matchUpdateTypes": ["minor", "major"],
+            "enabled": false,
+            "matchPackageNames": [
+                "drupal/core-composer-scaffold",
+                "drupal/core-project-message",
+                "drupal/core-recommended"
+            ]
+        },
+        {
+            "groupName": "Contrib minor and patch",
+            "groupSlug": "contrib-minor-patch",
+            "matchDatasources": ["packagist"],
+            "separateMinorPatch": false,
+            "minimumReleaseAge": "3 days",
+            "prPriority": 1,
+            "matchPackageNames": [
+                "/.*/",
+                "!drupal/core-composer-scaffold",
+                "!drupal/core-project-message",
+                "!drupal/core-recommended"
+            ]
+        },
+        {
+            "groupName": "Security updates priority",
+            "matchDatasources": ["packagist"],
+            "isVulnerabilityAlert": true,
+            "minimumReleaseAge": null,
+            "prPriority": 100
+        }
+    ]
+}
