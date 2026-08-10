@@ -35,19 +35,6 @@
         "web/profiles/contrib/**",
         "web/libraries/**"
     ],
-    "postUpgradeTasks": {
-        "commands": ["composer install --no-interaction --no-progress"],
-        "fileFilters": [
-            "composer.json",
-            "composer.lock",
-            "composer-manifest.yaml",
-            "vendor/**",
-            "web/core/**",
-            "web/modules/contrib/**",
-            "web/themes/contrib/**"
-        ],
-        "executionMode": "branch"
-    },
     "packageRules": [
         {
             "matchPackageNames": ["php"],

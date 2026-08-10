@@ -1,59 +1,54 @@
 # Dependency updates with Renovate
 
-Opinionated renovate-bot config for automatic dependency updates.
-Anything that needs human judgement is deliberately left out.
+Opinionated Renovate config template for Drupal projects. Copy it to the project
+root as `renovate.json`. Anything needing human judgement is deliberately left out.
 
-## What Renovate does automatically
+## What Renovate does
 
 | Update | Behaviour |
 | --- | --- |
-| Drupal core **patch** (10.4.1 → 10.4.2) | Own PR, group `core-patch` |
-| Contrib **minor + patch** | One combined PR, group `contrib-minor-patch`, after a 3-day grace period for every release |
-| **Security** fixes (OSV alerts) | Own PR, highest priority, no soak delay |
+| Drupal core **patch** (11.4.4 → 11.4.5) | Own PR, group `patch-core` |
+| Contrib **minor + patch** | One combined PR, group `minor-patch-contrib` |
+
+MRs use the `deps/` branch prefix, get the `dependencies` label, are assigned to `bserem`,
+and are never automerged.
 
 ## What is left to a human
 
-- **All major updates**, for every package.
-- **Drupal core minors** (10.3 → 10.4) — these need a real upgrade check.
-- **Core security advisories** that require a minor or major bump. Renovate will
-  not open a PR for these; watch the Drupal security advisories directly.
-- Non-Drupal (sub)dependencies
+- **All major updates**, for every package (`major.enabled: false`).
+- **Drupal core minors** (11.3 → 11.4) — these need a real upgrade check.
+- **`php` itself** — the package is disabled.
+- **Security advisories.** There is no `vulnerabilityAlerts` block and no
+  vulnerability handling at all. Watch the Drupal security advisories directly.
+- Anything outside composer — only the `composer` manager is enabled.
 
 ## Key principles
 
-### Lock file first
-`rangeStrategy: update-lockfile` means Renovate edits
-`composer.lock` and leaves the constraints in `composer.json` alone.
+**Lock file first.** `rangeStrategy: update-lockfile` edits `composer.lock` and
+leaves the constraints in `composer.json` alone.
 
-### Build artifacts stay consistent.
-`vendor/` and the built `web/` root are committed, so every branch runs `composer
-install` once (`postUpgradeTasks`, `executionMode: branch`) and commits the result
-alongside the lock file.
+**Build artifacts stay consistent.** `vendor/` and the built `web/` root are
+committed, so each branch runs `composer install` once (`postUpgradeTasks`,
+`executionMode: branch`) and commits the result alongside the lock file.
 
-@todo: Consider marking these paths as`linguist-generated` so PR diffs stay reviewable.
+**Rule order matters.** Later `packageRules` win. The broad contrib rule comes
+first, the narrow core rules last, so core cannot be pulled into the contrib
+group. Do not append a broad rule to the end — it overwrites `groupName` on
+everything above it and collapses both groups into one PR.
 
-### Security
-Vulnerability PRs use the *lowest* version that closes the advisory, skip the 3-day
-soak, and carry `prPriority: 100`. The rule sits last in `packageRules` on purpose,
-as later rules win, so nothing downstream can dilute its priority.
-
-### Throughput is capped
-Up to 3 open PRs at a time, created only between 00:00 and 06:00 UTC. The cap is 3
-rather than 1 so a routine PR left open cannot block a security PR from being created.
+**Throughput is capped.** Max 3 open PRs, max 2 created per hour.
 
 ## Operational requirements
 
-- **Self-hosted Renovate only.** `postUpgradeTasks` requires `composer install`
-  to be allow-listed in the runner's `allowedCommands`. On the Mend-hosted
-  GitHub App the hook is silently skipped and PRs land with a stale `vendor/`.
-- **The runner must fire inside the schedule window.** If cron runs Renovate
-  outside 00:00–06:00 UTC, it wakes, sees it is out of schedule, and does
-  nothing.
-- **Only the `composer` manager is enabled.** npm dependencies are _currently_ not tracked.
-
-## Known gap
-
-`drupal/core-dev` is not listed alongside the three core metapackages
-(`core-recommended`, `core-composer-scaffold`, `core-project-message`). If the
-project requires it, it currently falls into the contrib group and can be bumped
-to a minor while core stays pinned. Add it to all three core rules if present.
+- **Self-hosted Renovate only.** `postUpgradeTasks` needs `composer install`
+  allow-listed in the runner's `allowedCommands`
+  (`RENOVATE_ALLOWED_COMMANDS='["^composer install"]'` or `config.js`) — an
+  admin-side option that **cannot** be set here. On the Mend-hosted app the hook
+  is silently skipped and PRs land with a stale `vendor/`.
+- **The runner needs PHP and composer.** With `update-lockfile` the only change is
+  a regenerated `composer.lock`; if composer cannot run you get an MR with a
+  description and no commits. Use the full `renovate/renovate` image or
+  `RENOVATE_BINARY_SOURCE=install`, and check the MR body for an
+  "Artifact update problem" block.
+- **Validate before shipping** changes:
+  `npx --package renovate renovate-config-validator renovate.json`
