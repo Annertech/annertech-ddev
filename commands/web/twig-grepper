@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Map __TwigTemplate_* classes from a pasted backtrace to template files
+## Usage: twig-grepper [file]
+## Example: "ddev twig-grepper backtrace.txt"
+## Example: "pbpaste | ddev twig-grepper"
+## Example: "wl-paste | ddev twig-grepper"
+
+GREEN='\033[1;32m'; RED='\033[0;31m'; GREY='\033[0;90m'; NC='\033[0m'
+
+ROOT=/var/www/html/${DDEV_DOCROOT:-web}
+CACHE=$ROOT/sites/default/files/php/twig
+
+if [ $# -eq 0 ] && [ -t 0 ]; then
+  echo "Usage: ddev twig-grepper backtrace.txt" >&2
+  echo "       pbpaste | ddev twig-grepper" >&2
+  echo "       wl-paste | ddev twig-grepper" >&2
+  exit 1
+fi
+
+INPUT=$(cat "$@") || exit 1
+
+if [ -z "$INPUT" ]; then
+  echo "No input provided." >&2
+  exit 1
+fi
+
+echo "$INPUT" | grep -o '__TwigTemplate_[a-z0-9]*' | sort -u | while read -r class; do
+  file=$(grep -rl "$class" "$CACHE" | head -1)
+  if [ -z "$file" ]; then
+    echo -e "${RED}not in cache${NC}"
+  else
+    path=$(grep -m1 "new Source" "$file" | sed -E 's/.*, "([^"]*)"\);.*/\1/')
+    echo -e "${GREEN}${path#"$ROOT"/}${NC}"
+  fi
+  echo -e "${GREY}  $class${NC}"
+done
