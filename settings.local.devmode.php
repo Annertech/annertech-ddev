@@ -26,6 +26,14 @@ $config['search_api.server.solr']['backend_config']['connector_config']['port'] 
 $config['search_api.server.solr']['backend_config']['connector_config']['path'] = '/';
 $config['search_api.server.solr']['backend_config']['connector_config']['core'] = 'dev';
 
+// These changes are for ddev-solr only.
+if (getenv('DDEV_SOLR') === 'ddev-solr') {
+  $config['search_api.server.solr']['backend_config']['connector'] = 'solr_cloud_basic_auth';
+  $config['search_api.server.solr']['backend_config']['connector_config']['username'] = 'solr';
+  $config['search_api.server.solr']['backend_config']['connector_config']['password'] = 'SolrRocks';
+  $config['search_api.server.solr']['backend_config']['connector_config']['core'] = 'collection_1';
+}
+
 // Override SMTP configuration for DDEV.
 $config['smtp.settings']['smtp_host'] = 'localhost';
 $config['smtp.settings']['smtp_port'] = '1025';
