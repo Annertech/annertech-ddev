@@ -3,9 +3,9 @@
 #annertech-ddev
 
 ## Description: Scan GitLab projects for composer packages and open Teamwork update cards
-## Usage: package-checker-and-card-maker [--dry-run] <vendor/package[:max-insecure-version]> [more...]
+## Usage: package-checker-and-card-maker [--dry-run] [--auto-assign] <vendor/package[:max-insecure-version]> [more...]
 ## Aliases: paccma, paccman
-## Example: "ddev paccma drupal/diff drupal/externalauth" \n"ddev paccma --dry-run drupal/diff:1.10"
+## Example: "ddev paccma drupal/diff drupal/externalauth" \n"ddev paccma --dry-run drupal/diff:1.10" \n"ddev paccma --auto-assign drupal/diff"
 
 set -euo pipefail
 
@@ -21,9 +21,15 @@ set -euo pipefail
 #
 #   ddev paccma drupal/diff drupal/externalauth
 #   ddev paccma --dry-run drupal/diff:1.10    # show what would happen
+#   ddev paccma --auto-assign drupal/diff     # assign created cards to Deputy, Guardian, DM
 #
 # With a :version suffix only installs <= that version match (same semantics as
 # package-checker); without it every project using the package matches.
+#
+# --auto-assign reads TEAMWORK_DEPUTY_ID, TEAMWORK_GUARDIAN_ID and
+# TEAMWORK_DM_ID from each repo's own .ddev/.env.anner (same file the
+# TEAMWORK_PROJECT_ID lookup uses) and assigns the created card to whichever
+# of those are set.
 #
 # Env (GitLab side, same as package-checker):
 #   GITLAB_GROUP   group path to scan (default: clients)
@@ -47,15 +53,17 @@ LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
 
 # --- args ---------------------------------------------------------------------
 DRY_RUN=false
+AUTO_ASSIGN=false
 PKGS=(); MAXES=()
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
+    --auto-assign) AUTO_ASSIGN=true ;;
     *:*) PKGS+=("${arg%%:*}"); MAXES+=("${arg#*:}") ;;
     *)   PKGS+=("$arg"); MAXES+=("") ;;
   esac
 done
-[ "${#PKGS[@]}" -ge 1 ] || { echo "usage: ddev package-checker-and-card-maker [--dry-run] <vendor/package[:version]> [more...]" >&2; exit 1; }
+[ "${#PKGS[@]}" -ge 1 ] || { echo "usage: ddev package-checker-and-card-maker [--dry-run] [--auto-assign] <vendor/package[:version]> [more...]" >&2; exit 1; }
 
 TW_API_KEY="${TEAMWORK_API_KEY:-}"
 DOMAIN="${TEAMWORK_DOMAIN:-}"
@@ -141,8 +149,8 @@ is_insecure() { # <version> <max>
 
 # Create the Teamwork card on a project's board. Uses the "Cards" tasklist
 # (case-insensitive) or falls back to the first one, like tw-batch-card-maker.
-create_card() { # <teamwork-project-id> <description>
-  local tw_id="$1" desc="$2" tl_response tl_status tasklist_id data response http_code body
+create_card() { # <teamwork-project-id> <description> [comma-separated assignee ids]
+  local tw_id="$1" desc="$2" assignees="${3:-}" tl_response tl_status tasklist_id data response http_code body
 
   tl_response=$(tw_curl -s "https://${DOMAIN}/projects/${tw_id}/tasklists.json")
   [ -n "$tl_response" ] || { echo "failed to fetch tasklists"; return 1; }
@@ -156,8 +164,9 @@ create_card() { # <teamwork-project-id> <description>
       .id // empty' <<<"$tl_response")
   [ -n "$tasklist_id" ] || { echo "no tasklist found"; return 1; }
 
-  data=$(jq -n --arg name "$CARD_TITLE" --arg desc "$desc" \
-      '{"todo-item": {"content": $name, "description": $desc}}')
+  data=$(jq -n --arg name "$CARD_TITLE" --arg desc "$desc" --arg assignees "$assignees" \
+      '{"todo-item": ({"content": $name, "description": $desc}
+          + (if $assignees != "" then {"responsible-party-id": $assignees} else {} end))}')
 
   response=$(tw_curl -s -w "\n%{http_code}" -X POST \
       -H "Content-Type: application/json" \
@@ -206,10 +215,22 @@ while IFS=$'\t' read -r id name branch; do
 
   pkg_list=$(IFS=', '; echo "${repo_pkgs[*]}")
 
-  # look up the Teamwork board id from the repo's own .ddev/.env.anner
+  # look up the Teamwork board id (and, for --auto-assign, the key people
+  # ids) from the repo's own .ddev/.env.anner
   tw_id=""
+  assignees=""
   if env_raw=$(get_file "$id" "$branch" "${ENV_ANNER//\//%2F}"); then
     tw_id=$(grep -E '^TEAMWORK_PROJECT_ID=' <<<"$env_raw" | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'" || true)
+    if $AUTO_ASSIGN; then
+      deputy_id=$(grep -E '^TEAMWORK_DEPUTY_ID=' <<<"$env_raw" | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'" || true)
+      guardian_id=$(grep -E '^TEAMWORK_GUARDIAN_ID=' <<<"$env_raw" | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'" || true)
+      dm_id=$(grep -E '^TEAMWORK_DM_ID=' <<<"$env_raw" | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'" || true)
+      ids=()
+      [ -n "$deputy_id" ] && ids+=("$deputy_id")
+      [ -n "$guardian_id" ] && ids+=("$guardian_id")
+      [ -n "$dm_id" ] && ids+=("$dm_id")
+      assignees=$(IFS=,; echo "${ids[*]}")
+    fi
   fi
 
   if [ -z "$tw_id" ]; then
@@ -219,12 +240,16 @@ while IFS=$'\t' read -r id name branch; do
   fi
 
   if $DRY_RUN; then
-    echo -e "${GREEN}$name${NC} ($pkg_list): would make card on Teamwork project $tw_id"
+    if [ -n "$assignees" ]; then
+      echo -e "${GREEN}$name${NC} ($pkg_list): would make card on Teamwork project $tw_id, assigned to $assignees"
+    else
+      echo -e "${GREEN}$name${NC} ($pkg_list): would make card on Teamwork project $tw_id"
+    fi
     made=$((made+1))
     continue
   fi
 
-  if result=$(create_card "$tw_id" "Please update $pkg_list"); then
+  if result=$(create_card "$tw_id" "Please update $pkg_list" "$assignees"); then
     echo -e "${GREEN}$name${NC} ($pkg_list): card made - $result"
     made_urls+=("$name"$'\t'"$result")
     made=$((made+1))
