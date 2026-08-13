@@ -178,7 +178,8 @@ if (isset($platformsh->branch)) {
 
 ### Teamwork Integration
 
-Several commands integrate with Teamwork (`tw-comment`, `tw-timelog`, `open-issue`, `timew`, `tw-description`). These require the following environment variables to be set on your host machine:
+Several commands integrate with Teamwork (`tw-comment`, `tw-timelog`, `open-issue`, `timew`, `tw-description`).  
+These require the following environment variables to be set on your host machine (See [Locating your Teamwork API Key](https://support.teamwork.com/projects/using-teamwork/locating-your-api-key)):
 
 ```bash
 export TEAMWORK_DOMAIN="projects.yourcompany.com"
