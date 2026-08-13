@@ -18,6 +18,7 @@ echo_yellow() { echo -e "${YELLOW}$1${NC}"; }
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
 . "$LIB_DIR/tw-projects.sh"
+. "$LIB_DIR/tw-people.sh"
 . "$LIB_DIR/tw-curl.sh"
 
 TW_API_KEY="${TEAMWORK_API_KEY:-}"
@@ -90,11 +91,22 @@ while IFS= read -e -r line; do
 done
 CARD_DESC="${CARD_DESC%$'\n'}"
 
+# Optionally assign the card to a person
+ASSIGNEE_ID=""
+read -e -r -p "$(echo -e "${YELLOW}Assign card to person? (y/n): ${NC}")" ASSIGN_CONFIRM
+if [[ "$ASSIGN_CONFIRM" =~ ^[Yy] ]]; then
+    tw_select_person "$PROJECT_ID"
+    ASSIGNEE_ID="$PERSON_ID"
+    echo_yellow "Assigning to $PERSON_NAME (ID: $ASSIGNEE_ID)"
+fi
+
 # Build JSON payload
 DATA=$(jq -n \
     --arg name "$CARD_TITLE" \
     --arg desc "$CARD_DESC" \
-    '{ "todo-item": { "content": $name, "description": $desc } }')
+    --arg assignee "$ASSIGNEE_ID" \
+    '{ "todo-item": ({ "content": $name, "description": $desc }
+        + (if $assignee != "" then { "responsible-party-id": $assignee } else {} end)) }')
 
 # Create the task
 echo_yellow "Creating task..."
