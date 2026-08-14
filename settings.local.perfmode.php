@@ -54,6 +54,7 @@ $config['opentelemetry.settings']['disable'] = true;
 
 // Disable any IP restrictions.
 $config['restrict_ip.settings']['enable'] = FALSE;
+$config['restrict_route_by_ip.settings']['enable'] = FALSE;
 
 // Disable Fastly on non-production environments.
 $config['fastly.settings']['api_key'] = '';
