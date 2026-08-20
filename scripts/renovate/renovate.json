@@ -3,11 +3,11 @@
     "logLevelRemap": [
       {
         "matchMessage": "/requirements cannot be resolved/",
-        "newLogLevel": "debug"
+        "newLogLevel": "info"
       },
       {
         "matchMessage": "/Detected empty commit/",
-        "newLogLevel": "debug"
+        "newLogLevel": "info"
       }
     ],
     "automerge": false,
@@ -24,6 +24,7 @@
         "**/node_modules/**",
         "**/bower_components/**",
         "**/vendor/**",
+        "vendor/**",
         "**/examples/**",
         "**/__tests__/**",
         "**/test/**",
@@ -54,46 +55,9 @@
             "enabled": false
         },
         {
-            "groupName": "Contrib: minor and updates",
-            "groupSlug": "minor-patch-contrib",
-            "matchDatasources": ["packagist"],
-            "separateMinorPatch": false,
-            "matchPackageNames": [
-                "/.*/",
-                "!drupal/core-composer-scaffold",
-                "!drupal/core-project-message",
-                "!drupal/core-recommended"
-            ]
-        },
-        {
-            "matchDatasources": ["packagist"],
-            "separateMinorPatch": true,
-            "matchPackageNames": [
-                "drupal/core-composer-scaffold",
-                "drupal/core-project-message",
-                "drupal/core-recommended"
-            ]
-        },
-        {
-            "matchDatasources": ["packagist"],
-            "matchUpdateTypes": ["minor"],
-            "enabled": false,
-            "matchPackageNames": [
-                "drupal/core-composer-scaffold",
-                "drupal/core-project-message",
-                "drupal/core-recommended"
-            ]
-        },
-        {
-            "groupName": "Core: patch update",
-            "groupSlug": "patch-core",
-            "matchDatasources": ["packagist"],
-            "matchUpdateTypes": ["patch"],
-            "matchPackageNames": [
-                "drupal/core-composer-scaffold",
-                "drupal/core-project-message",
-                "drupal/core-recommended"
-            ]
+            "groupName": "Drupal dependencies",
+            "groupSlug": "drupal-deps",
+            "matchUpdateTypes": ["minor", "patch"]
         }
     ]
 }
