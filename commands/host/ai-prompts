@@ -43,6 +43,7 @@ echo_yellow() { echo -e "${YELLOW}$1${NC}" >&2; }
 OPTIONS=(
     "1. BackstopJS Init"
     "2. Access Log Forensics (GDPR-safe: IPv4 masked, mapping kept locally)"
+    "3. CSP Violation Triage"
 )
 
 # AI Agent options
@@ -241,6 +242,53 @@ access_log_forensics() {
     rm -f "$tmp_file" "$masked_file"
 }
 
+# CSP Violation Triage function
+csp_violation_triage() {
+    if [[ ! -f "config/sync/seckit.settings.yml" ]]; then
+        echo_red "Error: config/sync/seckit.settings.yml not found"
+        exit 1
+    fi
+
+    # Select AI agent
+    local agent_selection
+    agent_selection=$(select_agent)
+    if [[ -z "$agent_selection" ]]; then
+        echo_red "No agent selected... Exiting"
+        exit 0
+    fi
+
+    local agent_label
+    agent_label=$(echo "$agent_selection" | sed 's/^[0-9]*\. //')
+
+    echo_green "Running CSP Violation Triage with ${agent_label}..."
+    echo ""
+
+    local prompt_content
+    prompt_content=$(cat "${DDEV_APPROOT}/.ddev/scripts/prompts/csp-violation-triage.md")
+
+    case "$agent_label" in
+        "Gemini")
+            gemini "$prompt_content"
+            ;;
+        "Copilot")
+            copilot "$prompt_content"
+            ;;
+        "Claude")
+            claude --model sonnet --effort low "$prompt_content"
+            ;;
+        "Antigravity")
+            agy --prompt "$prompt_content"
+            ;;
+        "Prompt")
+            echo "$prompt_content"
+            ;;
+        *)
+            echo_red "Unknown agent: $agent_label"
+            exit 1
+            ;;
+    esac
+}
+
 # Main function
 main() {
     # Banner
@@ -270,6 +318,9 @@ main() {
             ;;
         "Access Log Forensics "*)
             access_log_forensics
+            ;;
+        "CSP Violation Triage")
+            csp_violation_triage
             ;;
         *)
             echo_red "Unknown action: $action_label"
