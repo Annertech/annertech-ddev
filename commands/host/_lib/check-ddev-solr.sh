@@ -5,8 +5,8 @@ SOLR_MANIFEST="$APPROOT/.ddev/addon-metadata/solr/manifest.yaml"
 if [[ ! -f "$SOLR_MANIFEST" ]]; then
   pass "ddev-drupal-solr not installed — project does not use Solr"
 else
-  SOLR_VERSION=$(grep -E '^version:' "$SOLR_MANIFEST" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
-  SOLR_REPO=$(grep -E '^repository:' "$SOLR_MANIFEST" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
+  SOLR_VERSION=$(strip_yaml "$SOLR_MANIFEST" | grep -E '^version:' | awk -F': ' '{print $2}' | tr -d '"' | xargs)
+  SOLR_REPO=$(strip_yaml "$SOLR_MANIFEST" | grep -E '^repository:' | awk -F': ' '{print $2}' | tr -d '"' | xargs)
 
   if [[ "$SOLR_REPO" == "ddev/ddev-drupal-solr" || "$SOLR_REPO" == "ddev/ddev-drupal9-solr" ]]; then
     pass "ddev-drupal-solr repository is correct ($SOLR_REPO)"

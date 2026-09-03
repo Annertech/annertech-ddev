@@ -3,7 +3,7 @@
 if [[ -n "$EXT_FILE" ]]; then
   CDN_NAME=""
   for cdn_mod in fastly cloudflare; do
-    if grep -qE "^\s+${cdn_mod}:" "$EXT_FILE"; then
+    if strip_yaml "$EXT_FILE" | grep -qE "^\s+${cdn_mod}:"; then
       CDN_NAME="$cdn_mod"
       BEHIND_CDN=true
     fi
@@ -16,17 +16,18 @@ fi
 if [[ ! -f "$ROUTES_FILE" ]]; then
   warn "Upsun: .platform/routes.yaml not found — skipping cache check"
 else
-  if grep -qE "cache:" "$ROUTES_FILE"; then
+  ROUTES_CONTENT=$(strip_yaml "$ROUTES_FILE")
+  if echo "$ROUTES_CONTENT" | grep -qE "cache:"; then
     if $BEHIND_CDN; then
-      if grep -qE "enabled:\s*false" "$ROUTES_FILE"; then
+      if echo "$ROUTES_CONTENT" | grep -qE "enabled:\s*false"; then
         pass "Upsun route cache is disabled (correct — project is behind a CDN)"
       else
         fail "Upsun route cache must be DISABLED when behind a CDN (fastly/cloudflare detected)"
       fi
     else
-      if grep -qE "enabled:\s*true" "$ROUTES_FILE"; then
+      if echo "$ROUTES_CONTENT" | grep -qE "enabled:\s*true"; then
         pass "Upsun route cache is enabled"
-      elif grep -qE "enabled:\s*false" "$ROUTES_FILE"; then
+      elif echo "$ROUTES_CONTENT" | grep -qE "enabled:\s*false"; then
         fail "Upsun route cache is DISABLED but no CDN module detected — should be enabled"
       else
         pass "Upsun route cache key found in routes.yaml"
@@ -38,7 +39,7 @@ else
 fi
 
 if [[ ( "$DDEV_UPSTREAM_PROVIDER" == "platform" || "$DDEV_UPSTREAM_PROVIDER" == "upsun" ) && -n "$EXT_FILE" ]]; then
-  if grep -qE "^\s+page_cache:" "$EXT_FILE"; then
+  if strip_yaml "$EXT_FILE" | grep -qE "^\s+page_cache:"; then
     fail "page_cache module is ENABLED — Upsun handles page caching; disable it"
   else
     pass "Drupal page_cache module is disabled (Upsun handles anonymous caches)"

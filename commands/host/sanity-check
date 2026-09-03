@@ -27,6 +27,9 @@ bail_if_critical() {
 }
 title() { echo -e "\n── $1 ──"; }
 group() { echo -e "\n${BOLD}$1${NC}"; }
+# Strips full-line and trailing '#' comments from a YAML file so checks below
+# never match commented-out config (see issue #158).
+strip_yaml() { sed -e 's/#.*$//' "$1" 2>/dev/null; }
 
 # ── Version constraints ──────────────────────────────────────────────────────
 PHP_MIN="8.3"
