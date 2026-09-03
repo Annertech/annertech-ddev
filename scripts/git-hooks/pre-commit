@@ -10,10 +10,14 @@
 # Checks for wrong performance settings
 #
 FILES_PATTERN='system\.performance\.yml$'
+# Modules ship their own default config under config/install|config/optional
+# (e.g. web/core/modules/system/config/install/system.performance.yml) — that
+# is not the site's active config, so it must never trigger these checks.
+SHIPPED_CONFIG_EXCLUDE='(^|/)config/(install|optional)/'
 
 # Abort commit if you are disabling CSS/JS aggregation
 FORBIDDEN='preprocess: false'
-STAGED_FILES=$(git diff --cached --name-only | grep -E "$FILES_PATTERN")
+STAGED_FILES=$(git diff --cached --name-only | grep -vE "$SHIPPED_CONFIG_EXCLUDE" | grep -E "$FILES_PATTERN")
 
 if [ -n "$STAGED_FILES" ]; then
     echo "$STAGED_FILES" | xargs grep --color --with-filename -n "$FORBIDDEN" \
@@ -24,7 +28,7 @@ fi
 
 # Abort commit if you are disabling browser caching
 FORBIDDEN='max_age: 0'
-STAGED_FILES=$(git diff --cached --name-only | grep -vE "(^|/)tests(/|$)" | grep -E "$FILES_PATTERN")
+STAGED_FILES=$(git diff --cached --name-only | grep -vE "(^|/)tests(/|$)" | grep -vE "$SHIPPED_CONFIG_EXCLUDE" | grep -E "$FILES_PATTERN")
 if [ -n "$STAGED_FILES" ]; then
     echo "$STAGED_FILES" | xargs grep --color --with-filename -n "$FORBIDDEN" \
     && echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
@@ -34,7 +38,7 @@ fi
 
 # Abort commit if you are enabling GZIPping of CSS/JS assets
 FORBIDDEN='gzip: true'
-STAGED_FILES=$(git diff --cached --name-only | grep -vE "(^|/)tests(/|$)" | grep -E "$FILES_PATTERN")
+STAGED_FILES=$(git diff --cached --name-only | grep -vE "(^|/)tests(/|$)" | grep -vE "$SHIPPED_CONFIG_EXCLUDE" | grep -E "$FILES_PATTERN")
 if [ -n "$STAGED_FILES" ]; then
     echo "$STAGED_FILES" | xargs grep --color --with-filename -n "$FORBIDDEN" \
     && echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
@@ -55,7 +59,7 @@ if [ -f ".ddev/.env.anner" ]; then
     fi
 fi
 
-STAGED_FILES=$(git diff --cached --name-only | grep -vE "(^|/)tests(/|$)" | grep -E "$FILES_PATTERN")
+STAGED_FILES=$(git diff --cached --name-only | grep -vE "(^|/)tests(/|$)" | grep -vE "$SHIPPED_CONFIG_EXCLUDE" | grep -E "$FILES_PATTERN")
 if [ -n "$STAGED_FILES" ]; then
     for FORBIDDEN_PATTERN in "${FORBIDDEN_PATTERNS[@]}"; do
         echo "$STAGED_FILES" | xargs grep --color --with-filename -n "$FORBIDDEN_PATTERN" \
