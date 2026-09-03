@@ -126,6 +126,8 @@ run "Exporting config from database (drush cex)"          ddev exec drush cex -y
 
 ELAPSED=$(( $(date +%s) - START_TIME ))
 echo ""
+ddev drush uli
+echo ""
 echo_green "All done! Beer successfully held. Go get 'em."
 echo_green "Total time: $(( ELAPSED / 60 ))m $(( ELAPSED % 60 ))s"
 echo_green "🍺"
