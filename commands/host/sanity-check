@@ -71,6 +71,7 @@ group "DRUPAL"
 . "$LIB_DIR/check-drupal-files-view.sh"
 . "$LIB_DIR/check-drupal-simplei.sh"
 . "$LIB_DIR/check-drupal-gin.sh"
+. "$LIB_DIR/check-drupal-field-group-accordion.sh"
 $BEST_PRACTICES && . "$LIB_DIR/check-drupal-image-styles.sh"
 
 # ════════════════════════════════════════════════════════════════════════════
