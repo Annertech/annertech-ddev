@@ -49,10 +49,15 @@ fi
 # Abort commit if you are **enabling** modules that should not be enabled
 FILES_PATTERN='core\.extension\.yml$'
 FORBIDDEN_PATTERNS=('devel: 0' 'devel_php: 0' 'drush_endpoint: 0')
+EXT_FILE=$(find . -path "*/config/sync/core.extension.yml" ! -path "*/.git/*" 2>/dev/null | head -1)
 if [ -f ".ddev/.env.anner" ]; then
     source ".ddev/.env.anner"
-    # Also include page_cache in forbidden modules for Platform (Upsun)
-    if [ "$DDEV_UPSTREAM_PROVIDER" = "platform" ] || [ "$DDEV_UPSTREAM_PROVIDER" = "upsun" ]; then
+    # page_cache is only forbidden when a CDN we can invalidate (fastly/cloudflare)
+    # is present. Without one, Upsun's cache can't be tag-invalidated, so
+    # page_cache is now a useful extra layer — decision reversed, see issue #132.
+    if { [ "$DDEV_UPSTREAM_PROVIDER" = "platform" ] || [ "$DDEV_UPSTREAM_PROVIDER" = "upsun" ]; } \
+        && [ -n "$EXT_FILE" ] \
+        && grep -qE "^\s+(fastly|cloudflare):" "$EXT_FILE"; then
         # Do NOT remove the empty space before the module name for this one!
         # It will match dynamic_page_cache too if you do so.
         FORBIDDEN_PATTERNS+=( ' page_cache: 0')
