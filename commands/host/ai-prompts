@@ -48,11 +48,11 @@ OPTIONS=(
 
 # AI Agent options
 AI_AGENTS=(
-    "1. Gemini"
-    "2. Copilot"
-    "3. Claude"
-    "4. Antigravity"
-    "5. Prompt"
+    "1. Claude"
+    "2. Codex"
+    "3. Antigravity"
+    "4. Prompt"
+    # "Copilot" - dead for now, keep case branch below for a quick revert
 )
 
 # Select action
@@ -67,8 +67,39 @@ select_agent() {
     printf '%s\n' "${AI_AGENTS[@]}" | fzf --reverse --height=50% --header="AI Agent"
 }
 
+# Run the given prompt through the given agent. Single place for the
+# agent dispatch so each action function doesn't repeat the case statement.
+call_agent() {
+    local agent_label="$1"
+    local prompt_content="$2"
+
+    case "$agent_label" in
+        "Claude")
+            claude --model sonnet --effort low "$prompt_content"
+            ;;
+        "Codex")
+            codex "$prompt_content"
+            ;;
+        "Antigravity")
+            agy --prompt "$prompt_content"
+            ;;
+        "Prompt")
+            echo "$prompt_content"
+            ;;
+        # "Copilot")
+        #     copilot "$prompt_content"
+        #     ;;
+        *)
+            echo_red "Unknown agent: $agent_label"
+            exit 1
+            ;;
+    esac
+}
+
 # BackstopJS Init function
 backstop_init() {
+    local agent_label="$1"
+
     # Extract environment variables from DDEV container
     TEST_DOMAIN=$(ddev exec env | grep -E '^DDEV_PRIMARY_URL=' | cut -d= -f2)
     REFERENCE_DOMAIN=$(ddev exec env | grep -E '^STAGE_FILE_PROXY_URL=' | cut -d= -f2)
@@ -90,18 +121,6 @@ backstop_init() {
         exit 1
     fi
 
-    # Select AI agent
-    local agent_selection
-    agent_selection=$(select_agent)
-    if [[ -z "$agent_selection" ]]; then
-        echo_red "No agent selected... Exiting"
-        exit 0
-    fi
-
-    # Extract agent label
-    local agent_label
-    agent_label=$(echo "$agent_selection" | sed 's/^[0-9]*\. //')
-
     echo_green "Initializing BackstopJS configuration with ${agent_label}..."
     echo ""
 
@@ -111,32 +130,13 @@ backstop_init() {
         -e "s|__REFERENCE_DOMAIN__|$REFERENCE_DOMAIN|g" \
         ../../.ddev/scripts/prompts/backstop-init.md)
 
-    # Call the selected AI agent
-    case "$agent_label" in
-        "Gemini")
-            gemini "$prompt_content"
-            ;;
-        "Copilot")
-            copilot "$prompt_content"
-            ;;
-        "Claude")
-            claude --model sonnet --effort low "$prompt_content"
-            ;;
-	"Antigravity")
-	    agy --prompt "$prompt_content"
-            ;;
-	"Prompt")
-	   echo "$prompt_content"
-            ;;
-        *)
-            echo_red "Unknown agent: $agent_label"
-            exit 1
-            ;;
-    esac
+    call_agent "$agent_label" "$prompt_content"
 }
 
 # Access Log Forensics function
 access_log_forensics() {
+    local agent_label="$1"
+
     # Pick a log file from ./logs/ directory, fallback to manual input
     local log_file
     local log_files
@@ -169,18 +169,6 @@ access_log_forensics() {
         fi
         work_file="$tmp_file"
     fi
-
-    # Select AI agent
-    local agent_selection
-    agent_selection=$(select_agent)
-    if [[ -z "$agent_selection" ]]; then
-        echo_red "No agent selected... Exiting"
-        rm -f "$tmp_file"
-        exit 0
-    fi
-
-    local agent_label
-    agent_label=$(echo "$agent_selection" | sed 's/^[0-9]*\. //')
 
     # GDPR: mask IPs before sending to LLM. Prefix-preserving pseudonymization
     # keeps subnet structure (so botnet /24 patterns are still detectable) while
@@ -220,21 +208,7 @@ access_log_forensics() {
     # Run the LLM with cwd=./logs (mirrors backstop_init's cd into tests/backstop).
     # The masked log lives in /tmp (absolute path in the prompt) so it's still
     # reachable; the LLM's cwd is just scoped to the logs directory.
-    if ! (cd "$log_dir" && case "$agent_label" in
-        "Gemini")
-            gemini "$prompt_content"
-            ;;
-        "Copilot")
-            copilot "$prompt_content"
-            ;;
-        "Claude")
-            claude --model sonnet --effort low "$prompt_content"
-            ;;
-        *)
-            echo_red "Unknown agent: $agent_label"
-            exit 1
-            ;;
-    esac); then
+    if ! (cd "$log_dir" && call_agent "$agent_label" "$prompt_content"); then
         rm -f "$tmp_file" "$masked_file"
         exit 1
     fi
@@ -244,21 +218,12 @@ access_log_forensics() {
 
 # CSP Violation Triage function
 csp_violation_triage() {
+    local agent_label="$1"
+
     if [[ ! -f "config/sync/seckit.settings.yml" ]]; then
         echo_red "Error: config/sync/seckit.settings.yml not found"
         exit 1
     fi
-
-    # Select AI agent
-    local agent_selection
-    agent_selection=$(select_agent)
-    if [[ -z "$agent_selection" ]]; then
-        echo_red "No agent selected... Exiting"
-        exit 0
-    fi
-
-    local agent_label
-    agent_label=$(echo "$agent_selection" | sed 's/^[0-9]*\. //')
 
     echo_green "Running CSP Violation Triage with ${agent_label}..."
     echo ""
@@ -266,27 +231,7 @@ csp_violation_triage() {
     local prompt_content
     prompt_content=$(cat "${DDEV_APPROOT}/.ddev/scripts/prompts/csp-violation-triage.md")
 
-    case "$agent_label" in
-        "Gemini")
-            gemini "$prompt_content"
-            ;;
-        "Copilot")
-            copilot "$prompt_content"
-            ;;
-        "Claude")
-            claude --model sonnet --effort low "$prompt_content"
-            ;;
-        "Antigravity")
-            agy --prompt "$prompt_content"
-            ;;
-        "Prompt")
-            echo "$prompt_content"
-            ;;
-        *)
-            echo_red "Unknown agent: $agent_label"
-            exit 1
-            ;;
-    esac
+    call_agent "$agent_label" "$prompt_content"
 }
 
 # Main function
@@ -309,18 +254,29 @@ main() {
     local action_label
     action_label=$(echo "$action_selection" | sed 's/^[0-9]*\. //')
 
+    # Select AI agent once, up front, for whichever action was chosen
+    local agent_selection
+    agent_selection=$(select_agent)
+    if [[ -z "$agent_selection" ]]; then
+        echo_red "No agent selected... Exiting"
+        exit 0
+    fi
+
+    local agent_label
+    agent_label=$(echo "$agent_selection" | sed 's/^[0-9]*\. //')
+
     echo ""
 
     # Execute selected action
     case "$action_label" in
         "BackstopJS Init")
-            backstop_init
+            backstop_init "$agent_label"
             ;;
         "Access Log Forensics "*)
-            access_log_forensics
+            access_log_forensics "$agent_label"
             ;;
         "CSP Violation Triage")
-            csp_violation_triage
+            csp_violation_triage "$agent_label"
             ;;
         *)
             echo_red "Unknown action: $action_label"
