@@ -67,7 +67,7 @@ fetch_projects() {
   glab api --hostname "${GLAB_HOST}" --paginate \
     "projects?membership=true&per_page=100&order_by=last_activity_at&simple=true&archived=false" \
     2>/dev/null \
-    | jq -r '.[] | [.name_with_namespace, .ssh_url_to_repo, .path] | @tsv'
+    | jq -r '.[] | select(.ssh_url_to_repo != null and .ssh_url_to_repo != "") | [.name_with_namespace, .ssh_url_to_repo, .path] | @tsv'
 }
 
 # Used by the fzf ctrl-r binding to rebuild and print the list.
@@ -106,6 +106,12 @@ fi
 PROJECT_NAME=$(cut -f1 <<< "${SELECTION}")
 SSH_URL=$(cut -f2 <<< "${SELECTION}")
 DEFAULT_DIR=$(cut -f3 <<< "${SELECTION}")
+
+# We always clone over SSH, never HTTPS.
+if [ -z "${SSH_URL}" ] || [[ "${SSH_URL}" == http* ]]; then
+  echo_red "No SSH clone URL for ${PROJECT_NAME}, aborting."
+  exit 1
+fi
 
 if [ -z "${TARGET_DIR}" ]; then
   read -r -p "Directory to clone into [${DEFAULT_DIR}]: " TARGET_DIR
