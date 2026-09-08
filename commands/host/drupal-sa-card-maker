@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Fetch this week's Drupal.org security advisories and hand them to package-checker-and-card-maker
+## Usage: drupal-sa-card-maker [--dry-run] [--auto-assign] [--days N]
+## Aliases: dsacm
+## Example: "ddev dsacm" \n"ddev dsacm --dry-run" \n"ddev dsacm --auto-assign"
+
+set -euo pipefail
+
+# ==============================================================================
+# drupal-sa-card-maker (alias: dsacm)
+# ------------------------------------------------------------------------------
+# Reads https://www.drupal.org/security/all/rss.xml, works out which contrib
+# projects had a security release announced in the last N days (default: 7,
+# i.e. "since last Wednesday" - Drupal.org publishes SAs on Wednesdays), turns
+# each one into its composer namespace (drupal/PROJECT_MACHINE_NAME), prints
+# the list, then calls package-checker-and-card-maker with all of them.
+#
+#   ddev dsacm                  # this week's SAs -> paccma
+#   ddev dsacm --dry-run        # show what paccma would do, no cards created
+#   ddev dsacm --auto-assign    # forwarded to paccma
+#   ddev dsacm --days 14        # widen the window (e.g. after a missed week)
+#
+# Any other flag/arg is passed straight through to package-checker-and-card-maker.
+# Deps: curl, python3
+# ==============================================================================
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+echo_red()    { echo -e "${RED}$1${NC}" >&2; }
+echo_green()  { echo -e "${GREEN}$1${NC}"; }
+echo_yellow() { echo -e "${YELLOW}$1${NC}"; }
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FEED_URL="https://www.drupal.org/security/all/rss.xml"
+DAYS=7
+
+PASSTHRU=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --days) DAYS="$2"; shift 2 ;;
+    *) PASSTHRU+=("$1"); shift ;;
+  esac
+done
+
+echo "Fetching $FEED_URL ..." >&2
+
+tmp_script=$(mktemp)
+tmp_feed=$(mktemp)
+trap 'rm -f "$tmp_script" "$tmp_feed"' EXIT
+
+curl -sf "$FEED_URL" -o "$tmp_feed" || { echo_red "Error: could not fetch $FEED_URL"; exit 1; }
+
+# Parse the feed with python3: for each <item> published within the last
+# $DAYS days, pull the project machine name out of the "Project:" field in
+# the description (href="/project/SLUG") and print "namespace<TAB>link".
+cat > "$tmp_script" <<'PYEOF'
+import sys, re, html
+from email.utils import parsedate_to_datetime
+from datetime import datetime, timezone, timedelta
+
+days = int(sys.argv[1])
+feed = sys.stdin.read()
+cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+seen = set()
+for item in re.findall(r'<item>(.*?)</item>', feed, re.S):
+    pub_m = re.search(r'<pubDate>([^<]*)</pubDate>', item)
+    if not pub_m:
+        continue
+    try:
+        pub = parsedate_to_datetime(pub_m.group(1))
+    except (TypeError, ValueError):
+        continue
+    if pub < cutoff:
+        continue
+
+    desc_m = re.search(r'<description>(.*?)</description>', item, re.S)
+    if not desc_m:
+        continue
+    desc = html.unescape(desc_m.group(1))
+    slug_m = re.search(r'href="/project/([a-z0-9_]+)"', desc)
+    if not slug_m:
+        continue
+    slug = slug_m.group(1)
+    if slug in seen:
+        continue
+    seen.add(slug)
+    print(f"drupal/{slug}\thttps://www.drupal.org/project/{slug}")
+PYEOF
+
+mapping=$(python3 "$tmp_script" "$DAYS" < "$tmp_feed")
+
+if [ -z "$mapping" ]; then
+  echo_yellow "No security releases found in the last $DAYS day(s)."
+  exit 0
+fi
+
+echo_green "=== Affected packages (last ${DAYS}d) ==="
+namespaces=()
+while IFS=$'\t' read -r ns link; do
+  echo "$ns -> $link"
+  namespaces+=("$ns")
+done <<<"$mapping"
+echo "------------------------------------------------"
+
+exec "$SCRIPT_DIR/package-checker-and-card-maker" "${PASSTHRU[@]}" "${namespaces[@]}"
