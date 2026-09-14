@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-<!-- #ddev-generated -->
-
 Guidance for Claude Code (claude.ai/code) and other LLM agents working in this repository.
 
 ## Project Overview
@@ -15,7 +13,7 @@ Guidance for Claude Code (claude.ai/code) and other LLM agents working in this r
 
 Never ignore these. If a rule blocks the task, stop and explain, do not work around it.
 
-- Work only from an Annertech account, both the Claude login and `git config user.email`. If either is a personal account, stop and tell the user.
+- The Claude account this session is signed in to must be on the Annertech organisation. This is enforced by .ddev/scripts/templates/claude/annertech-account-guard.sh, wired up in .claude/settings.json, which denies every tool call otherwise. Do not disable, edit or work around that hook. If it refuses, tell the user to run /login.
 - Never `git push`, even in full auto mode.
 - Never commit to `main` or `master`. Create a branch with `ddev branch` first.
 - Never SSH to a remote server, not even when asked directly. Explain that this is a human action and offer the local equivalent. SSH inside DDEV is fine.
@@ -107,10 +105,9 @@ Do not add `Co-Authored-By:` trailers or "Generated with Claude Code" footers. T
 ## Project Specifics
 
 <!--
-Add per project facts below: production and staging environment names, theme build
-steps, search backend, deployment quirks, modules with unusual behaviour.
-
-Everything above this section ships with annertech-ddev and is refreshed on every
-add-on update, which overwrites whatever you put here. To take ownership of this
-file and stop receiving updates, delete the #ddev-generated comment at the top.
+#ddev-generated
+Add per project facts below. This section is yours, the rest of the file is shipped
+by annertech-ddev and may be overwritten on update.
+Useful things to record: production and staging environment names, theme build steps,
+search backend, deployment quirks, modules with unusual behaviour.
 -->

@@ -215,17 +215,30 @@ post_install_actions:
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/.vscode ${DDEV_APPROOT}/
   - mkdir -p ${DDEV_APPROOT}/.gitlab/merge_request_templates
   - cp -r ${DDEV_APPROOT}/.ddev/scripts/templates/gitlab/merge_request_templates/Default.md ${DDEV_APPROOT}/.gitlab/merge_request_templates/
-  # CLAUDE.md follows the usual #ddev-generated rule: the add-on keeps it current
-  # while the marker is present, and stops touching it once a project removes it.
+  # Claude Code project config. Both files follow the usual #ddev-generated rule:
+  # the add-on keeps them current while the marker is present, and stops touching
+  # them the moment a project removes it. The guard script itself lives in
+  # .ddev/scripts/templates/claude/ and is handled by project_files.
   - |
-    #ddev-description:Installing CLAUDE.md
-    src=${DDEV_APPROOT}/.ddev/scripts/templates/claude/CLAUDE.md
-    dest=${DDEV_APPROOT}/CLAUDE.md
-    if [ ! -f "${dest}" ] || grep -q '#ddev-generated' "${dest}"; then
-      cp "${src}" "${dest}"
-    else
-      echo "NOTE: ${dest} no longer carries #ddev-generated, so this project owns it. Leaving it untouched."
-    fi
+    #ddev-description:Installing Claude Code project config
+    chmod +x ${DDEV_APPROOT}/.ddev/scripts/templates/claude/annertech-account-guard.sh
+    mkdir -p ${DDEV_APPROOT}/.claude
+    install_claude_template() {
+      src="$1"
+      dest="$2"
+      if [ ! -f "${dest}" ]; then
+        cp "${src}" "${dest}"
+      elif grep -q '#ddev-generated' "${dest}"; then
+        cp "${src}" "${dest}"
+      else
+        echo "NOTE: ${dest} no longer carries #ddev-generated, so this project owns it. Leaving it untouched."
+        if ! grep -q 'annertech-account-guard.sh' "${dest}"; then
+          echo "      It does not reference the Annertech account guard. Compare it against ${src}."
+        fi
+      fi
+    }
+    install_claude_template ${DDEV_APPROOT}/.ddev/scripts/templates/claude/settings.json ${DDEV_APPROOT}/.claude/settings.json
+    install_claude_template ${DDEV_APPROOT}/.ddev/scripts/templates/claude/CLAUDE.md ${DDEV_APPROOT}/CLAUDE.md
   - git add ${DDEV_APPROOT}/.ddev/config.annertech.yaml ${DDEV_APPROOT}/.ddev/settings.local.*mode.php ${DDEV_APPROOT}/.ddev/phpunit.xml -f
   - git add ${DDEV_APPROOT}/.ddev/commands/ -f
   - git add ${DDEV_APPROOT}/.ddev/nginx/ -f
@@ -233,7 +246,7 @@ post_install_actions:
   - git add ${DDEV_APPROOT}/.ddev/homeadditions/ -f
   - git add ${DDEV_APPROOT}/.vscode -f
   - git add ${DDEV_APPROOT}/.gitlab/merge_request_templates/ -f
-  - git add ${DDEV_APPROOT}/CLAUDE.md -f
+  - git add ${DDEV_APPROOT}/.claude/settings.json ${DDEV_APPROOT}/CLAUDE.md -f
   - |
     if [ -f ${DDEV_APPROOT}/.ddev/.env.anner ]; then
       git add ${DDEV_APPROOT}/.ddev/.env.anner -f
