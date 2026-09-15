@@ -3,12 +3,14 @@
 #annertech-ddev
 #
 ## Description: Refuses Claude Code work when the signed-in Claude account is not on the Annertech organisation.
-## Usage: annertech-account-guard.sh session|tool
+## Usage: annertech-account-guard.sh session|tool|prompt
 ##
 ## Lives in .ddev/scripts/templates/claude/ so add-on updates keep it current.
 ## Wired up from the project's .claude/settings.json as a SessionStart hook
-## (warns) and a PreToolUse hook (denies every tool call). Reads the account
-## Claude Code itself is authenticated with, not the git identity.
+## (warns only, SessionStart cannot block), a UserPromptSubmit hook (blocks
+## every prompt, including plain conversation that never touches a tool) and
+## a PreToolUse hook (denies every tool call, defense in depth). Reads the
+## account Claude Code itself is authenticated with, not the git identity.
 
 set -uo pipefail
 
@@ -39,6 +41,9 @@ refuse() {
   case "$MODE" in
     session)
       printf '{"systemMessage":"%s","hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"%s"}}\n' "$reason" "$reason"
+      ;;
+    prompt)
+      printf '{"decision":"block","reason":"%s"}\n' "$reason"
       ;;
     *)
       printf '{"systemMessage":"%s","hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"%s"}}\n' "$reason" "$reason"

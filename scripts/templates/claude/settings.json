@@ -12,6 +12,18 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PROJECT_DIR:-.}/.ddev/scripts/templates/claude/annertech-account-guard.sh\" prompt 2>/dev/null || true",
+            "timeout": 10,
+            "statusMessage": "Checking Annertech account"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "hooks": [
