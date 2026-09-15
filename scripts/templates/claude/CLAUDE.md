@@ -106,8 +106,10 @@ Do not add `Co-Authored-By:` trailers or "Generated with Claude Code" footers. T
 
 <!--
 #ddev-generated
-Add per project facts below. This section is yours, the rest of the file is shipped
-by annertech-ddev and may be overwritten on update.
-Useful things to record: production and staging environment names, theme build steps,
-search backend, deployment quirks, modules with unusual behaviour.
+Add per project facts below: production and staging environment names, theme build
+steps, search backend, deployment quirks, modules with unusual behaviour.
+
+Everything above this section ships with annertech-ddev and is refreshed on every
+add-on update, which overwrites whatever you put here. To take ownership of this
+file and stop receiving updates, delete the #ddev-generated comment above.
 -->
