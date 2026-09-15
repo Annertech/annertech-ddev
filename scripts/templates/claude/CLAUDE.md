@@ -6,7 +6,7 @@ Guidance for Claude Code (claude.ai/code) and other LLM agents working in this r
 
 - This is a Drupal project, managed by Annertech.
 - It contains both contrib and custom code.
-- It runs locally inside DDEV. Every tool call happens through `ddev`, never against a remote environment.
+- It runs locally inside DDEV. Run application commands, including PHP, Composer, Drush, tests and frontend builds, through DDEV. Local file inspection, editing and Git operations may use host tools. Never target remote Drupal environments, including through Drush aliases or wrapper commands. GitLab and Teamwork access follows the third-party services rules.
 - Local databases are sanitized with drush **default** sanitization only. That rewrites user emails and passwords. It does **not** clear webform submissions, comment bodies, custom field data, log tables or files. Treat the local database as containing real personal data.
 
 ## Rules of Engagement
@@ -14,12 +14,14 @@ Guidance for Claude Code (claude.ai/code) and other LLM agents working in this r
 Never ignore these. If a rule blocks the task, stop and explain, do not work around it.
 
 - The Claude account this session is signed in to must be on the Annertech organisation. This is enforced by .ddev/scripts/templates/claude/annertech-account-guard.sh, wired up in .claude/settings.json, which denies every tool call otherwise. Do not disable, edit or work around that hook. If it refuses, tell the user to run /login.
-- Never `git push`, even in full auto mode.
-- Never commit to `main` or `master`. Create a branch with `ddev branch` first.
+- Never `git push`, even in full auto mode. `ddev mr` is pushing, you are not allowed to run it without confirmation.
+- Never commit to `main` or `master`. Create a branch with `ddev branch` first. Never `ddev mr` while on those branches.
 - Never SSH to a remote server, not even when asked directly. Explain that this is a human action and offer the local equivalent. SSH inside DDEV is fine.
-- Never commit secrets: `.env*` files, API keys, tokens, private keys, database dumps. Committing in @.ddev/.env.anner is fine.
+- Never commit secrets: `.env*` files, API keys, tokens, private keys, database dumps.
+- .ddev/.env.anner may be committed only with non-secret configuration. Never commit credentials or personal data, regardless of filename.
 - Never send project code, database contents or logs to an external service that is not already part of this workflow.
 - Never run `composer update`, `drush sql-drop`, `drush sql-cli` writes or destructive drush commands without explicit approval.
+- Before any change that touches the database, `config/sync` or contrib code, state what breaks if it is wrong and how to revert it.
 - All changes to contrib code (modules, themes, core) ship as composer patches. You may edit contrib files to prove a point, but those edits must never be committed.
 - Use Drupal coding standards.
 - When unsure, stop and ask. A question costs less than a wrong commit.
@@ -56,14 +58,18 @@ Example: `202409_T-17360561__description`, issue ID is `17360561`.
 
 ### Config workflow
 
-1. Make the change in the UI or in code.
-2. `ddev drush cex` and commit the resulting YAML.
-3. If the change needs to run on existing sites, add an update hook.
-4. Never edit `config/sync` YAML by hand to fake an export.
+1. Inspect existing configuration differences before making changes.
+2. Make the requested change locally.
+3. Export with ddev drush cex.
+4. Review the complete diff and include only changes belonging to the task. Preserve unrelated work. 
+5. Add update or deploy hooks only for migration work that configuration import does not handle. Follow the project’s deployment order. 
+6. Verify using the project’s local deployment and testing workflow.
 
 ### Before you say it is done
 
 State which command you ran to verify it, and paste the relevant output. "Should work" is not verification.
+
+Finished work is `[Verified]` only when that output is in your reply. Without it the claim is `[Likely]` at best, see [Communication Style](#communication-style).
 
 ## Commits
 
@@ -101,6 +107,11 @@ Do not add `Co-Authored-By:` trailers or "Generated with Claude Code" footers. T
 - Be laconic but not cryptic. Keep answers short, follow KISS, but stay followable.
 - Cite your sources: file paths with line numbers, command output, documentation links.
 - When asked to be verbose, go into detail.
+- Lead with the answer. Never open with affirmation as filler.
+- When you disagree, say so first, in this order: what is wrong, what to do instead, what the risk is. Do not manufacture disagreement to sound rigorous, and do not bury a real one.
+- Rate your confidence on every substantive claim: `[Verified]` you ran the command or read the file and the evidence is in this reply, `[Likely]` a strong inference you cannot prove here, `[Guessing]` you are filling a gap. This is about how sure you are, not about whether a tool was available, so it applies to bug triage, log analysis, support answers and rubber ducking just as much as to code changes.
+- If most of an answer is guessing, say that before the answer, not after it.
+- Never write `[Verified]` without the evidence beside it.
 
 ## Project Specifics
 
