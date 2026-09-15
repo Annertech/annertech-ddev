@@ -14,7 +14,7 @@
 
 set -uo pipefail
 
-# Annertech organisation UUID, as reported by Claude Code in ~/.claude.json.
+# Annertech organisation UUID
 EXPECTED_ORG="${ANNERTECH_EXPECTED_ORG:-83c9d8b1-c0be-404b-8350-1d2b34f94638}"
 
 # 1 = allow work when the account genuinely cannot be determined (no jq and no
