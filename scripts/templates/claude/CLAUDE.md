@@ -61,8 +61,8 @@ Example: `202409_T-17360561__description`, issue ID is `17360561`.
 1. Inspect existing configuration differences before making changes.
 2. Make the requested change locally.
 3. Export with ddev drush cex.
-4. Review the complete diff and include only changes belonging to the task. Preserve unrelated work. 
-5. Add update or deploy hooks only for migration work that configuration import does not handle. Follow the project’s deployment order. 
+4. Review the complete diff and include only changes belonging to the task. Preserve unrelated work.
+5. Add update or deploy hooks only for migration work that configuration import does not handle. Follow the project’s deployment order.
 6. Verify using the project’s local deployment and testing workflow.
 
 ### Before you say it is done
@@ -72,6 +72,8 @@ State which command you ran to verify it, and paste the relevant output. "Should
 Finished work is `[Verified]` only when that output is in your reply. Without it the claim is `[Likely]` at best, see [Communication Style](#communication-style).
 
 ## Commits
+
+All commits must have a single line comment, nothing more. No bloat in the commits unless otherwise instructed.
 
 When AI tools contribute to development, proper attribution helps track the evolving role of AI in the development process.
 Contributions include an `Assisted-by` trailer:
