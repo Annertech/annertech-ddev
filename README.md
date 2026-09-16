@@ -257,6 +257,10 @@ git config --global alias.llog '!f() { git log --color=always --pretty=format:"%
 bind main o @sh -c "git log -1 --format='%s' '%(commit)' | grep -oP 'T-\\d+' | sed 's/T-//' | xargs -I{} sh -c 'xdg-open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || start \"https://projects.annertech.com/app/tasks/{}\"'"
 bind diff o @sh -c "git log -1 --format='%s' '%(commit)' | grep -oP 'T-\\d+' | sed 's/T-//' | xargs -I{} sh -c 'xdg-open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || start \"https://projects.annertech.com/app/tasks/{}\"'"
 
+# Open commit on the remote (origin, ssh/git or https URL) in browser
+bind main B @sh -c "u=$(git remote get-url origin | sed -e 's|^[a-z+]*://||' -e 's|^.*@||' -e 's|\\.git$||' -e 's|:[0-9][0-9]*/|/|' -e 's|:|/|'); case $u in *github.com*) p=commit;; *bitbucket*) p=commits;; *) p=-/commit;; esac; t=https://$u/$p/%(commit); xdg-open $t >/dev/null 2>&1 || open $t >/dev/null 2>&1"
+bind diff B @sh -c "u=$(git remote get-url origin | sed -e 's|^[a-z+]*://||' -e 's|^.*@||' -e 's|\\.git$||' -e 's|:[0-9][0-9]*/|/|' -e 's|:|/|'); case $u in *github.com*) p=commit;; *bitbucket*) p=commits;; *) p=-/commit;; esac; t=https://$u/$p/%(commit); xdg-open $t >/dev/null 2>&1 || open $t >/dev/null 2>&1"
+
 # Copy commit hash to clipboard (cross-platform)
 bind main y @sh -c "echo -n '%(commit)' | xclip -selection clipboard 2>/dev/null || echo -n '%(commit)' | pbcopy 2>/dev/null || echo -n '%(commit)' | clip.exe 2>/dev/null
 ```
