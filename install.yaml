@@ -236,6 +236,17 @@ post_install_actions:
     }
     install_claude_template ${DDEV_APPROOT}/.ddev/scripts/templates/claude/settings.json ${DDEV_APPROOT}/.claude/settings.json
     install_claude_template ${DDEV_APPROOT}/.ddev/scripts/templates/claude/CLAUDE.md ${DDEV_APPROOT}/CLAUDE.md
+  # Renovate config on the composer root
+  - |
+    #ddev-description:Installing Renovate config
+    src="${DDEV_APPROOT}/.ddev/scripts/renovate/renovate.json"
+    dest="${DDEV_APPROOT}/renovate.json"
+    if [ ! -f "${dest}" ] || grep -q '#ddev-generated' "${dest}"; then
+      cp "${src}" "${dest}"
+      git add "${dest}" -f
+    else
+      echo "NOTE: ${dest} no longer carries #ddev-generated, so this project owns it. Leaving it untouched."
+    fi
   - git add ${DDEV_APPROOT}/.claude/settings.json ${DDEV_APPROOT}/CLAUDE.md -f
   - git add ${DDEV_APPROOT}/.ddev/config.annertech.yaml ${DDEV_APPROOT}/.ddev/settings.local.*mode.php ${DDEV_APPROOT}/.ddev/phpunit.xml -f
   - git add ${DDEV_APPROOT}/.ddev/commands/ -f
