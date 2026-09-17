@@ -5,7 +5,7 @@
 ## Description: Scan GitLab projects for composer packages and open Teamwork update cards
 ## Usage: package-checker-and-card-maker [--dry-run] [--auto-assign] <vendor/package[:max-insecure-version]> [more...]
 ## Aliases: paccma, paccman
-## Example: "ddev paccma drupal/diff drupal/externalauth" \n"ddev paccma --dry-run drupal/diff:1.10" \n"ddev paccma --auto-assign drupal/diff"
+## Example: "ddev paccma drupal/diff drupal/externalauth" \n"ddev paccma --dry-run drupal/diff:1.10" \n"ddev paccma --auto-assign drupal/diff" \n"ddev paccma 'drupal/core:>=11.4.0 <11.4.7'"
 
 set -euo pipefail
 
@@ -24,7 +24,10 @@ set -euo pipefail
 #   ddev paccma --auto-assign drupal/diff     # assign created cards to Deputy, Guardian, DM
 #
 # With a :version suffix only installs <= that version match (same semantics as
-# package-checker); without it every project using the package matches.
+# package-checker); without it every project using the package matches. The
+# suffix can also be a full drupal.org "Affected versions" constraint, which is
+# what drupal-sa-card-maker passes, e.g.
+#   ddev paccma 'drupal/core:>=10.5.0 <10.6.17 || >=11.4.0 <11.4.7'
 #
 # --auto-assign reads TEAMWORK_DEPUTY_ID, TEAMWORK_GUARDIAN_ID and
 # TEAMWORK_DM_ID from each repo's own .ddev/.env.anner (same file the
@@ -140,11 +143,60 @@ else
   }
 fi
 
-# is version <= max ?  (strip leading v, compare with sort -V)
-is_insecure() { # <version> <max>
-  local v="${1#v}" m="${2#v}"
-  [ "$v" = "$m" ] && return 0
-  [ "$(printf '%s\n%s\n' "$v" "$m" | sort -V | head -1)" = "$v" ]
+# Normalise a version for comparison: drop a leading "v" and any Drupal-style
+# "8.x-" branch prefix, so 8.x-1.4 and 1.4 compare the same.
+norm_ver() { local v="${1#v}"; echo "${v#*.x-}"; }
+
+# echoes -1, 0 or 1 for a<b, a=b, a>b (sort -V ordering)
+ver_cmp() { # <a> <b>
+  local a b
+  a=$(norm_ver "$1"); b=$(norm_ver "$2")
+  if [ "$a" = "$b" ]; then echo 0
+  elif [ "$(printf '%s\n%s\n' "$a" "$b" | sort -V | head -1)" = "$a" ]; then echo -1
+  else echo 1
+  fi
+}
+
+# Does <version> satisfy one comparator (">=10.5.0", "<11.4.7", ...)?
+# A bare version means "<= that version", the original max-insecure-version.
+ver_matches() { # <version> <comparator>
+  local op num cmp
+  case "$1" in "") return 1 ;; esac
+  case "$2" in
+    ">="*) op=">="; num="${2#>=}" ;;
+    "<="*) op="<="; num="${2#<=}" ;;
+    ">"*)  op=">";  num="${2#>}"  ;;
+    "<"*)  op="<";  num="${2#<}"  ;;
+    "="*)  op="=";  num="${2#=}"  ;;
+    *)     op="<="; num="$2"      ;;
+  esac
+  cmp=$(ver_cmp "$1" "$num")
+  case "$op" in
+    ">=") [ "$cmp" != "-1" ] ;;
+    "<=") [ "$cmp" != "1" ] ;;
+    ">")  [ "$cmp" = "1" ] ;;
+    "<")  [ "$cmp" = "-1" ] ;;
+    "=")  [ "$cmp" = "0" ] ;;
+  esac
+}
+
+# Is <version> covered by <spec>? A spec is one or more groups of
+# space-separated comparators joined by "||", i.e. exactly the syntax of the
+# "Affected versions" field on a drupal.org security advisory:
+#   >=10.5.0 <10.6.17 || >=11.0.0 <11.3.17 || >=11.4.0 <11.4.7
+# A plain version (1.10) still means "anything up to and including 1.10".
+is_insecure() { # <version> <spec>
+  local spec group c ok
+  spec="${2//||/$'\n'}"
+  while IFS= read -r group; do
+    [ -z "${group// /}" ] && continue
+    ok=true
+    for c in $group; do
+      ver_matches "$1" "$c" || { ok=false; break; }
+    done
+    $ok && return 0
+  done <<<"$spec"
+  return 1
 }
 
 # Create the Teamwork card on a project's board. Uses the "Cards" tasklist

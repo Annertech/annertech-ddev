@@ -32,6 +32,19 @@ pre_install_actions:
     fi
   - |
     #ddev-nodisplay
+    #ddev-description:Removing pre-marker renovate template so it can be reinstalled
+    # The renovate template shipped without #ddev-generated, so DDEV refuses to
+    # replace it on update. Drop the unmarked copy and let project_files reinstall it.
+    for file in "${DDEV_APPROOT}/.ddev/scripts/renovate/renovate.json" \
+                "${DDEV_APPROOT}/.ddev/scripts/renovate/renovate.lockfile-only.json" \
+                "${DDEV_APPROOT}/.ddev/scripts/renovate/README.md" \
+                "${DDEV_APPROOT}/.ddev/scripts/renovate/TESTING.md"; do
+      if [ -f "${file}" ] && ! grep -q '#ddev-generated' "${file}"; then
+        rm -f "${file}"
+      fi
+    done
+  - |
+    #ddev-nodisplay
     #ddev-description:Removing old Dockerfile.imagemagick if ddev-generated
     file="${DDEV_APPROOT}/.ddev/web-build/Dockerfile.imagemagick"
     if [ -f "${file}" ]; then
