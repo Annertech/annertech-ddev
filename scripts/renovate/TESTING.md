@@ -10,3 +10,5 @@ LOG_LEVEL=debug GITHUB_COM_TOKEN=ghp_ npx renovate --platform=local --dry-run=fu
 ## Validating
 npx --package=renovate renovate-config-validator
 
+
+<!-- #ddev-generated -->

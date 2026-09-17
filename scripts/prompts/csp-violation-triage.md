@@ -21,3 +21,5 @@ Note: seckit only exposes base directives, not the granular -elem/-attr CSP3 suf
 Preserve the existing 'self' keyword quoting (must stay as 'self', not bare self) and 'unsafe-inline' where already present. Keep entries space-separated on one line per directive, don't introduce YAML block scalars (>-), and don't touch any other keys in the file.
 
 After editing, summarize: what was added per directive, what was skipped as already-covered/stale, and flag any blocked URI whose owning team/tag should be asked to fix at the source (e.g. rotating locale subdomains like www.google.<cctld> that will keep recurring) rather than chased in CSP.
+
+<!-- #ddev-generated -->

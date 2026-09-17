@@ -52,3 +52,5 @@ everything above it and collapses both groups into one PR.
   "Artifact update problem" block.
 - **Validate before shipping** changes:
   `npx --package renovate renovate-config-validator renovate.json`
+
+<!-- #ddev-generated -->

@@ -1,4 +1,5 @@
 {
+    "description": "#ddev-generated",
     "extends": ["config:recommended"],
     "logLevelRemap": [
       {
