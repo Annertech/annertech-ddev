@@ -14,7 +14,6 @@
     "automerge": false,
     "branchPrefix": "deps/",
     "labels": ["dependencies"],
-    "assignees": ["bserem"],
     "rangeStrategy": "update-lockfile",
     "timezone": "Etc/UTC",
     "enabledManagers": ["composer"],
