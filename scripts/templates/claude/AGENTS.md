@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 Guidance for Claude Code (claude.ai/code) and other LLM agents working in this repository.
 

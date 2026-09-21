@@ -45,6 +45,22 @@ pre_install_actions:
     done
   - |
     #ddev-nodisplay
+    #ddev-description:Removing CLAUDE.md, renamed to AGENTS.md
+    # The agent instructions template moved from CLAUDE.md to AGENTS.md. Drop the
+    # old copies so they do not linger next to the new file.
+    rm -f "${DDEV_APPROOT}/.ddev/scripts/templates/claude/CLAUDE.md"
+    file="${DDEV_APPROOT}/CLAUDE.md"
+    if [ -f "${file}" ]; then
+      if grep -q '#ddev-generated' "${file}"; then
+        rm -f "${file}"
+        git -C "${DDEV_APPROOT}" rm --cached --quiet -- CLAUDE.md 2>/dev/null || true
+      else
+        echo "NOTE: ${file} has been renamed to AGENTS.md but your copy no longer carries #ddev-generated."
+        echo "      Leaving it in place. Merge anything you need into AGENTS.md and delete it manually."
+      fi
+    fi
+  - |
+    #ddev-nodisplay
     #ddev-description:Removing old Dockerfile.imagemagick if ddev-generated
     file="${DDEV_APPROOT}/.ddev/web-build/Dockerfile.imagemagick"
     if [ -f "${file}" ]; then
@@ -248,7 +264,7 @@ post_install_actions:
       fi
     }
     install_claude_template ${DDEV_APPROOT}/.ddev/scripts/templates/claude/settings.json ${DDEV_APPROOT}/.claude/settings.json
-    install_claude_template ${DDEV_APPROOT}/.ddev/scripts/templates/claude/CLAUDE.md ${DDEV_APPROOT}/CLAUDE.md
+    install_claude_template ${DDEV_APPROOT}/.ddev/scripts/templates/claude/AGENTS.md ${DDEV_APPROOT}/AGENTS.md
   # Renovate config on the composer root
   - |
     #ddev-description:Installing Renovate config
@@ -260,7 +276,7 @@ post_install_actions:
     else
       echo "NOTE: ${dest} no longer carries #ddev-generated, so this project owns it. Leaving it untouched."
     fi
-  - git add ${DDEV_APPROOT}/.claude/settings.json ${DDEV_APPROOT}/CLAUDE.md -f
+  - git add ${DDEV_APPROOT}/.claude/settings.json ${DDEV_APPROOT}/AGENTS.md -f
   - git add ${DDEV_APPROOT}/.ddev/config.annertech.yaml ${DDEV_APPROOT}/.ddev/settings.local.*mode.php ${DDEV_APPROOT}/.ddev/phpunit.xml -f
   - git add ${DDEV_APPROOT}/.ddev/commands/ -f
   - git add ${DDEV_APPROOT}/.ddev/nginx/ -f
