@@ -92,17 +92,23 @@ Assisted-by: Claude:claude-5-opus xhprof
 
 Do not add `Co-Authored-By:` trailers or "Generated with Claude Code" footers. The `Assisted-by` trailer replaces them.
 
-## 3rd Party Services
+## Code Reviews
 
 - Use the `glab` command for code reviews.
-- Use the Teamwork DDEV commands (`ddev tw-comment`, `ddev tw-new`) to post to an issue, make a new one etc.
+- Entirely ignore all changes under `.ddev`, `vendor`, core and contrib modules and themes. Do not load them into your context if possible.
+- Provide feedback on the code changed in the MR first, do not address pre-existing problems in the same files.
+- Any serious pre-existing problems may be listed, with a short description, below the initial code review.
+
+## 3rd Party Services
+
+- Use the Teamwork DDEV commands (`ddev tw-comment`, `ddev tw-new`) to post to an issue, make a new one etc. Use markdown (backticks, headings etc), it is supported.
 - Always show the user the final text of a comment or description before posting it.
 - Never use an em dash in Teamwork text. Use a comma instead.
 - When posting in full auto mode, sign the comment:
   ```
   Posted-by: AGENT_NAME:MODEL_VERSION
   ```
-- When the comment was drafted, reviewed and approved together with a user, skip the signature.
+- When the comment was drafted, reviewed and approved together with a user, skip the signature. This overrules the sign directive above.
 
 ## Communication Style
 
