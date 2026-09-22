@@ -29,6 +29,10 @@ set -euo pipefail
 # what drupal-sa-card-maker passes, e.g.
 #   ddev paccma 'drupal/core:>=10.5.0 <10.6.17 || >=11.4.0 <11.4.7'
 #
+# When a repo's .ddev/.env.anner sets RENOVATE_DASHBOARD_ID, the card description
+# also links to that project's Renovate dashboard issue on GitLab, e.g.
+#   https://gitlab.example.com/clients/test-client/test-project/-/work_items/4
+#
 # --auto-assign reads TEAMWORK_DEPUTY_ID, TEAMWORK_GUARDIAN_ID and
 # TEAMWORK_DM_ID from each repo's own .ddev/.env.anner (same file the
 # TEAMWORK_PROJECT_ID lookup uses) and assigns the created card to whichever
@@ -96,7 +100,7 @@ if [ "$BACKEND" = "glab" ]; then
   list_projects() {
     "${api[@]}" --paginate \
       "groups/$GID/projects?include_subgroups=true&archived=false&per_page=100" \
-      | jq -rs '.[][] | select(.archived != true) | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")"'
+      | jq -rs '.[][] | select(.archived != true) | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")\t\(.web_url // "")"'
   }
   get_file() { # <id> <branch> <url-encoded path>
     "${api[@]}" "projects/$1/repository/files/$3/raw?ref=$2" 2>/dev/null
@@ -124,7 +128,7 @@ else
       resp=$(curl -sf "${hdr[@]}" \
         "$GITLAB_URL/api/v4/groups/$GID/projects?include_subgroups=true&archived=false&per_page=100&page=$page")
       [ "$(jq length <<<"$resp")" -eq 0 ] && break
-      jq -r '.[] | select(.archived != true) | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")"' <<<"$resp"
+      jq -r '.[] | select(.archived != true) | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")\t\(.web_url // "")"' <<<"$resp"
       page=$((page+1))
     done
   }
@@ -245,7 +249,7 @@ matched_repos=0
 made_urls=()   # "repo<TAB>task-url" for the summary
 
 echo "------------------------------------------------"
-while IFS=$'\t' read -r id name branch; do
+while IFS=$'\t' read -r id name branch web_url; do
   scanned=$((scanned+1))
   [ -n "${DEBUG:-}" ] && echo "  scanning: $name ($branch)" >&2
 
@@ -271,8 +275,10 @@ while IFS=$'\t' read -r id name branch; do
   # ids) from the repo's own .ddev/.env.anner
   tw_id=""
   assignees=""
+  renovate_id=""
   if env_raw=$(get_file "$id" "$branch" "${ENV_ANNER//\//%2F}"); then
     tw_id=$(grep -E '^TEAMWORK_PROJECT_ID=' <<<"$env_raw" | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'" || true)
+    renovate_id=$(grep -E '^RENOVATE_DASHBOARD_ID=' <<<"$env_raw" | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'" || true)
     if $AUTO_ASSIGN; then
       deputy_id=$(grep -E '^TEAMWORK_DEPUTY_ID=' <<<"$env_raw" | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'" || true)
       guardian_id=$(grep -E '^TEAMWORK_GUARDIAN_ID=' <<<"$env_raw" | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'" || true)
@@ -291,17 +297,29 @@ while IFS=$'\t' read -r id name branch; do
     continue
   fi
 
+  # Repos onboarded to Renovate get a link to their dashboard issue
+  card_desc="Please update $pkg_list"
+  renovate_url=""
+  if [ -n "$renovate_id" ] && [ -n "$web_url" ]; then
+    renovate_url="${web_url%/}/-/work_items/${renovate_id}"
+    card_desc="$card_desc"$'\n\n'"Renovate dashboard: $renovate_url"
+  fi
+
   if $DRY_RUN; then
     if [ -n "$assignees" ]; then
       echo -e "${GREEN}$name${NC} ($pkg_list): would make card on Teamwork project $tw_id, assigned to $assignees"
     else
       echo -e "${GREEN}$name${NC} ($pkg_list): would make card on Teamwork project $tw_id"
     fi
+    # Show the card exactly as it would be created, indented under the repo.
+    echo "    title: $CARD_TITLE"
+    echo "    description:"
+    sed 's/^/      /' <<<"$card_desc"
     made=$((made+1))
     continue
   fi
 
-  if result=$(create_card "$tw_id" "Please update $pkg_list" "$assignees"); then
+  if result=$(create_card "$tw_id" "$card_desc" "$assignees"); then
     echo -e "${GREEN}$name${NC} ($pkg_list): card made - $result"
     made_urls+=("$name"$'\t'"$result")
     made=$((made+1))
