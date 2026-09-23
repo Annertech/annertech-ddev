@@ -6,6 +6,16 @@
 ## Usage: behat [flags] [args]
 ## Example: "ddev behat --tags ~wip"
 
+# Guard: this script may end up on non-DDEV environments (e.g. production) where
+# it must never run. DDEV sets IS_DDEV_PROJECT=true inside the web container.
+if [ "$IS_DDEV_PROJECT" != "true" ]; then
+    echo
+    echo "\033[38;5;208mError: behat can only run inside a DDEV web container.\033[0m"
+    echo "\033[38;5;208mRefusing to run: IS_DDEV_PROJECT is not 'true'.\033[0m"
+    echo
+    exit 1
+fi
+
 # Signal to PHP-FPM (via shared filesystem) that behat is running, so settings.php
 # can disable modules like captcha and antibot that block automated requests.
 touch /var/www/html/web/.behat_testing
