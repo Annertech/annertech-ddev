@@ -100,7 +100,7 @@ if [ "$BACKEND" = "glab" ]; then
   list_projects() {
     "${api[@]}" --paginate \
       "groups/$GID/projects?include_subgroups=true&archived=false&per_page=100" \
-      | jq -rs '.[][] | select(.archived != true) | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")\t\(.web_url // "")"'
+      | jq -rs '.[][] | select(.archived != true) | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")\t\(.web_url // "")\t\(.name)"'
   }
   get_file() { # <id> <branch> <url-encoded path>
     "${api[@]}" "projects/$1/repository/files/$3/raw?ref=$2" 2>/dev/null
@@ -128,7 +128,7 @@ else
       resp=$(curl -sf "${hdr[@]}" \
         "$GITLAB_URL/api/v4/groups/$GID/projects?include_subgroups=true&archived=false&per_page=100&page=$page")
       [ "$(jq length <<<"$resp")" -eq 0 ] && break
-      jq -r '.[] | select(.archived != true) | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")\t\(.web_url // "")"' <<<"$resp"
+      jq -r '.[] | select(.archived != true) | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")\t\(.web_url // "")\t\(.name)"' <<<"$resp"
       page=$((page+1))
     done
   }
@@ -249,7 +249,7 @@ matched_repos=0
 made_urls=()   # "repo<TAB>task-url" for the summary
 
 echo "------------------------------------------------"
-while IFS=$'\t' read -r id name branch web_url; do
+while IFS=$'\t' read -r id name branch web_url title; do
   scanned=$((scanned+1))
   [ -n "${DEBUG:-}" ] && echo "  scanning: $name ($branch)" >&2
 
@@ -298,7 +298,7 @@ while IFS=$'\t' read -r id name branch web_url; do
   fi
 
   # Repos onboarded to Renovate get a link to their dashboard issue
-  card_title="${name##*/}: $BASE_TITLE"
+  card_title="$title: $BASE_TITLE"
   card_desc="Please update $pkg_list"
   renovate_url=""
   if [ -n "$renovate_id" ] && [ -n "$web_url" ]; then
