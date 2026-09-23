@@ -25,7 +25,7 @@ small=$(format_iec 1536)
 [ "$one" = "1.00M" ]
 [ "$five" = "5.00M" ]
 [ "$small" = "1.50K" ]
-if grep -q 'numfmt ' "$helper"; then
+if grep -Eq '^[^#]*numfmt ' "$helper"; then
   echo "helper still calls numfmt" >&2
   exit 1
 fi
