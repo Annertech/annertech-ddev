@@ -1,26 +1,39 @@
 # Dependency updates with Renovate
 
-Opinionated Renovate config template for Drupal projects. Copy it to the project
-root as `renovate.json`. Anything needing human judgement is deliberately left out.
+Opinionated Renovate config template for Drupal projects. `ddev add-on get` copies
+`renovate.json` to the project root, as long as the file there is missing or still
+carries `#ddev-generated`. Once a project edits it and drops the marker, the add-on
+leaves it alone. Anything needing human judgement is deliberately left out.
+
+Two templates live here:
+
+| File | Use                                                                                 |
+| --- |-------------------------------------------------------------------------------------|
+| `renovate.json` | The default. Rebuilds `vendor/` and the built `web/` root in the branch.            |
+| `renovate.lockfile-only.json` | WIP! For projects that do not commit build artifacts. Touches only `composer.lock`. |
 
 ## What Renovate does
 
 | Update | Behaviour |
 | --- | --- |
-| Drupal core **patch** (11.4.4 → 11.4.5) | Own PR, group `patch-core` |
-| Contrib **minor + patch** | One combined PR, group `minor-patch-contrib` |
+| Composer **minor + patch**, core and contrib | One combined MR, group `drupal-deps` |
 
-MRs use the `deps/` branch prefix, get the `dependencies` label, are assigned to `bserem`,
-and are never automerged.
+MRs use the `deps/` branch prefix, get the `dependencies` label, and are never
+automerged. `ddev renovate-dashboard` (alias `ddev renovate`) opens the project's
+dependency dashboard issue, once `RENOVATE_DASHBOARD_ID` is set via `ddev env-setup`.
 
 ## What is left to a human
 
 - **All major updates**, for every package (`major.enabled: false`).
-- **Drupal core minors** (11.3 → 11.4) — these need a real upgrade check.
 - **`php` itself** — the package is disabled.
-- **Security advisories.** There is no `vulnerabilityAlerts` block and no
-  vulnerability handling at all. Watch the Drupal security advisories directly.
+- **Security advisories.** There is no separate `vulnerabilityAlerts` block and 
+  no dedicated vulnerability handling. Security Advisories updates come in the 
+  same MR as everything else.
 - Anything outside composer — only the `composer` manager is enabled.
+
+There is no `minimumReleaseAge` grace period either. A delay would hold back
+security releases too, and until security updates are handled separately, fresh
+releases are better than delayed ones.
 
 ## Key principles
 
@@ -29,28 +42,30 @@ leaves the constraints in `composer.json` alone.
 
 **Build artifacts stay consistent.** `vendor/` and the built `web/` root are
 committed, so each branch runs `composer install` once (`postUpgradeTasks`,
-`executionMode: branch`) and commits the result alongside the lock file.
+`executionMode: branch`) and commits the result alongside the lock file. Those same
+paths are in `ignorePaths`, so Renovate does not scan the vendored copies for
+updates, it only commits what composer wrote.
 
-**Rule order matters.** Later `packageRules` win. The broad contrib rule comes
-first, the narrow core rules last, so core cannot be pulled into the contrib
-group. Do not append a broad rule to the end — it overwrites `groupName` on
-everything above it and collapses both groups into one PR.
+**Noise is downgraded, not hidden.** `logLevelRemap` drops "requirements cannot be
+resolved" and "Detected empty commit" to `info`. They are expected on Drupal
+projects and should not read as failures.
 
 **Throughput is capped.** Max 3 open PRs, max 2 created per hour.
 
 ## Operational requirements
 
-- **Self-hosted Renovate only.** `postUpgradeTasks` needs `composer install`
-  allow-listed in the runner's `allowedCommands`
+- **Self-hosted Renovate only** for the default template. `postUpgradeTasks` needs
+  `composer install` allow-listed in the runner's `allowedCommands`
   (`RENOVATE_ALLOWED_COMMANDS='["^composer install"]'` or `config.js`) — an
   admin-side option that **cannot** be set here. On the Mend-hosted app the hook
-  is silently skipped and PRs land with a stale `vendor/`.
+  is silently skipped and PRs land with a stale `vendor/`. Use the lockfile-only
+  template there.
 - **The runner needs PHP and composer.** With `update-lockfile` the only change is
   a regenerated `composer.lock`; if composer cannot run you get an MR with a
   description and no commits. Use the full `renovate/renovate` image or
   `RENOVATE_BINARY_SOURCE=install`, and check the MR body for an
   "Artifact update problem" block.
-- **Validate before shipping** changes:
+- **Validate before shipping** changes, see `TESTING.md` for the dry run too:
   `npx --package renovate renovate-config-validator renovate.json`
 
 <!-- #ddev-generated -->
