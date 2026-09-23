@@ -79,7 +79,7 @@ if ! $DRY_RUN && [[ -z "$TW_API_KEY" || -z "$DOMAIN" ]]; then
     exit 1
 fi
 
-CARD_TITLE="Update Dependencies"
+BASE_TITLE="Update Dependencies"
 
 GROUP="${GITLAB_GROUP:-clients}"
 MANIFEST="composer-manifest.yaml"
@@ -205,8 +205,8 @@ is_insecure() { # <version> <spec>
 
 # Create the Teamwork card on a project's board. Uses the "Cards" tasklist
 # (case-insensitive) or falls back to the first one, like tw-batch-card-maker.
-create_card() { # <teamwork-project-id> <description> [comma-separated assignee ids]
-  local tw_id="$1" desc="$2" assignees="${3:-}" tl_response tl_status tasklist_id data response http_code body
+create_card() { # <teamwork-project-id> <title> <description> [comma-separated assignee ids]
+  local tw_id="$1" title="$2" desc="$3" assignees="${4:-}" tl_response tl_status tasklist_id data response http_code body
 
   tl_response=$(tw_curl -s "https://${DOMAIN}/projects/${tw_id}/tasklists.json")
   [ -n "$tl_response" ] || { echo "failed to fetch tasklists"; return 1; }
@@ -220,7 +220,7 @@ create_card() { # <teamwork-project-id> <description> [comma-separated assignee 
       .id // empty' <<<"$tl_response")
   [ -n "$tasklist_id" ] || { echo "no tasklist found"; return 1; }
 
-  data=$(jq -n --arg name "$CARD_TITLE" --arg desc "$desc" --arg assignees "$assignees" \
+  data=$(jq -n --arg name "$title" --arg desc "$desc" --arg assignees "$assignees" \
       '{"todo-item": ({"content": $name, "description": $desc}
           + (if $assignees != "" then {"responsible-party-id": $assignees} else {} end))}')
 
@@ -298,6 +298,7 @@ while IFS=$'\t' read -r id name branch web_url; do
   fi
 
   # Repos onboarded to Renovate get a link to their dashboard issue
+  card_title="${name##*/}: $BASE_TITLE"
   card_desc="Please update $pkg_list"
   renovate_url=""
   if [ -n "$renovate_id" ] && [ -n "$web_url" ]; then
@@ -312,14 +313,14 @@ while IFS=$'\t' read -r id name branch web_url; do
       echo -e "${GREEN}$name${NC} ($pkg_list): would make card on Teamwork project $tw_id"
     fi
     # Show the card exactly as it would be created, indented under the repo.
-    echo "    title: $CARD_TITLE"
+    echo "    title: $card_title"
     echo "    description:"
     sed 's/^/      /' <<<"$card_desc"
     made=$((made+1))
     continue
   fi
 
-  if result=$(create_card "$tw_id" "$card_desc" "$assignees"); then
+  if result=$(create_card "$tw_id" "$card_title" "$card_desc" "$assignees"); then
     echo -e "${GREEN}$name${NC} ($pkg_list): card made - $result"
     made_urls+=("$name"$'\t'"$result")
     made=$((made+1))
