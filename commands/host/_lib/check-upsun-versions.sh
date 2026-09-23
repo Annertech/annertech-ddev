@@ -3,8 +3,8 @@
 if [[ ! -f "$DDEV_CONFIG" ]]; then
   warn "Upsun: .ddev/config.yaml not found — skipping version checks"
 else
-  DDEV_PHP=$(grep -E '^php_version:' "$DDEV_CONFIG" | sed 's/php_version:[[:space:]]*//' | tr -d '"' | xargs)
-  UPSUN_PHP=$(grep -E '^[[:space:]]*type:' "$APP_YAML" | grep 'php:' | sed 's/.*php:\([0-9.]*\).*/\1/' | xargs)
+  DDEV_PHP=$(strip_yaml "$DDEV_CONFIG" | grep -E '^php_version:' | sed 's/php_version:[[:space:]]*//' | tr -d '"' | xargs)
+  UPSUN_PHP=$(strip_yaml "$APP_YAML" | grep -E '^[[:space:]]*type:' | grep 'php:' | sed 's/.*php:\([0-9.]*\).*/\1/' | xargs)
 
   if [[ -z "$DDEV_PHP" ]]; then
     warn "Upsun: php_version not set in .ddev/config.yaml — skipping PHP version check"
@@ -21,7 +21,7 @@ else
   fi
 
   if [[ -f "$SERVICES_FILE" && -n "$DDEV_DB_VERSION" && -n "$DDEV_DB_TYPE" ]]; then
-    UPSUN_DB_VERSION=$(grep -E "type:.*${DDEV_DB_TYPE}:" "$SERVICES_FILE" | head -1 | sed 's/.*:\([0-9.]*\).*/\1/' | xargs)
+    UPSUN_DB_VERSION=$(strip_yaml "$SERVICES_FILE" | grep -E "type:.*${DDEV_DB_TYPE}:" | head -1 | sed 's/.*:\([0-9.]*\).*/\1/' | xargs)
     if [[ -n "$UPSUN_DB_VERSION" ]]; then
       if [[ "$DDEV_DB_VERSION" == "$UPSUN_DB_VERSION" ]]; then
         pass "Database $DDEV_DB_TYPE:$DDEV_DB_VERSION matches between DDEV and Upsun"
@@ -32,7 +32,7 @@ else
   fi
 
   if [[ -f "$SERVICES_FILE" ]]; then
-    UPSUN_REDIS_VERSION=$(grep -E "type:.*redis:" "$SERVICES_FILE" | head -1 | sed 's/.*redis:\([0-9.]*\).*/\1/' | xargs)
+    UPSUN_REDIS_VERSION=$(strip_yaml "$SERVICES_FILE" | grep -E "type:.*redis:" | head -1 | sed 's/.*redis:\([0-9.]*\).*/\1/' | xargs)
     if [[ -n "$UPSUN_REDIS_VERSION" ]]; then
       if [[ "$(printf '%s\n' "$REDIS_REQUIRED_VERSION" "$UPSUN_REDIS_VERSION" | sort -V | head -1)" != "$REDIS_REQUIRED_VERSION" ]]; then
         warn "Redis version $UPSUN_REDIS_VERSION in services.yaml is below required version ($REDIS_REQUIRED_VERSION)"
@@ -43,7 +43,7 @@ else
   fi
 
   if [[ -f "$SERVICES_FILE" ]]; then
-    UPSUN_SOLR_VERSION=$(grep -E "type:.*solr:" "$SERVICES_FILE" | head -1 | sed 's/.*solr:\([0-9.]*\).*/\1/' | xargs)
+    UPSUN_SOLR_VERSION=$(strip_yaml "$SERVICES_FILE" | grep -E "type:.*solr:" | head -1 | sed 's/.*solr:\([0-9.]*\).*/\1/' | xargs)
     if [[ -n "$UPSUN_SOLR_VERSION" ]]; then
       if [[ "$(printf '%s\n' "$UPSUN_SOLR_MIN" "$UPSUN_SOLR_VERSION" | sort -V | head -1)" != "$UPSUN_SOLR_MIN" ]]; then
         warn "Solr version $UPSUN_SOLR_VERSION in services.yaml is below required version ($UPSUN_SOLR_MIN)"

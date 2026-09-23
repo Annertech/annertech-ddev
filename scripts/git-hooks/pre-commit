@@ -10,10 +10,14 @@
 # Checks for wrong performance settings
 #
 FILES_PATTERN='system\.performance\.yml$'
+# Modules ship their own default config under config/install|config/optional
+# (e.g. web/core/modules/system/config/install/system.performance.yml) — that
+# is not the site's active config, so it must never trigger these checks.
+SHIPPED_CONFIG_EXCLUDE='(^|/)config/(install|optional)/'
 
 # Abort commit if you are disabling CSS/JS aggregation
 FORBIDDEN='preprocess: false'
-STAGED_FILES=$(git diff --cached --name-only | grep -E "$FILES_PATTERN")
+STAGED_FILES=$(git diff --cached --name-only | grep -vE "$SHIPPED_CONFIG_EXCLUDE" | grep -E "$FILES_PATTERN")
 
 if [ -n "$STAGED_FILES" ]; then
     echo "$STAGED_FILES" | xargs grep --color --with-filename -n "$FORBIDDEN" \
@@ -24,7 +28,7 @@ fi
 
 # Abort commit if you are disabling browser caching
 FORBIDDEN='max_age: 0'
-STAGED_FILES=$(git diff --cached --name-only | grep -vE "(^|/)tests(/|$)" | grep -E "$FILES_PATTERN")
+STAGED_FILES=$(git diff --cached --name-only | grep -vE "(^|/)tests(/|$)" | grep -vE "$SHIPPED_CONFIG_EXCLUDE" | grep -E "$FILES_PATTERN")
 if [ -n "$STAGED_FILES" ]; then
     echo "$STAGED_FILES" | xargs grep --color --with-filename -n "$FORBIDDEN" \
     && echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
@@ -34,7 +38,7 @@ fi
 
 # Abort commit if you are enabling GZIPping of CSS/JS assets
 FORBIDDEN='gzip: true'
-STAGED_FILES=$(git diff --cached --name-only | grep -vE "(^|/)tests(/|$)" | grep -E "$FILES_PATTERN")
+STAGED_FILES=$(git diff --cached --name-only | grep -vE "(^|/)tests(/|$)" | grep -vE "$SHIPPED_CONFIG_EXCLUDE" | grep -E "$FILES_PATTERN")
 if [ -n "$STAGED_FILES" ]; then
     echo "$STAGED_FILES" | xargs grep --color --with-filename -n "$FORBIDDEN" \
     && echo "COMMIT REJECTED Found \"$FORBIDDEN\" references. Please remove them before committing." \
@@ -45,17 +49,22 @@ fi
 # Abort commit if you are **enabling** modules that should not be enabled
 FILES_PATTERN='core\.extension\.yml$'
 FORBIDDEN_PATTERNS=('devel: 0' 'devel_php: 0' 'drush_endpoint: 0')
+EXT_FILE=$(find . -path "*/config/sync/core.extension.yml" ! -path "*/.git/*" 2>/dev/null | head -1)
 if [ -f ".ddev/.env.anner" ]; then
     source ".ddev/.env.anner"
-    # Also include page_cache in forbidden modules for Platform (Upsun)
-    if [ "$DDEV_UPSTREAM_PROVIDER" = "platform" ] || [ "$DDEV_UPSTREAM_PROVIDER" = "upsun" ]; then
+    # page_cache is only forbidden when a CDN we can invalidate (fastly/cloudflare)
+    # is present. Without one, Upsun's cache can't be tag-invalidated, so
+    # page_cache is now a useful extra layer — decision reversed, see issue #132.
+    if { [ "$DDEV_UPSTREAM_PROVIDER" = "platform" ] || [ "$DDEV_UPSTREAM_PROVIDER" = "upsun" ]; } \
+        && [ -n "$EXT_FILE" ] \
+        && grep -qE "^\s+(fastly|cloudflare):" "$EXT_FILE"; then
         # Do NOT remove the empty space before the module name for this one!
         # It will match dynamic_page_cache too if you do so.
         FORBIDDEN_PATTERNS+=( ' page_cache: 0')
     fi
 fi
 
-STAGED_FILES=$(git diff --cached --name-only | grep -E "$FILES_PATTERN")
+STAGED_FILES=$(git diff --cached --name-only | grep -vE "(^|/)tests(/|$)" | grep -vE "$SHIPPED_CONFIG_EXCLUDE" | grep -E "$FILES_PATTERN")
 if [ -n "$STAGED_FILES" ]; then
     for FORBIDDEN_PATTERN in "${FORBIDDEN_PATTERNS[@]}"; do
         echo "$STAGED_FILES" | xargs grep --color --with-filename -n "$FORBIDDEN_PATTERN" \

@@ -11,6 +11,6 @@ db_pull_command:
   command: |
     # set -x   # You can enable bash debugging output by uncommenting
     set -eu -o pipefail
-    glab ci artifact dev db:artifact  --path=".ddev/.downloads"
+    glab job artifact dev db:artifact  --path=".ddev/.downloads"
     ddev import-db --file=.ddev/.downloads/db.sql.gz
   service: host

@@ -25,7 +25,7 @@ An rsync-based provider for pulling a DB dump from a host called "Tibus", run in
 Pulls a database dump published as a GitLab CI job artifact, using the `glab` CLI.
 
 - Defines only `db_pull_command` (`service: host`).
-- Runs `glab ci artifact dev db:artifact --path=".ddev/.downloads"` to download the artifact, then `ddev import-db --file=.ddev/.downloads/db.sql.gz` to import it.
+- Runs `glab job artifact dev db:artifact --path=".ddev/.downloads"` to download the artifact, then `ddev import-db --file=.ddev/.downloads/db.sql.gz` to import it.
 - Used via `ddev pull gitlab --skip-files` (the file header also notes `ddev remote-db` as an entry point).
 
 ## Selecting the active provider

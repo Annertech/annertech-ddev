@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Open the Renovate dependency dashboard issue in the browser
+## Usage: renovate-dashboard
+## Example: "ddev renovate-dashboard"
+## Aliases: renovate
+
+RED='\033[0;31m'; NC='\033[0m'
+echo_red() { echo -e "${RED}$1${NC}" >&2; }
+
+ENV_FILE="${DDEV_APPROOT:-.}/.ddev/.env.anner"
+[[ -f "$ENV_FILE" ]] && source "$ENV_FILE"
+
+if [[ -z "$RENOVATE_DASHBOARD_ID" ]]; then
+  echo_red "Error: RENOVATE_DASHBOARD_ID is not set in .ddev/.env.anner"
+  echo_red "Set it with 'ddev env-setup' (Set Renovate Dashboard ID)."
+  exit 1
+fi
+
+if ! command -v glab >/dev/null 2>&1; then
+  echo_red "Error: 'glab' (GitLab CLI) is not installed on the host."
+  exit 1
+fi
+
+cd "${DDEV_APPROOT:-.}" || exit 1
+glab issue view "$RENOVATE_DASHBOARD_ID" -w

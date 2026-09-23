@@ -3,7 +3,7 @@
 if [[ -n "$EXT_FILE" ]]; then
   CDN_NAME=""
   for cdn_mod in fastly cloudflare; do
-    if grep -qE "^\s+${cdn_mod}:" "$EXT_FILE"; then
+    if strip_yaml "$EXT_FILE" | grep -qE "^\s+${cdn_mod}:"; then
       CDN_NAME="$cdn_mod"
       BEHIND_CDN=true
     fi
@@ -16,17 +16,18 @@ fi
 if [[ ! -f "$ROUTES_FILE" ]]; then
   warn "Upsun: .platform/routes.yaml not found — skipping cache check"
 else
-  if grep -qE "cache:" "$ROUTES_FILE"; then
+  ROUTES_CONTENT=$(strip_yaml "$ROUTES_FILE")
+  if echo "$ROUTES_CONTENT" | grep -qE "cache:"; then
     if $BEHIND_CDN; then
-      if grep -qE "enabled:\s*false" "$ROUTES_FILE"; then
+      if echo "$ROUTES_CONTENT" | grep -qE "enabled:\s*false"; then
         pass "Upsun route cache is disabled (correct — project is behind a CDN)"
       else
         fail "Upsun route cache must be DISABLED when behind a CDN (fastly/cloudflare detected)"
       fi
     else
-      if grep -qE "enabled:\s*true" "$ROUTES_FILE"; then
+      if echo "$ROUTES_CONTENT" | grep -qE "enabled:\s*true"; then
         pass "Upsun route cache is enabled"
-      elif grep -qE "enabled:\s*false" "$ROUTES_FILE"; then
+      elif echo "$ROUTES_CONTENT" | grep -qE "enabled:\s*false"; then
         fail "Upsun route cache is DISABLED but no CDN module detected — should be enabled"
       else
         pass "Upsun route cache key found in routes.yaml"
@@ -38,9 +39,23 @@ else
 fi
 
 if [[ ( "$DDEV_UPSTREAM_PROVIDER" == "platform" || "$DDEV_UPSTREAM_PROVIDER" == "upsun" ) && -n "$EXT_FILE" ]]; then
-  if grep -qE "^\s+page_cache:" "$EXT_FILE"; then
-    fail "page_cache module is ENABLED — Upsun handles page caching; disable it"
+  PAGE_CACHE_ENABLED=false
+  strip_yaml "$EXT_FILE" | grep -qE "^\s+page_cache:" && PAGE_CACHE_ENABLED=true
+
+  if $BEHIND_CDN; then
+    if $PAGE_CACHE_ENABLED; then
+      fail "page_cache module is ENABLED — $CDN_NAME already provides invalidatable caching; disable page_cache"
+    else
+      pass "Drupal page_cache module is disabled ($CDN_NAME handles anonymous caches)"
+    fi
   else
-    pass "Drupal page_cache module is disabled (Upsun handles anonymous caches)"
+    # Decision reversed in https://github.com/Annertech/annertech-ddev/issues/132:
+    # without a CDN we can invalidate, the Upsun cache can't be tag-invalidated,
+    # so page_cache is now a useful extra layer rather than something to avoid.
+    if $PAGE_CACHE_ENABLED; then
+      pass "Drupal page_cache module is enabled — useful extra layer since there is no CDN to invalidate (see issue #132)"
+    else
+      warn "Drupal page_cache module is disabled — consider enabling it: without a CDN, Upsun's cache can't be tag-invalidated (decision changed, see issue #132)"
+    fi
   fi
 fi

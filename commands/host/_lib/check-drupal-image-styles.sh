@@ -9,9 +9,9 @@ else
   WEBP_MISSING=()
   while IFS= read -r style_file; do
     style_name=$(basename "$style_file" .yml | sed 's/^image\.style\.//')
-    if ! grep -q "id: image_convert_avif" "$style_file"; then
+    if ! strip_yaml "$style_file" | grep -q "id: image_convert_avif"; then
       AVIF_MISSING+=("$style_name")
-    elif ! grep -q "extension: webp" "$style_file"; then
+    elif ! strip_yaml "$style_file" | grep -q "extension: webp"; then
       WEBP_MISSING+=("$style_name")
     fi
   done <<< "$IMAGE_STYLES"

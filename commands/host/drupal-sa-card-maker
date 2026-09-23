@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Fetch this week's Drupal.org security advisories and hand them to package-checker-and-card-maker
+## Usage: drupal-sa-card-maker [--dry-run] [--auto-assign] [--days N]
+## Aliases: dsacm
+## Example: "ddev dsacm" \n"ddev dsacm --dry-run" \n"ddev dsacm --auto-assign"
+
+set -euo pipefail
+
+# ==============================================================================
+# drupal-sa-card-maker (alias: dsacm)
+# ------------------------------------------------------------------------------
+# Reads https://www.drupal.org/security/all/rss.xml, works out which projects
+# had a security release announced in the last N days (default: 7, i.e. "since
+# last Wednesday" - Drupal.org publishes SAs on Wednesdays), turns each one
+# into its composer namespace (drupal/PROJECT_MACHINE_NAME, and drupal/core for
+# Drupal core) plus the advisory's "Affected versions" constraint, prints the
+# list, then calls package-checker-and-card-maker with all of them.
+#
+# Core is handled like any other project: its machine name is "drupal" but the
+# composer package is drupal/core, and its advisories cover several branches at
+# once (e.g. ">=10.5.0 <10.6.17 || >=11.0.0 <11.3.17 || >=11.4.0 <11.4.7"),
+# which is passed through verbatim so only genuinely affected sites match.
+#
+#   ddev dsacm                  # this week's SAs -> paccma
+#   ddev dsacm --dry-run        # show what paccma would do, no cards created
+#   ddev dsacm --auto-assign    # forwarded to paccma
+#   ddev dsacm --days 14        # widen the window (e.g. after a missed week)
+#
+# Any other flag/arg is passed straight through to package-checker-and-card-maker.
+# Deps: curl, python3
+# ==============================================================================
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+echo_red()    { echo -e "${RED}$1${NC}" >&2; }
+echo_green()  { echo -e "${GREEN}$1${NC}"; }
+echo_yellow() { echo -e "${YELLOW}$1${NC}"; }
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FEED_URL="https://www.drupal.org/security/all/rss.xml"
+DAYS=7
+
+PASSTHRU=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --days) DAYS="$2"; shift 2 ;;
+    *) PASSTHRU+=("$1"); shift ;;
+  esac
+done
+
+echo "Fetching $FEED_URL ..." >&2
+
+tmp_script=$(mktemp)
+tmp_feed=$(mktemp)
+trap 'rm -f "$tmp_script" "$tmp_feed"' EXIT
+
+curl -sf "$FEED_URL" -o "$tmp_feed" || { echo_red "Error: could not fetch $FEED_URL"; exit 1; }
+
+# Parse the feed with python3: for each <item> published within the last
+# $DAYS days, pull the project machine name out of the "Project:" field in
+# the description (href="/project/SLUG") plus the "Affected versions" field,
+# and print "namespace<US>spec<US>link" (US = \x1f). Several advisories for the same
+# project inside the window are merged with "||".
+cat > "$tmp_script" <<'PYEOF'
+import sys, re, html
+from email.utils import parsedate_to_datetime
+from datetime import datetime, timezone, timedelta
+
+days = int(sys.argv[1])
+feed = sys.stdin.read()
+cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+# Composer package names that don't follow the drupal/MACHINE_NAME rule.
+PACKAGES = {"drupal": "drupal/core"}
+
+order = []
+specs = {}
+for item in re.findall(r'<item>(.*?)</item>', feed, re.S):
+    pub_m = re.search(r'<pubDate>([^<]*)</pubDate>', item)
+    if not pub_m:
+        continue
+    try:
+        pub = parsedate_to_datetime(pub_m.group(1))
+    except (TypeError, ValueError):
+        continue
+    if pub < cutoff:
+        continue
+
+    desc_m = re.search(r'<description>(.*?)</description>', item, re.S)
+    if not desc_m:
+        continue
+    # The description is HTML escaped once inside the feed: unescape it to get
+    # the markup, then unescape captured field values a second time (version
+    # constraints are full of < and >).
+    desc = html.unescape(desc_m.group(1))
+    slug_m = re.search(r'href="/project/([a-z0-9_]+)"', desc)
+    if not slug_m:
+        continue
+    slug = slug_m.group(1)
+
+    ver_m = re.search(
+        r'field-name-field-affected-versions.*?<div class="field-item even">(.*?)</div>',
+        desc, re.S)
+    spec = " ".join(html.unescape(ver_m.group(1)).split()) if ver_m else ""
+
+    if slug not in specs:
+        order.append(slug)
+        specs[slug] = []
+    if not spec:
+        # No parseable constraint: match every install of the project.
+        specs[slug] = [""]
+    elif specs[slug] != [""] and spec not in specs[slug]:
+        specs[slug].append(spec)
+
+for slug in order:
+    pkg = PACKAGES.get(slug, f"drupal/{slug}")
+    spec = " || ".join(x for x in specs[slug] if x)
+    # Unit separator: tabs would be eaten as whitespace by read (dropping an
+    # empty spec), and the specs themselves contain "|".
+    print(f"{pkg}\x1f{spec}\x1fhttps://www.drupal.org/project/{slug}")
+PYEOF
+
+mapping=$(python3 "$tmp_script" "$DAYS" < "$tmp_feed")
+
+if [ -z "$mapping" ]; then
+  echo_yellow "No security releases found in the last $DAYS day(s)."
+  exit 0
+fi
+
+echo_green "=== Affected packages (last ${DAYS}d) ==="
+namespaces=()
+while IFS=$'\x1f' read -r ns spec link; do
+  if [ -n "$spec" ]; then
+    echo "$ns ($spec) -> $link"
+    namespaces+=("$ns:$spec")
+  else
+    echo "$ns -> $link"
+    namespaces+=("$ns")
+  fi
+done <<<"$mapping"
+echo "------------------------------------------------"
+
+exec "$SCRIPT_DIR/package-checker-and-card-maker" "${PASSTHRU[@]}" "${namespaces[@]}"

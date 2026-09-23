@@ -3,11 +3,26 @@
 #annertech-ddev
 
 ## Description: Quickly open the current issue you are working on
-## Usage: open-issue
+## Usage: open-issue [-c]
 ## Example: "ddev open-issue"
+## Example: "ddev open-issue -c" (only print and copy the link, don't open it)
 ## Aliases: tw-open
 
 DOMAIN="${TEAMWORK_DOMAIN}"
+COPY_ONLY=false
+
+while [[ "$1" == -* ]]; do
+  case "$1" in
+    -c)
+      COPY_ONLY=true
+      shift
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
 
 if [[ -z "$DOMAIN" ]]; then
   echo "Error: TEAMWORK_DOMAIN environment variable must be set."
@@ -49,17 +64,19 @@ if [[ $branch_name =~ T-([0-9]+) ]]; then
         printf "$result"
         printf "\n\n"
     fi
-    case $OSTYPE in
-      linux-gnu)
-        xdg-open ${result}
-        ;;
-      "darwin"*)
-        open ${result}
-        ;;
-      "win*"* | "msys"*)
-        start ${result}
-        ;;
-    esac
+    if [[ "$COPY_ONLY" == false ]]; then
+        case $OSTYPE in
+          linux-gnu)
+            xdg-open ${result}
+            ;;
+          "darwin"*)
+            open ${result}
+            ;;
+          "win*"* | "msys"*)
+            start ${result}
+            ;;
+        esac
+    fi
 
 else
     echo "No task ID found in the branch name."

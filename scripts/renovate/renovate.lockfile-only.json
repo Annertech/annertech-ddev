@@ -1,0 +1,87 @@
+{
+    "description": "#ddev-generated",
+    "extends": ["config:recommended"],
+    "logLevelRemap": [
+      {
+        "matchMessage": "/requirements cannot be resolved/",
+        "newLogLevel": "debug"
+      },
+      {
+        "matchMessage": "/Detected empty commit/",
+        "newLogLevel": "debug"
+      }
+    ],
+    "automerge": false,
+    "branchPrefix": "deps/",
+    "labels": ["dependencies"],
+    "assignees": ["bserem"],
+    "rangeStrategy": "update-lockfile",
+    "timezone": "Etc/UTC",
+    "enabledManagers": ["composer"],
+    "prConcurrentLimit": 3,
+    "prHourlyLimit": 2,
+    "major": { "enabled": false },
+    "ignorePaths": [
+        "**/node_modules/**",
+        "**/bower_components/**",
+        "**/vendor/**",
+        "**/examples/**",
+        "**/__tests__/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/__fixtures__/**",
+        "web/core/**",
+        "web/modules/contrib/**",
+        "web/themes/contrib/**",
+        "web/profiles/contrib/**",
+        "web/libraries/**"
+    ],
+    "packageRules": [
+        {
+            "matchPackageNames": ["php"],
+            "enabled": false
+        },
+        {
+            "groupName": "Contrib: minor and updates",
+            "groupSlug": "minor-patch-contrib",
+            "matchDatasources": ["packagist"],
+            "separateMinorPatch": false,
+            "matchPackageNames": [
+                "/.*/",
+                "!drupal/core-composer-scaffold",
+                "!drupal/core-project-message",
+                "!drupal/core-recommended"
+            ]
+        },
+        {
+            "matchDatasources": ["packagist"],
+            "separateMinorPatch": true,
+            "matchPackageNames": [
+                "drupal/core-composer-scaffold",
+                "drupal/core-project-message",
+                "drupal/core-recommended"
+            ]
+        },
+        {
+            "matchDatasources": ["packagist"],
+            "matchUpdateTypes": ["minor"],
+            "enabled": false,
+            "matchPackageNames": [
+                "drupal/core-composer-scaffold",
+                "drupal/core-project-message",
+                "drupal/core-recommended"
+            ]
+        },
+        {
+            "groupName": "Core: patch update",
+            "groupSlug": "patch-core",
+            "matchDatasources": ["packagist"],
+            "matchUpdateTypes": ["patch"],
+            "matchPackageNames": [
+                "drupal/core-composer-scaffold",
+                "drupal/core-project-message",
+                "drupal/core-recommended"
+            ]
+        }
+    ]
+}

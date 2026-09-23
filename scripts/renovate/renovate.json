@@ -1,0 +1,63 @@
+{
+    "description": "#ddev-generated",
+    "extends": ["config:recommended"],
+    "logLevelRemap": [
+      {
+        "matchMessage": "/requirements cannot be resolved/",
+        "newLogLevel": "info"
+      },
+      {
+        "matchMessage": "/Detected empty commit/",
+        "newLogLevel": "info"
+      }
+    ],
+    "automerge": false,
+    "branchPrefix": "deps/",
+    "labels": ["dependencies"],
+    "rangeStrategy": "update-lockfile",
+    "timezone": "Etc/UTC",
+    "enabledManagers": ["composer"],
+    "prConcurrentLimit": 3,
+    "prHourlyLimit": 2,
+    "major": { "enabled": false },
+    "ignorePaths": [
+        "**/node_modules/**",
+        "**/bower_components/**",
+        "**/vendor/**",
+        "vendor/**",
+        "**/examples/**",
+        "**/__tests__/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/__fixtures__/**",
+        "web/core/**",
+        "web/modules/contrib/**",
+        "web/themes/contrib/**",
+        "web/profiles/contrib/**",
+        "web/libraries/**"
+    ],
+    "postUpgradeTasks": {
+        "commands": ["composer install --no-interaction --no-progress"],
+        "fileFilters": [
+            "composer.json",
+            "composer.lock",
+            "composer-manifest.yaml",
+            "vendor/**",
+            "web/core/**",
+            "web/modules/contrib/**",
+            "web/themes/contrib/**"
+        ],
+        "executionMode": "branch"
+    },
+    "packageRules": [
+        {
+            "matchPackageNames": ["php"],
+            "enabled": false
+        },
+        {
+            "groupName": "Drupal dependencies",
+            "groupSlug": "drupal-deps",
+            "matchUpdateTypes": ["minor", "patch"]
+        }
+    ]
+}

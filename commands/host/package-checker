@@ -2,9 +2,9 @@
 #ddev-generated
 #annertech-ddev
 
-## Description: Scan all GitLab projects for a composer package, flag insecure versions
-## Usage: package-checker <vendor/package> [max-insecure-version]
-## Example: "ddev package-checker drupal/token" \n"ddev package-checker drupal/token 1.6"
+## Description: Scan all GitLab projects for composer packages, flag insecure versions
+## Usage: package-checker <vendor/package[:max-insecure-version]> [more...]
+## Example: "ddev package-checker drupal/token" \n"ddev package-checker drupal/ai:2.8 drupal/paragraphs:1.9"
 ## Aliases: wtfiow
 
 set -euo pipefail
@@ -12,9 +12,10 @@ set -euo pipefail
 # ==============================================================================
 # package-checker (alias: wtfiow - "what the f* is on where")
 # ------------------------------------------------------------------------------
-# Offline scan of every project under a GitLab group (default: clients) for a
-# given composer package, by reading each project's composer-manifest.yaml via
-# the GitLab API. No clone, no composer.
+# Offline scan of every project under a GitLab group (default: clients) for one
+# or more composer packages, by reading each project's composer-manifest.yaml
+# via the GitLab API. No clone, no composer. A project matches if it uses ANY
+# of the given packages.
 #
 # Two backends, auto-selected:
 #   * glab  - used when `glab` is installed. Auth + host come from glab itself
@@ -23,8 +24,9 @@ set -euo pipefail
 #   * curl  - fallback. Requires GITLAB_URL + GITLAB_TOKEN (read_api scope).
 # Force one with PACKAGE_CHECKER_BACKEND=glab|curl.
 #
-#   ddev package-checker drupal/token        # list every project using it
-#   ddev package-checker drupal/token 1.6     # flag installs <= 1.6
+#   ddev package-checker drupal/token              # list every project using it
+#   ddev package-checker drupal/token:1.6           # flag installs <= 1.6
+#   ddev package-checker drupal/ai:2.8 drupal/paragraphs:1.9   # multiple, OR-matched
 #
 # Env:
 #   GITLAB_GROUP   group path to scan (default: clients)
@@ -36,8 +38,16 @@ set -euo pipefail
 # Deps: jq, plus either glab OR curl
 # ==============================================================================
 
-PKG="${1:?usage: ddev package-checker <vendor/package> [version]}"
-MAX="${2:-}"   # optional; empty => report any usage
+# parse args into parallel arrays: each "vendor/package[:max-insecure-version]"
+[ "$#" -ge 1 ] || { echo "usage: ddev package-checker <vendor/package[:version]> [more...]" >&2; exit 1; }
+PKGS=(); MAXES=()
+for arg in "$@"; do
+  if [[ "$arg" == *:* ]]; then
+    PKGS+=("${arg%%:*}"); MAXES+=("${arg#*:}")
+  else
+    PKGS+=("$arg"); MAXES+=("")
+  fi
+done
 
 GROUP="${GITLAB_GROUP:-clients}"
 MANIFEST="composer-manifest.yaml"
@@ -106,9 +116,9 @@ else
   }
 fi
 
-# installed <= MAX ?  (strip leading v, compare with sort -V)
-is_insecure() {
-  local v="${1#v}" m="${MAX#v}"
+# is version <= max ?  (strip leading v, compare with sort -V)
+is_insecure() { # <version> <max>
+  local v="${1#v}" m="${2#v}"
   [ "$v" = "$m" ] && return 0
   [ "$(printf '%s\n%s\n' "$v" "$m" | sort -V | head -1)" = "$v" ]
 }
@@ -116,7 +126,11 @@ is_insecure() {
 echo "Scanning group '$GROUP' (backend: $BACKEND) ..." >&2
 preflight
 
-found=0; scanned=0; nomanifest=0
+scanned=0; nomanifest=0
+# each element: "repo<TAB>insecure(0|1)<TAB>pkg ver"  (aggregated per repo below)
+matches=()
+# dedup projects by id: pagination/subgroups can list the same repo twice, which
+# would otherwise inflate the scanned count and duplicate matches.
 while IFS=$'\t' read -r id name branch; do
   scanned=$((scanned+1))
   [ -n "${DEBUG:-}" ] && echo "  scanning: $name ($branch)" >&2
@@ -127,28 +141,49 @@ while IFS=$'\t' read -r id name branch; do
     continue
   fi
 
-  # manifest line: "    vendor/pkg: version"  (exact package match)
-  # `|| true` so a non-match (grep exit 1) does not trip pipefail/set -e.
-  line=$(grep -E "^[[:space:]]+${PKG//\//\\/}:[[:space:]]" <<<"$raw" || true)
-  [ -z "$line" ] && continue   # project does not use the package
-  ver=$(head -1 <<<"$line" | sed -E 's/.*:[[:space:]]*//; s/[[:space:]]*$//')
+  # check each requested package against this project's manifest
+  for i in "${!PKGS[@]}"; do
+    pkg="${PKGS[$i]}"; max="${MAXES[$i]}"
 
-  if [ -z "$MAX" ]; then
-    echo -e "${GREEN}$name${NC} REQUIRES $PKG $ver"
-    found=$((found+1))
-  elif is_insecure "$ver"; then
-    echo -e "${RED}$name${NC} REQUIRES $PKG ($ver <= $MAX)"
-    found=$((found+1))
-  fi
-  # secure versions are not printed
-done < <(list_projects)
+    # manifest line: "    vendor/pkg: version"  (exact package match)
+    # `|| true` so a non-match (grep exit 1) does not trip pipefail/set -e.
+    line=$(grep -E "^[[:space:]]+${pkg//\//\\/}:[[:space:]]" <<<"$raw" || true)
+    [ -z "$line" ] && continue   # project does not use this package
+    ver=$(head -1 <<<"$line" | sed -E 's/.*:[[:space:]]*//; s/[[:space:]]*$//')
+
+    if [ -z "$max" ]; then
+      matches+=("$name"$'\t'"0"$'\t'"$pkg $ver")
+    elif is_insecure "$ver" "$max"; then
+      matches+=("$name"$'\t'"1"$'\t'"$pkg $ver (<= $max)")
+    fi
+    # secure versions are not printed
+  done
+done < <(list_projects | awk -F'\t' '!seen[$1]++')
+
+echo "------------------------------------------------"
+
+# real-escape colors for awk (no echo -e needed inside it)
+GC=$'\033[0;32m'; RC=$'\033[0;31m'; NCC=$'\033[0m'
+
+hits=0; repos=0
+if [ "${#matches[@]}" -gt 0 ]; then
+  # collapse identical (repo,pkg) rows, then aggregate one line per repo with
+  # packages sorted; a repo turns red if any of its matches is insecure.
+  uniq_rows=$(printf '%s\n' "${matches[@]}" | sort -t$'\t' -k1,1 -k3,3 -u)
+  printf '%s\n' "$uniq_rows" \
+    | awk -F'\t' -v G="$GC" -v R="$RC" -v N="$NCC" '
+        function emit(){ printf "%s%s%s REQUIRES %s\n", (bad?R:G), cur, N, list }
+        { if ($1 != cur) { if (cur != "") emit(); cur=$1; list=$3; bad=($2=="1") }
+          else { list=list ", " $3; if ($2=="1") bad=1 } }
+        END { if (cur != "") emit() }'
+  hits=$(printf '%s\n' "$uniq_rows" | grep -c .)
+  repos=$(printf '%s\n' "$uniq_rows" | cut -f1 | sort -u | grep -c .)
+fi
 
 echo "------------------------------------------------"
 echo "Scanned $scanned project(s); $nomanifest without $MANIFEST on default branch." >&2
-if [ -z "$MAX" ]; then
-  echo -e "${YELLOW}$found project(s) use $PKG.${NC}"
-elif [ "$found" -gt 0 ]; then
-  echo -e "${YELLOW}$found project(s) need maintenance for $PKG.${NC}"
+if [ "$hits" -gt 0 ]; then
+  echo -e "${YELLOW}$hits match(es) across $repos repo(s) for: ${PKGS[*]}.${NC}"
 else
-  echo -e "${GREEN}No uses of $PKG found.${NC}"
+  echo -e "${GREEN}No uses of ${PKGS[*]} found.${NC}"
 fi

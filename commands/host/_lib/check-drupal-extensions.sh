@@ -5,8 +5,9 @@ EXT_FILE=$(find "$APPROOT" -path "*/config/sync/core.extension.yml" ! -path "*/.
 if [[ -z "$EXT_FILE" ]]; then
   warn "core.extension.yml not found — skipping"
 else
+  EXT_CONTENT=$(strip_yaml "$EXT_FILE")
   for mod in devel devel_php drush_endpoint; do
-    if grep -qE "^\s+${mod}:" "$EXT_FILE"; then
+    if echo "$EXT_CONTENT" | grep -qE "^\s+${mod}:"; then
       fail "Dev module '$mod' is ENABLED"
     else
       pass "Dev module '$mod' is not enabled"
@@ -14,7 +15,7 @@ else
   done
 
   for mod in health_check_url; do
-    if grep -qE "^\s+${mod}:" "$EXT_FILE"; then
+    if echo "$EXT_CONTENT" | grep -qE "^\s+${mod}:"; then
       pass "Required module '$mod' is enabled"
     else
       fail "Required module '$mod' is NOT enabled"

@@ -4,8 +4,8 @@ LOCAL_PROJECT_YAML="$APPROOT/.platform/local/project.yaml"
 if [[ ! -f "$LOCAL_PROJECT_YAML" ]]; then
   warn "Upsun: .platform/local/project.yaml not found — skipping project ID check"
 else
-  UPSUN_PROJECT_ID=$(grep -E '^id:' "$LOCAL_PROJECT_YAML" | sed 's/id:[[:space:]]*//' | tr -d '"' | xargs)
-  DDEV_PROJECT_ID=$(grep -E 'PLATFORM_PROJECT=' "$DDEV_CONFIG" | sed 's/.*PLATFORM_PROJECT=//' | tr -d '"' | xargs)
+  UPSUN_PROJECT_ID=$(strip_yaml "$LOCAL_PROJECT_YAML" | grep -E '^id:' | sed 's/id:[[:space:]]*//' | tr -d '"' | xargs)
+  DDEV_PROJECT_ID=$(strip_yaml "$DDEV_CONFIG" | grep -E 'PLATFORM_PROJECT=' | sed 's/.*PLATFORM_PROJECT=//' | tr -d '"' | xargs)
 
   if [[ -z "$UPSUN_PROJECT_ID" ]]; then
     warn "Upsun: could not read project ID from .platform/local/project.yaml"

@@ -6,6 +6,27 @@
 ## Usage: behat [flags] [args]
 ## Example: "ddev behat --tags ~wip"
 
+# Guard: this script may end up on non-DDEV environments (e.g. production) where
+# it must never run. DDEV sets IS_DDEV_PROJECT=true inside the web container.
+if [ "$IS_DDEV_PROJECT" != "true" ]; then
+    echo
+    echo "\033[38;5;208mError: behat can only run inside a DDEV web container.\033[0m"
+    echo "\033[38;5;208mRefusing to run: IS_DDEV_PROJECT is not 'true'.\033[0m"
+    echo
+    exit 1
+fi
+
+# Signal to PHP-FPM (via shared filesystem) that behat is running, so settings.php
+# can disable modules like captcha and antibot that block automated requests.
+touch /var/www/html/web/.behat_testing
+trap "rm -f /var/www/html/web/.behat_testing" EXIT INT TERM
+
+# Use project-root vendor/bin/behat if present
+if [ -f "vendor/bin/behat" ]; then
+    vendor/bin/behat -c tests/behat/behat.yml "$@"
+    exit $?
+fi
+
 # Check if the tests/behat directory exists
 if [ ! -d "tests/behat" ]; then
     echo
@@ -21,10 +42,6 @@ cd tests/behat
 # Always run 'composer install' in tests/behat to ensure dependencies are up-to-date
 composer install
 
-# Signal to PHP-FPM (via shared filesystem) that behat is running, so settings.php
-# can disable modules like captcha and antibot that block automated requests.
-touch /var/www/html/web/.behat_testing
-trap "rm -f /var/www/html/web/.behat_testing" EXIT INT TERM
 bin/behat "$@"
 
 # big_pipe

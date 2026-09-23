@@ -3,8 +3,8 @@
 if [[ ! -f "$DDEV_CONFIG" ]]; then
   warn ".ddev/config.yaml not found — skipping DDEV version checks"
 else
-  DDEV_DB_TYPE=$(grep -A2 '^database:' "$DDEV_CONFIG" | grep 'type:' | sed 's/.*type:[[:space:]]*//' | tr -d '"' | xargs)
-  DDEV_DB_VERSION=$(grep -A2 '^database:' "$DDEV_CONFIG" | grep 'version:' | sed 's/.*version:[[:space:]]*//' | tr -d '"' | xargs)
+  DDEV_DB_TYPE=$(strip_yaml "$DDEV_CONFIG" | grep -A2 '^database:' | grep 'type:' | sed 's/.*type:[[:space:]]*//' | tr -d '"' | xargs)
+  DDEV_DB_VERSION=$(strip_yaml "$DDEV_CONFIG" | grep -A2 '^database:' | grep 'version:' | sed 's/.*version:[[:space:]]*//' | tr -d '"' | xargs)
 
   if [[ -z "$DDEV_DB_VERSION" ]]; then
     warn "database.version not set in .ddev/config.yaml — skipping database version check"

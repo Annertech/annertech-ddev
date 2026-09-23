@@ -13,6 +13,9 @@ echo_yellow() { echo -e "${YELLOW}$1${NC}"; }
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
 . "$LIB_DIR/tw-projects.sh"
+. "$LIB_DIR/tw-people.sh"
+
+ENV_FILE=".ddev/.env.anner"
 
 set_teamwork_board() {
     tw_select_project
@@ -20,10 +23,45 @@ set_teamwork_board() {
     echo_green "✓ Saved TEAMWORK_PROJECT_ID=$PROJECT_ID ($PROJECT_NAME) to .ddev/.env.anner"
 }
 
+set_teamwork_person() {
+    local role="$1" flag="$2"
+    local project_id=""
+    if [ -f "$ENV_FILE" ]; then
+        project_id=$(grep -E '^TEAMWORK_PROJECT_ID=' "$ENV_FILE" | cut -d= -f2 | tr -d '"' | tr -d "'" || true)
+    fi
+
+    tw_select_person "$project_id"
+    ddev dotenv set .ddev/.env.anner "--${flag}=${PERSON_ID}"
+    echo_green "✓ Saved TEAMWORK_${role}_ID=$PERSON_ID ($PERSON_NAME) to .ddev/.env.anner"
+}
+
+set_guardian() { set_teamwork_person "GUARDIAN" "teamwork-guardian-id"; }
+set_deputy()   { set_teamwork_person "DEPUTY" "teamwork-deputy-id"; }
+set_dm()       { set_teamwork_person "DM" "teamwork-dm-id"; }
+set_am()       { set_teamwork_person "AM" "teamwork-am-id"; }
+
+set_renovate_dashboard_id() {
+    local id
+    read -r -p "Renovate dependency dashboard issue ID: " id
+
+    if ! [[ "$id" =~ ^[0-9]+$ ]]; then
+        echo_red "Error: the issue ID must be an integer."
+        exit 1
+    fi
+
+    ddev dotenv set .ddev/.env.anner --renovate-dashboard-id="$id"
+    echo_green "✓ Saved RENOVATE_DASHBOARD_ID=$id to .ddev/.env.anner"
+}
+
 OPTIONS=(
     "1. Set Teamwork Board"
     "2. Set Project to LIVE mode"
     "3. Set Project to BUILD mode"
+    "4. Set Guardian"
+    "5. Set Deputy"
+    "6. Set DM"
+    "7. Set AM"
+    "8. Set Renovate Dashboard ID"
 )
 
 set_live_mode() {
@@ -49,6 +87,11 @@ main() {
         "1."*) set_teamwork_board ;;
         "2."*) set_live_mode ;;
         "3."*) set_build_mode ;;
+        "4."*) set_guardian ;;
+        "5."*) set_deputy ;;
+        "6."*) set_dm ;;
+        "7."*) set_am ;;
+        "8."*) set_renovate_dashboard_id ;;
         *) echo_red "Unknown selection"; exit 1 ;;
     esac
 }

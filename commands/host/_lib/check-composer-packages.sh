@@ -19,6 +19,10 @@ else
     warn "anrt-tools/docksal-configuration is present — this package must not be used"
   fi
 
+  if grep -q '"name": "drupal-composer/drupal-security-advisories"' "$LOCK_FILE"; then
+    warn "drupal-composer/drupal-security-advisories is present — no longer necessary, remove it (composer remove drupal-composer/drupal-security-advisories)"
+  fi
+
   COMPOSER_MANIFEST_VERSION=$(grep -A3 '"name": "joachim-n/composer-manifest"' "$LOCK_FILE" | grep '"version"' | sed 's/.*"version": "\(.*\)".*/\1/')
   if [[ -n "$COMPOSER_MANIFEST_VERSION" ]]; then
     COMPOSER_MANIFEST_CLEAN=$(echo "$COMPOSER_MANIFEST_VERSION" | sed 's/^v//')

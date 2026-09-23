@@ -32,11 +32,21 @@ fi
 # ---------------------------------------------------------------------------
 # Behat
 # ---------------------------------------------------------------------------
+if [ -f "${DDEV_APPROOT}/.ddev/.env.anner" ]; then
+  set -a
+  source "${DDEV_APPROOT}/.ddev/.env.anner"
+  set +a
+fi
+
 if [ -f "${DDEV_APPROOT}/tests/behat/behat.yml" ]; then
   echo "${bold}Behat:${normal}"
   echo "  ddev ssh"
   echo "  cd tests/behat"
   echo "  bin/behat"
+
+  if [ "${MULTISITE:-0}" = "1" ]; then
+    echo "  ddev robo"
+  fi
   echo
 fi
 
@@ -63,6 +73,9 @@ if [ -f "${DDEV_APPROOT}/cypress.config.js" ]; then
   echo
   echo "If getting X related errors run xhost ${bold}first${normal}!"
   echo "  xhost +local:"
+  echo
+  echo "You might need to enable drush_endpoint module ${bold}first${normal}!"
+  echo "  drush en drush_endpoint"
   echo
 fi
 

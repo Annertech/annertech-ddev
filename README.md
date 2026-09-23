@@ -90,12 +90,15 @@ Upsun is using v7 while DDEV is still running v6 by default.
 
 `ddev package-checker` (alias `ddev wtfiow`) scans every project under a GitLab
 group, reads each project's `composer-manifest.yaml` over the API (no clone, no
-composer), and reports which projects require a given package.
+composer), and reports which projects require the given package(s). Pass several
+packages (composer notation, version after a colon) to OR-match them.
 
 ```bash
-ddev package-checker drupal/token         # list every project using it
-ddev package-checker drupal/token 1.6.0   # highlights projects using drupal/token <= 1.6.0
-DEBUG=1 ddev package-checker drupal/token # debug mode, ultra verbose
+ddev package-checker drupal/token                       # list every project using it
+ddev package-checker drupal/token:1.6.0                  # highlights projects using drupal/token <= 1.6.0
+ddev package-checker drupal/ai:2.8 drupal/paragraphs:1.9 # multiple packages, OR-matched
+ddev package-checker drupal/ai drupal/paragraphs         # multiple, no version filter
+DEBUG=1 ddev package-checker drupal/token               # debug mode, ultra verbose
 ```
 
 It is a **host** command with two backends, auto-selected:
@@ -175,7 +178,8 @@ if (isset($platformsh->branch)) {
 
 ### Teamwork Integration
 
-Several commands integrate with Teamwork (`tw-comment`, `tw-timelog`, `open-issue`, `timew`, `tw-description`). These require the following environment variables to be set on your host machine:
+Several commands integrate with Teamwork (`tw-comment`, `tw-timelog`, `open-issue`, `timew`, `tw-description`).  
+These require the following environment variables to be set on your host machine (See [Locating your Teamwork API Key](https://support.teamwork.com/projects/using-teamwork/locating-your-api-key)):
 
 ```bash
 export TEAMWORK_DOMAIN="projects.yourcompany.com"
@@ -252,6 +256,10 @@ git config --global alias.llog '!f() { git log --color=always --pretty=format:"%
 # Open ticket in browser (cross-platform)
 bind main o @sh -c "git log -1 --format='%s' '%(commit)' | grep -oP 'T-\\d+' | sed 's/T-//' | xargs -I{} sh -c 'xdg-open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || start \"https://projects.annertech.com/app/tasks/{}\"'"
 bind diff o @sh -c "git log -1 --format='%s' '%(commit)' | grep -oP 'T-\\d+' | sed 's/T-//' | xargs -I{} sh -c 'xdg-open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || open \"https://projects.annertech.com/app/tasks/{}\" 2>/dev/null || start \"https://projects.annertech.com/app/tasks/{}\"'"
+
+# Open commit on the remote (origin, ssh/git or https URL) in browser
+bind main B @sh -c "u=$(git remote get-url origin | sed -e 's|^[a-z+]*://||' -e 's|^.*@||' -e 's|\\.git$||' -e 's|:[0-9][0-9]*/|/|' -e 's|:|/|'); case $u in *github.com*) p=commit;; *bitbucket*) p=commits;; *) p=-/commit;; esac; t=https://$u/$p/%(commit); xdg-open $t >/dev/null 2>&1 || open $t >/dev/null 2>&1"
+bind diff B @sh -c "u=$(git remote get-url origin | sed -e 's|^[a-z+]*://||' -e 's|^.*@||' -e 's|\\.git$||' -e 's|:[0-9][0-9]*/|/|' -e 's|:|/|'); case $u in *github.com*) p=commit;; *bitbucket*) p=commits;; *) p=-/commit;; esac; t=https://$u/$p/%(commit); xdg-open $t >/dev/null 2>&1 || open $t >/dev/null 2>&1"
 
 # Copy commit hash to clipboard (cross-platform)
 bind main y @sh -c "echo -n '%(commit)' | xclip -selection clipboard 2>/dev/null || echo -n '%(commit)' | pbcopy 2>/dev/null || echo -n '%(commit)' | clip.exe 2>/dev/null

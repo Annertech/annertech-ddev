@@ -49,8 +49,14 @@ $config['shield.settings']['shield_enable'] = FALSE;
 // Disable TFA locally.
 $config['tfa.settings']['enabled'] = FALSE;
 
+// Disable OpenTelemetry locally.
+$config['opentelemetry.settings']['disable'] = true;
+
 // Disable any IP restrictions.
 $config['restrict_ip.settings']['enable'] = FALSE;
+// restrict_route_by_ip locks specific routes to server IPs; that's only
+// meaningful on real infra, so switch it off for local development.
+$config['restrict_route_by_ip.settings']['enable'] = FALSE;
 
 // Disable Fastly on non-production environments.
 $config['fastly.settings']['api_key'] = '';

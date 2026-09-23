@@ -4,7 +4,7 @@ if [[ "$DDEV_UPSTREAM_PROVIDER" == "platform" || "$DDEV_UPSTREAM_PROVIDER" == "u
   SIMPLEI_FILE="$APPROOT/web/sites/default/settings.platformsh.php"
 
   if [[ -n "$EXT_FILE" ]]; then
-    if grep -qE "^\s+simplei:" "$EXT_FILE"; then
+    if strip_yaml "$EXT_FILE" | grep -qE "^\s+simplei:"; then
       pass "simplei module is enabled"
     else
       warn "simplei module is NOT enabled"
