@@ -24,6 +24,7 @@ Never ignore these. If a rule blocks the task, stop and explain, do not work aro
 - Before any change that touches the database, `config/sync` or contrib code, state what breaks if it is wrong and how to revert it.
 - All changes to contrib code (modules, themes, core) ship as composer patches. You may edit contrib files to prove a point, but those edits must never be committed.
 - Use Drupal coding standards.
+- When linking to a teamwork issue (code, comments, tests, human interaction, anywhere) always use the full HTTPS link.
 - When unsure, stop and ask. A question costs less than a wrong commit.
 
 ### Personal data
@@ -44,8 +45,10 @@ Example: `202409_T-17360561__description`, issue ID is `17360561`.
 
 - Custom code: `web/modules/custom`, `web/themes/custom`
 - Contrib and core: `web/modules/contrib`, `web/themes/contrib`, `web/core`, `vendor` (read only, patches only)
-- Exported config: `config/sync` (never hand edit unless specifically instructed, always export)
-- Local settings: `settings.local.php` (never edit `settings.php`)
+- Exported config: `config/sync`. Never hand edit unless specifically instructed, always export
+- Local settings: `settings.local.php`. Never edit `settings.php`
+- Behat tests: `tests/behat`. Avoid writing new step definitions if you can do with already provided ones. If you must create new definitions, avoid overengineered ones (eg: direct SQL queries to prove a test right)
+- Cypress tests: `cypress`.
 
 ### Common commands
 
@@ -82,7 +85,7 @@ Contributions include an `Assisted-by` trailer:
 Assisted-by: AGENT_NAME:MODEL_VERSION [TOOL1] [TOOL2]
 ```
 
-`[TOOL1] [TOOL2]` are optional tools used. Basic development tools (git, ddev, drush, editors) are not listed.
+`[TOOL1] [TOOL2]` are optional tools used. Basic development tools (git, ddev, drush, editors, glab etc) are not listed.
 
 Example:
 
@@ -120,15 +123,13 @@ Do not add `Co-Authored-By:` trailers or "Generated with Claude Code" footers. T
 - Rate your confidence on every substantive claim: `[Verified]` you ran the command or read the file and the evidence is in this reply, `[Likely]` a strong inference you cannot prove here, `[Guessing]` you are filling a gap. This is about how sure you are, not about whether a tool was available, so it applies to bug triage, log analysis, support answers and rubber ducking just as much as to code changes.
 - If most of an answer is guessing, say that before the answer, not after it.
 - Never write `[Verified]` without the evidence beside it.
+- Do Not Repeat Yourself on every response
 
 ## Project Specifics
 
+Read @AGENTS.project.md **now** for project specific guidelines. It is ok if it does not exist.
+
 <!--
 #ddev-generated
-Add per project facts below: production and staging environment names, theme build
-steps, search backend, deployment quirks, modules with unusual behaviour.
-
-Everything above this section ships with annertech-ddev and is refreshed on every
-add-on update, which overwrites whatever you put here. To take ownership of this
-file and stop receiving updates, delete the #ddev-generated comment above.
+Add per project facts intro AGENTS.project.md
 -->
