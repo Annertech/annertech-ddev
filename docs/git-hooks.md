@@ -14,12 +14,14 @@ Enforces that every commit message references a Teamwork ticket.
 
 ## pre-commit
 
-A multi-check guard over staged files. Any failing check blocks the commit (exit 1) unless noted:
+A multi-check guard over staged files. Any failing check blocks the commit (exit 1) unless noted.
+
+All checks that scan `system.performance.yml` or `core.extension.yml` exclude paths under `config/install/` or `config/optional/` (module-shipped default config that is not the site's active config, e.g. `web/core/modules/system/config/install/system.performance.yml`).
 
 1. Rejects staged `system.performance.yml` containing `preprocess: false` (CSS/JS aggregation disabled).
 2. Rejects staged `system.performance.yml` (excluding paths under `tests/`) containing `max_age: 0` (browser caching disabled).
 3. Rejects staged `system.performance.yml` (excluding `tests/`) containing `gzip: true` (AdvAgg GZIP enabled).
-4. Rejects staged `core.extension.yml` (excluding paths under `tests/`) enabling forbidden modules: `devel: 0`, `devel_php: 0`, `drush_endpoint: 0` (Drupal's YAML convention where `: 0` means "enabled"). If `.ddev/.env.anner` exists and `DDEV_UPSTREAM_PROVIDER` is `platform` or `upsun`, it additionally forbids enabling ` page_cache: 0` (the leading space is intentional, to avoid matching `dynamic_page_cache`).
+4. Rejects staged `core.extension.yml` (excluding paths under `tests/`) enabling forbidden modules: `devel: 0`, `devel_php: 0`, `drush_endpoint: 0` (Drupal's YAML convention where `: 0` means "enabled"). If `.ddev/.env.anner` exists, `DDEV_UPSTREAM_PROVIDER` is `platform` or `upsun`, **and** a CDN module (`fastly` or `cloudflare`) is enabled in `config/sync/core.extension.yml`, it additionally forbids enabling ` page_cache: 0` (the leading space is intentional, to avoid matching `dynamic_page_cache`). Without an invalidatable CDN, `page_cache` is a useful extra caching layer and is no longer forbidden.
 5. Checks for a CDN module (Fastly or Cloudflare) enabled in `config/sync/core.extension.yml` while `.platform/routes.yaml` exists; if a CDN is enabled but the routes file doesn't disable Upsun's route cache (`enabled: false` under cache), it blocks with a warning that route cache must be disabled behind a CDN.
 6. Rejects commits with staged files under a `devel_php/` folder.
 7. If `.ddev/addon-metadata/annertech-ddev/manifest.yaml` is staged with no/empty `version:` field, blocks — this implies a dev/unpublished version of the addon is in use.
