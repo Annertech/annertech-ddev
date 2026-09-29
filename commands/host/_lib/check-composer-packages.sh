@@ -23,6 +23,10 @@ else
     warn "drupal-composer/drupal-security-advisories is present — no longer necessary, remove it (composer remove drupal-composer/drupal-security-advisories)"
   fi
 
+  if grep -q '"name": "roave/security-advisories"' "$LOCK_FILE"; then
+    warn "roave/security-advisories is present — no longer necessary, remove it (composer remove roave/security-advisories)"
+  fi
+
   COMPOSER_MANIFEST_VERSION=$(grep -A3 '"name": "joachim-n/composer-manifest"' "$LOCK_FILE" | grep '"version"' | sed 's/.*"version": "\(.*\)".*/\1/')
   if [[ -n "$COMPOSER_MANIFEST_VERSION" ]]; then
     COMPOSER_MANIFEST_CLEAN=$(echo "$COMPOSER_MANIFEST_VERSION" | sed 's/^v//')
