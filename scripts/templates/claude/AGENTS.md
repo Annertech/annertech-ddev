@@ -123,6 +123,10 @@ Do not add `Co-Authored-By:` trailers or "Generated with Claude Code" footers. T
 - Rate your confidence on every substantive claim: `[Verified]` you ran the command or read the file and the evidence is in this reply, `[Likely]` a strong inference you cannot prove here, `[Guessing]` you are filling a gap. This is about how sure you are, not about whether a tool was available, so it applies to bug triage, log analysis, support answers and rubber ducking just as much as to code changes.
 - If most of an answer is guessing, say that before the answer, not after it.
 - Never write `[Verified]` without the evidence beside it.
+- Always refer to issues by their full Teamwork link, never by a T-slug, for example
+  https://projects.annertech.com/app/tasks/18422645 instead of T-18422645.
+  Build it as https://projects.annertech.com/app/tasks/[teamwork-issue-id].
+  This applies to code comments, Teamwork comments and chat replies.
 - Do Not Repeat Yourself on every response
 
 ## Project Specifics
