@@ -74,6 +74,18 @@ State which command you ran to verify it, and paste the relevant output. "Should
 
 Finished work is `[Verified]` only when that output is in your reply. Without it the claim is `[Likely]` at best, see [Communication Style](#communication-style).
 
+### Automated Tests
+
+- We do not test Core or Contrib code, they are tested upstream
+- We test custom code and functionality
+
+#### Behat
+
+- Avoid writting custom step definitions when possible
+- Avoid overengineered tests at all costs
+- Use `ddev behat -dl` to see available steps
+
+
 ## Commits
 
 All commits must have a single line comment, nothing more. No bloat in the commits unless otherwise instructed.
