@@ -1,5 +1,6 @@
 {
-    "description": "#ddev-generated",
+    "_description": "#ddev-generated",
+    "_version": "20261006",
     "extends": ["config:recommended"],
     "logLevelRemap": [
       {
@@ -12,11 +13,12 @@
       }
     ],
     "automerge": false,
-    "branchPrefix": "deps/",
+    "branchPrefix": "renovate/",
     "labels": ["dependencies"],
     "rangeStrategy": "update-lockfile",
     "timezone": "Etc/UTC",
     "enabledManagers": ["composer"],
+    "prHeader": "**Automated dependency update.** Please test on the dev site before merging and **check for configuration changes on production site.**",
     "prConcurrentLimit": 3,
     "prHourlyLimit": 2,
     "major": { "enabled": false },
