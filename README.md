@@ -47,6 +47,7 @@ DDEV workflow.
 - - [`tw-comment` - `comment`](commands/host/tw-comment): Post a comment to a Teamwork task
 - - [`tw-description`](commands/host/tw-description): Update Teamwork task description with MR link and deploy/test notes
 - - [`tw-new`](commands/host/tw-new): Create a new Teamwork task
+- - [`tw-branch`](commands/host/tw-branch): Pick one of your assigned Teamwork cards and create a git branch for it
 - - [`tw-tag-issue` - `tw-tag`](commands/host/tw-tag-issue): Add tags to a Teamwork task
 - - [`tw-timelog` - `timelog`](commands/host/tw-timelog): Log time to a Teamwork task (rounded)
 - - [`ucc` - `upsun-command-center-bash`](commands/host/upsun-command-center-bash): Upsun Command Centre - interactive mode or with arguments
