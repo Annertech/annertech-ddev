@@ -213,6 +213,8 @@ if (file_exists(DRUPAL_ROOT . '/.behat_testing')) {
   $config['captcha.captcha_point.user_login_form']['status'] = FALSE;
   // Disable Antibot protection during tests.
   $config['antibot.settings']['form_ids'] = NULL;
+  // Webform has its own Antibot switch, separate from the form_ids list above.
+  $config['webform.settings']['third_party_settings']['antibot']['antibot'] = FALSE;
   // Enable aggregation
   $config['system.performance']['css']['preprocess'] = TRUE;
   $config['system.performance']['js']['preprocess'] = TRUE;
