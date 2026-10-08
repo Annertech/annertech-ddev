@@ -1,4 +1,3 @@
 {
-    "_description": "#ddev-generated",
     "extends": ["https://code.anner.ie/annertech/infra/renovate-config/-/raw/main/default.json"]
 }
