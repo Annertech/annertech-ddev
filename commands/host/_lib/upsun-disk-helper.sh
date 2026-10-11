@@ -1,5 +1,26 @@
 #ddev-generated
 #annertech-ddev
+
+# GNU numfmt is not on macOS. Print an IEC size (1024) with two decimals.
+format_iec() {
+    local value="$1"
+    local from_unit="${2:-1}"
+    python3 - "$value" "$from_unit" << 'PY'
+import sys
+n = int(sys.argv[1]) * int(sys.argv[2])
+units = ["", "K", "M", "G", "T", "P"]
+i = 0
+v = float(n)
+while abs(v) >= 1024 and i < len(units) - 1:
+    v /= 1024.0
+    i += 1
+if i == 0:
+    print(str(int(v)))
+else:
+    print(f"{v:.2f}{units[i]}")
+PY
+}
+
 upsun_disk_helper() {
     local project_id="$1"
     local project_name="$2"
@@ -24,11 +45,11 @@ upsun_disk_helper() {
 
     echo ""
     echo "Total assigned (app+mysqldb+solrsearch):"
-    numfmt --to iec --format "%3.2f" "$total_assigned"
+    format_iec "$total_assigned"
 
     echo ""
     echo "Total storage available in project:"
-    numfmt --from-unit=1048576 --to iec --format="%3.2f" "$total_available"
+    format_iec "$total_available" 1048576
 
     echo_yellow ""
     echo_yellow "WARNING: command uses hardcoded values for service totals. Verify numbers with table above!"
