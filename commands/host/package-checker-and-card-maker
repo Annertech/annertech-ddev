@@ -3,9 +3,9 @@
 #annertech-ddev
 
 ## Description: Scan GitLab projects for composer packages and open Teamwork update cards
-## Usage: package-checker-and-card-maker [--dry-run] [--auto-assign] <vendor/package[:max-insecure-version]> [more...]
+## Usage: package-checker-and-card-maker [--dry-run] [--auto-assign] [--verbose] <vendor/package[:max-insecure-version]> [more...]
 ## Aliases: paccma, paccman
-## Example: "ddev paccma drupal/diff drupal/externalauth" \n"ddev paccma --dry-run drupal/diff:1.10" \n"ddev paccma --auto-assign drupal/diff" \n"ddev paccma 'drupal/core:>=11.4.0 <11.4.7'"
+## Example: "ddev paccma drupal/diff drupal/externalauth" \n"ddev paccma --dry-run drupal/diff:1.10" \n"ddev paccma --auto-assign drupal/diff" \n"ddev paccma --verbose drupal/diff" \n"ddev paccma 'drupal/core:>=11.4.0 <11.4.7'"
 
 set -euo pipefail
 
@@ -22,6 +22,11 @@ set -euo pipefail
 #   ddev paccma drupal/diff drupal/externalauth
 #   ddev paccma --dry-run drupal/diff:1.10    # show what would happen
 #   ddev paccma --auto-assign drupal/diff     # assign created cards to Deputy, Guardian, DM
+#   ddev paccma --verbose drupal/diff         # debug: log every project and API response
+#
+# The run ends with a summary: cards created (alphabetical), projects that
+# could not get a card (missing TEAMWORK_PROJECT_ID or a Teamwork API error,
+# with the API response when --verbose is set) and projects not affected.
 #
 # With a :version suffix only installs <= that version match (same semantics as
 # package-checker); without it every project using the package matches. The
@@ -44,7 +49,7 @@ set -euo pipefail
 #   GITLAB_URL     (curl mode) GitLab base URL, required
 #   GITLAB_TOKEN   (curl mode) token with read_api scope, required
 #   PACKAGE_CHECKER_BACKEND  force "glab" or "curl"
-#   DEBUG          if set, log every scanned project
+#   DEBUG          if set, same as --verbose
 # Env (Teamwork side, same as tw-new):
 #   TEAMWORK_API_KEY, TEAMWORK_DOMAIN
 # Deps: jq, plus either glab OR curl
@@ -54,6 +59,8 @@ RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 echo_red()    { echo -e "${RED}$1${NC}" >&2; }
 echo_green()  { echo -e "${GREEN}$1${NC}"; }
 echo_yellow() { echo -e "${YELLOW}$1${NC}"; }
+# Debug output, only with --verbose (or DEBUG set). Goes to stderr.
+vlog() { if $VERBOSE; then echo "  [verbose] $*" >&2; fi; }
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
 . "$LIB_DIR/tw-curl.sh"
@@ -61,16 +68,19 @@ LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_lib"
 # --- args ---------------------------------------------------------------------
 DRY_RUN=false
 AUTO_ASSIGN=false
+VERBOSE=false
+[ -n "${DEBUG:-}" ] && VERBOSE=true
 PKGS=(); MAXES=()
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
     --auto-assign) AUTO_ASSIGN=true ;;
+    -v|--verbose) VERBOSE=true ;;
     *:*) PKGS+=("${arg%%:*}"); MAXES+=("${arg#*:}") ;;
     *)   PKGS+=("$arg"); MAXES+=("") ;;
   esac
 done
-[ "${#PKGS[@]}" -ge 1 ] || { echo "usage: ddev package-checker-and-card-maker [--dry-run] [--auto-assign] <vendor/package[:version]> [more...]" >&2; exit 1; }
+[ "${#PKGS[@]}" -ge 1 ] || { echo "usage: ddev package-checker-and-card-maker [--dry-run] [--auto-assign] [--verbose] <vendor/package[:version]> [more...]" >&2; exit 1; }
 
 TW_API_KEY="${TEAMWORK_API_KEY:-}"
 DOMAIN="${TEAMWORK_DOMAIN:-}"
@@ -205,6 +215,8 @@ is_insecure() { # <version> <spec>
 
 # Create the Teamwork card on a project's board. Uses the "Cards" tasklist
 # (case-insensitive) or falls back to the first one, like tw-batch-card-maker.
+# Prints the task URL on success. On failure prints a one-line reason, then
+# the raw API response (if any) on the following lines.
 create_card() { # <teamwork-project-id> <description> [comma-separated assignee ids]
   local tw_id="$1" desc="$2" assignees="${3:-}" tl_response tl_status tasklist_id data response http_code body
 
@@ -212,13 +224,17 @@ create_card() { # <teamwork-project-id> <description> [comma-separated assignee 
   [ -n "$tl_response" ] || { echo "failed to fetch tasklists"; return 1; }
 
   tl_status=$(jq -r '.STATUS' <<<"$tl_response")
-  [ "$tl_status" = "OK" ] || { jq -r '.MESSAGE // "API error"' <<<"$tl_response"; return 1; }
+  [ "$tl_status" = "OK" ] || {
+    jq -r '.MESSAGE // "API error"' <<<"$tl_response" 2>/dev/null || echo "API error"
+    echo "$tl_response"
+    return 1
+  }
 
   tasklist_id=$(jq -r '
       (.tasklists // []) |
       (map(select(.name | ascii_downcase | contains("cards"))) | first // .[0]) |
       .id // empty' <<<"$tl_response")
-  [ -n "$tasklist_id" ] || { echo "no tasklist found"; return 1; }
+  [ -n "$tasklist_id" ] || { echo "no tasklist found"; echo "$tl_response"; return 1; }
 
   data=$(jq -n --arg name "$CARD_TITLE" --arg desc "$desc" --arg assignees "$assignees" \
       '{"todo-item": ({"content": $name, "description": $desc}
@@ -236,6 +252,7 @@ create_card() { # <teamwork-project-id> <description> [comma-separated assignee 
     echo "https://${DOMAIN}/tasks/$(jq -r '.id' <<<"$body")"
   else
     echo "HTTP $http_code"
+    echo "$body"
     return 1
   fi
 }
@@ -247,13 +264,19 @@ scanned=0
 made=0; manual=0; failed=0
 matched_repos=0
 made_urls=()   # "repo<TAB>task-url" for the summary
+problems=()    # "repo<TAB>reason<TAB>api-response" for projects without a card
+unaffected=()  # "repo<TAB>note" for projects that don't need a card
 
 echo "------------------------------------------------"
 while IFS=$'\t' read -r id name branch web_url title; do
   scanned=$((scanned+1))
-  [ -n "${DEBUG:-}" ] && echo "  scanning: $name ($branch)" >&2
+  vlog "scanning: $name ($branch)"
 
-  raw=$(get_file "$id" "$branch" "$MANIFEST") || continue
+  if ! raw=$(get_file "$id" "$branch" "$MANIFEST"); then
+    vlog "$name: no $MANIFEST on $branch, skipped"
+    unaffected+=("$name"$'\t'"no $MANIFEST, not checked")
+    continue
+  fi
 
   # collect the queried packages this repo actually uses (no versions)
   repo_pkgs=()
@@ -262,11 +285,15 @@ while IFS=$'\t' read -r id name branch web_url title; do
     line=$(grep -E "^[[:space:]]+${pkg//\//\\/}:[[:space:]]" <<<"$raw" || true)
     [ -z "$line" ] && continue
     ver=$(head -1 <<<"$line" | sed -E 's/.*:[[:space:]]*//; s/[[:space:]]*$//')
+    vlog "$name: $pkg $ver${max:+ (affected: $max)}"
     if [ -z "$max" ] || is_insecure "$ver" "$max"; then
       repo_pkgs+=("$pkg")
     fi
   done
-  [ "${#repo_pkgs[@]}" -eq 0 ] && continue
+  if [ "${#repo_pkgs[@]}" -eq 0 ]; then
+    unaffected+=("$name"$'\t'"")
+    continue
+  fi
   matched_repos=$((matched_repos+1))
 
   pkg_list=$(IFS=', '; echo "${repo_pkgs[*]}")
@@ -278,6 +305,7 @@ while IFS=$'\t' read -r id name branch web_url title; do
   renovate_id=""
   if env_raw=$(get_file "$id" "$branch" "${ENV_ANNER//\//%2F}"); then
     tw_id=$(grep -E '^TEAMWORK_PROJECT_ID=' <<<"$env_raw" | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'" || true)
+    vlog "$name: $ENV_ANNER found"
     renovate_id=$(grep -E '^RENOVATE_DASHBOARD_ID=' <<<"$env_raw" | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'" || true)
     if $AUTO_ASSIGN; then
       deputy_id=$(grep -E '^TEAMWORK_DEPUTY_ID=' <<<"$env_raw" | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'" || true)
@@ -289,10 +317,14 @@ while IFS=$'\t' read -r id name branch web_url title; do
       [ -n "$dm_id" ] && ids+=("$dm_id")
       assignees=$(IFS=,; echo "${ids[*]}")
     fi
+  else
+    vlog "$name: no $ENV_ANNER on $branch"
   fi
+  vlog "$name: TEAMWORK_PROJECT_ID=${tw_id:-<unset>} assignees=${assignees:-<none>}"
 
   if [ -z "$tw_id" ]; then
     echo -e "${YELLOW}$name${NC} ($pkg_list): could not make card automatically"
+    problems+=("$name"$'\t'"no TEAMWORK_PROJECT_ID in $ENV_ANNER"$'\t'"")
     manual=$((manual+1))
     continue
   fi
@@ -319,6 +351,7 @@ while IFS=$'\t' read -r id name branch web_url title; do
     echo "    title: $CARD_TITLE"
     echo "    description:"
     sed 's/^/      /' <<<"$card_desc"
+    made_urls+=("$name"$'\t'"Teamwork project $tw_id")
     made=$((made+1))
     continue
   fi
@@ -328,26 +361,62 @@ while IFS=$'\t' read -r id name branch web_url title; do
     made_urls+=("$name"$'\t'"$result")
     made=$((made+1))
   else
-    echo -e "${RED}$name${NC} ($pkg_list): card creation failed ($result)"
+    reason="${result%%$'\n'*}"
+    api_body=""
+    [[ "$result" == *$'\n'* ]] && api_body="${result#*$'\n'}"
+    echo -e "${RED}$name${NC} ($pkg_list): card creation failed ($reason)"
+    vlog "$name: API response: ${api_body:-<empty>}"
+    # Flatten so the response fits one summary field.
+    problems+=("$name"$'\t'"card creation failed ($reason)"$'\t'"$(tr '\t\n' '  ' <<<"$api_body" | sed 's/ *$//')")
     failed=$((failed+1))
   fi
 done < <(list_projects | awk -F'\t' '!seen[$1]++')
 
 echo "------------------------------------------------"
 echo "Scanned $scanned project(s); $matched_repos matched: ${PKGS[*]}." >&2
+
+# Print the entries of a summary array sorted by project name (case-insensitive).
+sorted() { printf '%s\n' "$@" | sort -f -t $'\t' -k1,1; }
+
 if $DRY_RUN; then
   echo_yellow "Dry run - no cards were created."
   [ "$made" -gt 0 ] && echo_green "$made card(s) would be made."
+  if [ "${#made_urls[@]}" -gt 0 ]; then
+    echo_green "=== Cards That Would Be Created ==="
+    while IFS=$'\t' read -r repo where; do
+      echo "$repo, $where"
+    done < <(sorted "${made_urls[@]}")
+  fi
 else
   [ "$made" -gt 0 ] && echo_green "$made card(s) made."
   if [ "${#made_urls[@]}" -gt 0 ]; then
     echo_green "=== Cards Created ==="
-    for entry in "${made_urls[@]}"; do
-      IFS=$'\t' read -r repo url <<< "$entry"
+    while IFS=$'\t' read -r repo url; do
       echo "$repo, $url"
-    done
+    done < <(sorted "${made_urls[@]}")
   fi
 fi
+
+if [ "${#problems[@]}" -gt 0 ]; then
+  echo_red "=== No Card Created (${#problems[@]}) ==="
+  while IFS=$'\t' read -r repo reason api_body; do
+    echo "$repo, $reason" >&2
+    if $VERBOSE && [ -n "$api_body" ]; then
+      echo "    API response: $api_body" >&2
+    fi
+  done < <(sorted "${problems[@]}")
+  if ! $VERBOSE && [ "$failed" -gt 0 ]; then
+    echo "Re-run with --verbose to see the API responses." >&2
+  fi
+fi
+
+if [ "${#unaffected[@]}" -gt 0 ]; then
+  echo_yellow "=== Not Affected (${#unaffected[@]}) ==="
+  while IFS=$'\t' read -r repo note; do
+    echo "$repo${note:+ ($note)}"
+  done < <(sorted "${unaffected[@]}")
+fi
+
 [ "$manual" -gt 0 ] && echo_yellow "$manual project(s) need a manual card (no TEAMWORK_PROJECT_ID in $ENV_ANNER)."
 [ "$failed" -gt 0 ] && { echo_red "$failed card(s) failed to create."; exit 1; }
 exit 0
