@@ -3,9 +3,9 @@
 #annertech-ddev
 
 ## Description: Fetch this week's Drupal.org security advisories and hand them to package-checker-and-card-maker
-## Usage: drupal-sa-card-maker [--dry-run] [--auto-assign] [--days N]
+## Usage: drupal-sa-card-maker [--dry-run] [--auto-assign] [--verbose] [--days N]
 ## Aliases: dsacm
-## Example: "ddev dsacm" \n"ddev dsacm --dry-run" \n"ddev dsacm --auto-assign"
+## Example: "ddev dsacm" \n"ddev dsacm --dry-run" \n"ddev dsacm --auto-assign" \n"ddev dsacm --verbose"
 
 set -euo pipefail
 
@@ -28,6 +28,7 @@ set -euo pipefail
 #   ddev dsacm --dry-run        # show what paccma would do, no cards created
 #   ddev dsacm --auto-assign    # forwarded to paccma
 #   ddev dsacm --days 14        # widen the window (e.g. after a missed week)
+#   ddev dsacm --verbose        # debug: log feed parsing, forwarded to paccma
 #
 # Any other flag/arg is passed straight through to package-checker-and-card-maker.
 # Deps: curl, python3
@@ -41,11 +42,13 @@ echo_yellow() { echo -e "${YELLOW}$1${NC}"; }
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FEED_URL="https://www.drupal.org/security/all/rss.xml"
 DAYS=7
+VERBOSE=0
 
 PASSTHRU=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --days) DAYS="$2"; shift 2 ;;
+    -v|--verbose) VERBOSE=1; PASSTHRU+=("$1"); shift ;;
     *) PASSTHRU+=("$1"); shift ;;
   esac
 done
@@ -69,8 +72,13 @@ from email.utils import parsedate_to_datetime
 from datetime import datetime, timezone, timedelta
 
 days = int(sys.argv[1])
+verbose = len(sys.argv) > 2 and sys.argv[2] == "1"
+def vlog(msg):
+    if verbose:
+        print(f"  [verbose] {msg}", file=sys.stderr)
 feed = sys.stdin.read()
 cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+vlog(f"cutoff: {cutoff.isoformat()}")
 
 # Composer package names that don't follow the drupal/MACHINE_NAME rule.
 PACKAGES = {"drupal": "drupal/core"}
@@ -85,7 +93,10 @@ for item in re.findall(r'<item>(.*?)</item>', feed, re.S):
         pub = parsedate_to_datetime(pub_m.group(1))
     except (TypeError, ValueError):
         continue
+    title_m = re.search(r'<title>(.*?)</title>', item, re.S)
+    title = html.unescape(title_m.group(1)).strip() if title_m else "(no title)"
     if pub < cutoff:
+        vlog(f"skip (older than window): {pub.date()} {title}")
         continue
 
     desc_m = re.search(r'<description>(.*?)</description>', item, re.S)
@@ -97,6 +108,7 @@ for item in re.findall(r'<item>(.*?)</item>', feed, re.S):
     desc = html.unescape(desc_m.group(1))
     slug_m = re.search(r'href="/project/([a-z0-9_]+)"', desc)
     if not slug_m:
+        vlog(f"skip (no project link): {title}")
         continue
     slug = slug_m.group(1)
 
@@ -104,6 +116,7 @@ for item in re.findall(r'<item>(.*?)</item>', feed, re.S):
         r'field-name-field-affected-versions.*?<div class="field-item even">(.*?)</div>',
         desc, re.S)
     spec = " ".join(html.unescape(ver_m.group(1)).split()) if ver_m else ""
+    vlog(f"use: {pub.date()} {title} -> {slug} [{spec or 'no constraint, all versions'}]")
 
     if slug not in specs:
         order.append(slug)
@@ -122,7 +135,7 @@ for slug in order:
     print(f"{pkg}\x1f{spec}\x1fhttps://www.drupal.org/project/{slug}")
 PYEOF
 
-mapping=$(python3 "$tmp_script" "$DAYS" < "$tmp_feed")
+mapping=$(python3 "$tmp_script" "$DAYS" "$VERBOSE" < "$tmp_feed")
 
 if [ -z "$mapping" ]; then
   echo_yellow "No security releases found in the last $DAYS day(s)."
