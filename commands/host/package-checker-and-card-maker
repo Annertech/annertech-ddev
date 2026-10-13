@@ -3,9 +3,9 @@
 #annertech-ddev
 
 ## Description: Scan GitLab projects for composer packages and open Teamwork update cards
-## Usage: package-checker-and-card-maker [--dry-run] [--auto-assign] [--verbose] <vendor/package[:max-insecure-version]> [more...]
+## Usage: package-checker-and-card-maker [--dry-run] [--auto-assign] [--verbose] [--tags "A,B"] <vendor/package[:max-insecure-version]> [more...]
 ## Aliases: paccma, paccman
-## Example: "ddev paccma drupal/diff drupal/externalauth" \n"ddev paccma --dry-run drupal/diff:1.10" \n"ddev paccma --auto-assign drupal/diff" \n"ddev paccma --verbose drupal/diff" \n"ddev paccma 'drupal/core:>=11.4.0 <11.4.7'"
+## Example: "ddev paccma drupal/diff drupal/externalauth" \n"ddev paccma --dry-run drupal/diff:1.10" \n"ddev paccma --auto-assign drupal/diff" \n"ddev paccma --verbose drupal/diff" \n"ddev paccma --tags 'Security,Maintenance' drupal/diff" \n"ddev paccma 'drupal/core:>=11.4.0 <11.4.7'"
 
 set -euo pipefail
 
@@ -23,6 +23,11 @@ set -euo pipefail
 #   ddev paccma --dry-run drupal/diff:1.10    # show what would happen
 #   ddev paccma --auto-assign drupal/diff     # assign created cards to Deputy, Guardian, DM
 #   ddev paccma --verbose drupal/diff         # debug: log every project and API response
+#   ddev paccma --tags 'Security,Maintenance' drupal/diff   # tag created cards
+#
+# --tags takes Teamwork tag names (comma-separated, case-insensitive). They are
+# looked up once in /tags.json; a name that doesn't exist there is reported and
+# skipped, the cards are still created with the tags that were found.
 #
 # The run ends with a summary: cards created (alphabetical), projects that
 # could not get a card (missing TEAMWORK_PROJECT_ID or a Teamwork API error,
@@ -33,6 +38,10 @@ set -euo pipefail
 # suffix can also be a full drupal.org "Affected versions" constraint, which is
 # what drupal-sa-card-maker passes, e.g.
 #   ddev paccma 'drupal/core:>=10.5.0 <10.6.17 || >=11.4.0 <11.4.7'
+#
+# Each card checklist item shows the installed version and the fixed one, taken
+# from the constraint's "<X" bound, e.g. "drupal/core (11.4.2 -> 11.4.7)".
+# Without such a bound the target reads "latest".
 #
 # When a repo's .ddev/.env.anner sets RENOVATE_DASHBOARD_ID, the card description
 # also links to that project's Renovate dashboard issue on GitLab, e.g.
@@ -70,17 +79,21 @@ DRY_RUN=false
 AUTO_ASSIGN=false
 VERBOSE=false
 [ -n "${DEBUG:-}" ] && VERBOSE=true
+TAGS=""
 PKGS=(); MAXES=()
-for arg in "$@"; do
+while [ $# -gt 0 ]; do
+  arg="$1"; shift
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
     --auto-assign) AUTO_ASSIGN=true ;;
     -v|--verbose) VERBOSE=true ;;
+    --tags=*) TAGS="${arg#--tags=}" ;;
+    --tags) [ $# -gt 0 ] || { echo "--tags needs a value" >&2; exit 1; }; TAGS="$1"; shift ;;
     *:*) PKGS+=("${arg%%:*}"); MAXES+=("${arg#*:}") ;;
     *)   PKGS+=("$arg"); MAXES+=("") ;;
   esac
 done
-[ "${#PKGS[@]}" -ge 1 ] || { echo "usage: ddev package-checker-and-card-maker [--dry-run] [--auto-assign] [--verbose] <vendor/package[:version]> [more...]" >&2; exit 1; }
+[ "${#PKGS[@]}" -ge 1 ] || { echo "usage: ddev package-checker-and-card-maker [--dry-run] [--auto-assign] [--verbose] [--tags \"A,B\"] <vendor/package[:version]> [more...]" >&2; exit 1; }
 
 TW_API_KEY="${TEAMWORK_API_KEY:-}"
 DOMAIN="${TEAMWORK_DOMAIN:-}"
@@ -90,6 +103,37 @@ if ! $DRY_RUN && [[ -z "$TW_API_KEY" || -z "$DOMAIN" ]]; then
 fi
 
 CARD_TITLE="Update Dependencies"
+
+# --- tags: resolve names to Teamwork tag ids once, up front --------------------
+TAG_IDS_JSON="[]"   # sent as "tag-ids" on every created card
+TAG_NAMES=""        # names actually applied, for output
+TAG_PROBLEM=""      # set when some/all tags can't be applied
+if [ -n "$TAGS" ]; then
+  if [[ -z "$TW_API_KEY" || -z "$DOMAIN" ]]; then
+    # Only reachable in --dry-run: show the requested names unresolved.
+    TAG_NAMES="$TAGS (not checked, no Teamwork credentials)"
+  else
+    tags_response=$(tw_curl -s "https://${DOMAIN}/tags.json" || true)
+    vlog "tags.json response: ${tags_response:-<empty>}"
+    if ! jq -e '.tags' >/dev/null 2>&1 <<<"$tags_response"; then
+      TAG_PROBLEM="could not fetch Teamwork tags, cards made without tags"
+    else
+      # Exact name match, ignoring case and surrounding spaces.
+      resolved=$(jq -c --arg want "$TAGS" '
+          ($want | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))) as $names
+          | [.tags[] | {id: (.id | tonumber), name}] as $all
+          | {found: [$names[] as $n | $all[] | select((.name | ascii_downcase) == ($n | ascii_downcase))],
+             missing: [$names[] | select(. as $n | $all | map(.name | ascii_downcase) | index($n | ascii_downcase) | not)]}
+        ' <<<"$tags_response")
+      TAG_IDS_JSON=$(jq -c '.found | map(.id) | unique' <<<"$resolved")
+      TAG_NAMES=$(jq -r '.found | map(.name) | join(", ")' <<<"$resolved")
+      missing=$(jq -r '.missing | join(", ")' <<<"$resolved")
+      [ -n "$missing" ] && TAG_PROBLEM="tag(s) not found in Teamwork, not applied: $missing"
+    fi
+  fi
+  [ -n "$TAG_PROBLEM" ] && echo_red "Warning: $TAG_PROBLEM"
+  vlog "tags: requested '$TAGS', applying ${TAG_NAMES:-<none>} (ids $TAG_IDS_JSON)"
+fi
 
 GROUP="${GITLAB_GROUP:-clients}"
 MANIFEST="composer-manifest.yaml"
@@ -213,6 +257,25 @@ is_insecure() { # <version> <spec>
   return 1
 }
 
+# Version that fixes <version> under <spec>: the highest "<X" upper bound of
+# every group <version> falls in. Empty when the spec has no such bound (no
+# spec, a bare max-insecure-version, or a "<=" bound).
+fixed_ver() { # <version> <spec>
+  local spec group c best=""
+  spec="${2//||/$'\n'}"
+  while IFS= read -r group; do
+    [ -z "${group// /}" ] && continue
+    is_insecure "$1" "$group" || continue
+    for c in $group; do
+      case "$c" in
+        "<="*) ;;
+        "<"*) { [ -z "$best" ] || [ "$(ver_cmp "${c#<}" "$best")" = 1 ]; } && best="${c#<}" ;;
+      esac
+    done
+  done <<<"$spec"
+  echo "$best"
+}
+
 # Create the Teamwork card on a project's board. Uses the "Cards" tasklist
 # (case-insensitive) or falls back to the first one, like tw-batch-card-maker.
 # Prints the task URL on success. On failure prints a one-line reason, then
@@ -237,8 +300,10 @@ create_card() { # <teamwork-project-id> <description> [comma-separated assignee 
   [ -n "$tasklist_id" ] || { echo "no tasklist found"; echo "$tl_response"; return 1; }
 
   data=$(jq -n --arg name "$CARD_TITLE" --arg desc "$desc" --arg assignees "$assignees" \
+      --argjson tags "$TAG_IDS_JSON" \
       '{"todo-item": ({"content": $name, "description": $desc}
-          + (if $assignees != "" then {"responsible-party-id": $assignees} else {} end))}')
+          + (if $assignees != "" then {"responsible-party-id": $assignees} else {} end)
+          + (if ($tags | length) > 0 then {"tag-ids": $tags} else {} end))}')
 
   response=$(tw_curl -s -w "\n%{http_code}" -X POST \
       -H "Content-Type: application/json" \
@@ -278,8 +343,10 @@ while IFS=$'\t' read -r id name branch web_url title; do
     continue
   fi
 
-  # collect the queried packages this repo actually uses (no versions)
+  # collect the queried packages this repo actually uses, plus a
+  # "pkg (from -> to)" label for the card checklist
   repo_pkgs=()
+  repo_items=()
   for i in "${!PKGS[@]}"; do
     pkg="${PKGS[$i]}"; max="${MAXES[$i]}"
     line=$(grep -E "^[[:space:]]+${pkg//\//\\/}:[[:space:]]" <<<"$raw" || true)
@@ -288,6 +355,9 @@ while IFS=$'\t' read -r id name branch web_url title; do
     vlog "$name: $pkg $ver${max:+ (affected: $max)}"
     if [ -z "$max" ] || is_insecure "$ver" "$max"; then
       repo_pkgs+=("$pkg")
+      to=""
+      [ -n "$max" ] && to=$(fixed_ver "$ver" "$max")
+      repo_items+=("$pkg ($ver -> ${to:-latest})")
     fi
   done
   if [ "${#repo_pkgs[@]}" -eq 0 ]; then
@@ -331,7 +401,7 @@ while IFS=$'\t' read -r id name branch web_url title; do
 
   # Heading names the GitLab project; affected packages become a checklist so
   # each one can be ticked off as it's updated.
-  checklist=$(printf -- '- [ ] %s\n' "${repo_pkgs[@]}")
+  checklist=$(printf -- '- [ ] %s\n' "${repo_items[@]}")
   card_desc="## $title"$'\n\n'"Please update:"$'\n\n'"${checklist%$'\n'}"
 
   # Repos onboarded to Renovate get a link to their dashboard issue
@@ -349,6 +419,7 @@ while IFS=$'\t' read -r id name branch web_url title; do
     fi
     # Show the card exactly as it would be created, indented under the repo.
     echo "    title: $CARD_TITLE"
+    [ -n "$TAG_NAMES" ] && echo "    tags: $TAG_NAMES"
     echo "    description:"
     sed 's/^/      /' <<<"$card_desc"
     made_urls+=("$name"$'\t'"Teamwork project $tw_id")
@@ -417,6 +488,7 @@ if [ "${#unaffected[@]}" -gt 0 ]; then
   done < <(sorted "${unaffected[@]}")
 fi
 
+[ -n "$TAG_PROBLEM" ] && echo_red "Tags: $TAG_PROBLEM."
 [ "$manual" -gt 0 ] && echo_yellow "$manual project(s) need a manual card (no TEAMWORK_PROJECT_ID in $ENV_ANNER)."
 [ "$failed" -gt 0 ] && { echo_red "$failed card(s) failed to create."; exit 1; }
 exit 0
