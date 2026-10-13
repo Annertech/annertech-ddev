@@ -39,6 +39,10 @@ set -euo pipefail
 # what drupal-sa-card-maker passes, e.g.
 #   ddev paccma 'drupal/core:>=10.5.0 <10.6.17 || >=11.4.0 <11.4.7'
 #
+# Each card checklist item shows the installed version and the fixed one, taken
+# from the constraint's "<X" bound, e.g. "drupal/core (11.4.2 -> 11.4.7)".
+# Without such a bound the target reads "latest".
+#
 # When a repo's .ddev/.env.anner sets RENOVATE_DASHBOARD_ID, the card description
 # also links to that project's Renovate dashboard issue on GitLab, e.g.
 #   https://gitlab.example.com/clients/test-client/test-project/-/work_items/4
@@ -253,6 +257,25 @@ is_insecure() { # <version> <spec>
   return 1
 }
 
+# Version that fixes <version> under <spec>: the highest "<X" upper bound of
+# every group <version> falls in. Empty when the spec has no such bound (no
+# spec, a bare max-insecure-version, or a "<=" bound).
+fixed_ver() { # <version> <spec>
+  local spec group c best=""
+  spec="${2//||/$'\n'}"
+  while IFS= read -r group; do
+    [ -z "${group// /}" ] && continue
+    is_insecure "$1" "$group" || continue
+    for c in $group; do
+      case "$c" in
+        "<="*) ;;
+        "<"*) { [ -z "$best" ] || [ "$(ver_cmp "${c#<}" "$best")" = 1 ]; } && best="${c#<}" ;;
+      esac
+    done
+  done <<<"$spec"
+  echo "$best"
+}
+
 # Create the Teamwork card on a project's board. Uses the "Cards" tasklist
 # (case-insensitive) or falls back to the first one, like tw-batch-card-maker.
 # Prints the task URL on success. On failure prints a one-line reason, then
@@ -320,8 +343,10 @@ while IFS=$'\t' read -r id name branch web_url title; do
     continue
   fi
 
-  # collect the queried packages this repo actually uses (no versions)
+  # collect the queried packages this repo actually uses, plus a
+  # "pkg (from -> to)" label for the card checklist
   repo_pkgs=()
+  repo_items=()
   for i in "${!PKGS[@]}"; do
     pkg="${PKGS[$i]}"; max="${MAXES[$i]}"
     line=$(grep -E "^[[:space:]]+${pkg//\//\\/}:[[:space:]]" <<<"$raw" || true)
@@ -330,6 +355,9 @@ while IFS=$'\t' read -r id name branch web_url title; do
     vlog "$name: $pkg $ver${max:+ (affected: $max)}"
     if [ -z "$max" ] || is_insecure "$ver" "$max"; then
       repo_pkgs+=("$pkg")
+      to=""
+      [ -n "$max" ] && to=$(fixed_ver "$ver" "$max")
+      repo_items+=("$pkg ($ver -> ${to:-latest})")
     fi
   done
   if [ "${#repo_pkgs[@]}" -eq 0 ]; then
@@ -373,7 +401,7 @@ while IFS=$'\t' read -r id name branch web_url title; do
 
   # Heading names the GitLab project; affected packages become a checklist so
   # each one can be ticked off as it's updated.
-  checklist=$(printf -- '- [ ] %s\n' "${repo_pkgs[@]}")
+  checklist=$(printf -- '- [ ] %s\n' "${repo_items[@]}")
   card_desc="## $title"$'\n\n'"Please update:"$'\n\n'"${checklist%$'\n'}"
 
   # Repos onboarded to Renovate get a link to their dashboard issue
