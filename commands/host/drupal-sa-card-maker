@@ -3,7 +3,7 @@
 #annertech-ddev
 
 ## Description: Fetch this week's Drupal.org security advisories and hand them to package-checker-and-card-maker
-## Usage: drupal-sa-card-maker [--dry-run] [--auto-assign] [--verbose] [--days N]
+## Usage: drupal-sa-card-maker [--dry-run] [--auto-assign] [--verbose] [--days N] [--tags "A,B"]
 ## Aliases: dsacm
 ## Example: "ddev dsacm" \n"ddev dsacm --dry-run" \n"ddev dsacm --auto-assign" \n"ddev dsacm --verbose"
 
@@ -30,6 +30,9 @@ set -euo pipefail
 #   ddev dsacm --days 14        # widen the window (e.g. after a missed week)
 #   ddev dsacm --verbose        # debug: log feed parsing, forwarded to paccma
 #
+# Created cards are tagged "Security" and "Maintenance" (SA_TAGS); pass
+# --tags "..." to override, it is forwarded after the default so it wins.
+#
 # Any other flag/arg is passed straight through to package-checker-and-card-maker.
 # Deps: curl, python3
 # ==============================================================================
@@ -42,6 +45,7 @@ echo_yellow() { echo -e "${YELLOW}$1${NC}"; }
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FEED_URL="https://www.drupal.org/security/all/rss.xml"
 DAYS=7
+SA_TAGS="Security,Maintenance"
 VERBOSE=0
 
 PASSTHRU=()
@@ -155,4 +159,4 @@ while IFS=$'\x1f' read -r ns spec link; do
 done <<<"$mapping"
 echo "------------------------------------------------"
 
-exec "$SCRIPT_DIR/package-checker-and-card-maker" "${PASSTHRU[@]}" "${namespaces[@]}"
+exec "$SCRIPT_DIR/package-checker-and-card-maker" --tags "$SA_TAGS" ${PASSTHRU[@]+"${PASSTHRU[@]}"} "${namespaces[@]}"
