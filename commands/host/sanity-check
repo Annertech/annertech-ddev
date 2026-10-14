@@ -74,6 +74,7 @@ group "DRUPAL"
 . "$LIB_DIR/check-drupal-sitemap.sh"
 . "$LIB_DIR/check-drupal-services.sh"
 . "$LIB_DIR/check-drupal-field-group-accordion.sh"
+. "$LIB_DIR/check-drupal-gcm.sh"
 $BEST_PRACTICES && . "$LIB_DIR/check-drupal-image-styles.sh"
 
 # ════════════════════════════════════════════════════════════════════════════
