@@ -243,9 +243,17 @@ ver_matches() { # <version> <comparator>
 # "Affected versions" field on a drupal.org security advisory:
 #   >=10.5.0 <10.6.17 || >=11.0.0 <11.3.17 || >=11.4.0 <11.4.7
 # A plain version (1.10) still means "anything up to and including 1.10".
+# Advisories sometimes put a space after the operator (">= 10.3.0"), which
+# would split one comparator in two, so norm_spec glues them back together.
+norm_spec() { # <spec>, prints one group per line
+  local s
+  s=$(sed -E 's/(>=|<=|>|<|=)[[:space:]]+/\1/g' <<<"$1")
+  echo "${s//||/$'\n'}"
+}
+
 is_insecure() { # <version> <spec>
   local spec group c ok
-  spec="${2//||/$'\n'}"
+  spec=$(norm_spec "$2")
   while IFS= read -r group; do
     [ -z "${group// /}" ] && continue
     ok=true
@@ -262,7 +270,7 @@ is_insecure() { # <version> <spec>
 # spec, a bare max-insecure-version, or a "<=" bound).
 fixed_ver() { # <version> <spec>
   local spec group c best=""
-  spec="${2//||/$'\n'}"
+  spec=$(norm_spec "$2")
   while IFS= read -r group; do
     [ -z "${group// /}" ] && continue
     is_insecure "$1" "$group" || continue
