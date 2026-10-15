@@ -13,13 +13,18 @@ if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
   exit 0
 fi
 
+# Get the current branch name
+branch_name=$(git rev-parse --abbrev-ref HEAD)
+
+# Renovate commits carry no Teamwork ID
+if [ "$branch_name" = "renovate/drupal-deps" ]; then
+  exit 0
+fi
+
 # Check if the commit message starts with the desired pattern
 if [[ $commit_message =~ $COMMIT_PATTERN ]]; then
   exit 0
 fi
-
-# Get the current branch name
-branch_name=$(git rev-parse --abbrev-ref HEAD)
 
 # Try to extract the pattern from the branch name
 if [[ $branch_name =~ $BRANCH_PATTERN ]]; then
