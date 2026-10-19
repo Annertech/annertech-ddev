@@ -13,9 +13,8 @@
          beStrictAboutOutputDuringTests="true"
          beStrictAboutChangesToGlobalState="true"
          failOnWarning="true"
-         printerClass="\Drupal\Tests\Listeners\HtmlOutputPrinter"
          cacheResult="false"
-         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd">
   <php>
     <!-- Set error reporting to E_ALL. -->
     <ini name="error_reporting" value="32767"/>
@@ -65,17 +64,13 @@
       <directory>../web/modules/custom</directory>
     </testsuite>
   </testsuites>
-  <listeners>
-    <listener class="\Drupal\Tests\Listeners\DrupalListener">
-    </listener>
-  </listeners>
   <!-- Settings for coverage reports. -->
-  <coverage>
+  <source>
     <include>
       <directory>../web/modules/custom</directory>
     </include>
     <exclude>
       <directory>../web/modules/custom/*/tests</directory>
     </exclude>
-  </coverage>
+  </source>
 </phpunit>
