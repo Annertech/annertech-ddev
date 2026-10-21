@@ -132,6 +132,7 @@ matches=()
 # dedup projects by id: pagination/subgroups can list the same repo twice, which
 # would otherwise inflate the scanned count and duplicate matches.
 while IFS=$'\t' read -r id name branch; do
+  name="${name#"$GROUP"/}"   # drop the group prefix for display
   scanned=$((scanned+1))
   [ -n "${DEBUG:-}" ] && echo "  scanning: $name ($branch)" >&2
 
@@ -169,7 +170,8 @@ hits=0; repos=0
 if [ "${#matches[@]}" -gt 0 ]; then
   # collapse identical (repo,pkg) rows, then aggregate one line per repo with
   # packages sorted; a repo turns red if any of its matches is insecure.
-  uniq_rows=$(printf '%s\n' "${matches[@]}" | sort -t$'\t' -k1,1 -k3,3 -u)
+  # then order repos alphabetically (case-insensitive, stable so packages stay sorted).
+  uniq_rows=$(printf '%s\n' "${matches[@]}" | sort -t$'\t' -k1,1 -k3,3 -u | sort -f -s -t$'\t' -k1,1)
   printf '%s\n' "$uniq_rows" \
     | awk -F'\t' -v G="$GC" -v R="$RC" -v N="$NCC" '
         function emit(){ printf "%s%s%s REQUIRES %s\n", (bad?R:G), cur, N, list }

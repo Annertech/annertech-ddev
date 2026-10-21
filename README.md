@@ -36,6 +36,7 @@ DDEV workflow.
 - - [`open-board` - `tw-board`](commands/host/open-board): Open the Teamwork board for this project in the browser
 - - [`open-issue` - `tw-open`](commands/host/open-issue): Opens Teamwork issue for current branch
 - - [`package-checker` - `wtfiow`](commands/host/package-checker): Scan all GitLab projects' `composer-manifest.yaml` for a composer package and flag insecure versions (needs `GITLAB_TOKEN`, see [install notes](#package-checker-setup))
+- - [`php-checker` - `phpv`](commands/host/php-checker): Scan all GitLab projects' `.platform.app.yaml` and report each project's Upsun PHP version (same GitLab setup as `package-checker`)
 - - [`protect [on|off|reset]`](commands/host/protect): Enable or disable basic auth on a nixsal hosted dev project - [see file](commands/host/protect)
 - - [`remote-db`](commands/host/remote-db): Get latest DB from live site
 - - [`sanity-check`](commands/host/sanity-check): Sanity-check project settings, configs etc

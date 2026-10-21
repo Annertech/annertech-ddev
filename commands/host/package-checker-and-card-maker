@@ -342,6 +342,7 @@ unaffected=()  # "repo<TAB>note" for projects that don't need a card
 
 echo "------------------------------------------------"
 while IFS=$'\t' read -r id name branch web_url title; do
+  name="${name#"$GROUP"/}"   # drop the group prefix for display
   scanned=$((scanned+1))
   vlog "scanning: $name ($branch)"
 

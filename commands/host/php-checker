@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Scan all GitLab projects' .platform.app.yaml and report the Upsun PHP version
+## Usage: php-checker
+## Example: "ddev php-checker"
+## Aliases: phpv
+
+set -euo pipefail
+
+# ==============================================================================
+# php-checker (alias: phpv)
+# ------------------------------------------------------------------------------
+# Offline scan of every project under a GitLab group (default: clients) for
+# `.platform.app.yaml`, reporting the PHP version from its `type: 'php:X.Y'`
+# line. No clone. Projects without the file are reported as "Project not on
+# Upsun". Uses the same glab/curl backends as package-checker.
+#
+#   ddev php-checker
+#
+# Env:
+#   GITLAB_GROUP   group path to scan (default: clients)
+#   GITLAB_HOST    (glab mode) force a glab host instead of auto-detect
+#   GITLAB_URL     (curl mode) GitLab base URL, required
+#   GITLAB_TOKEN   (curl mode) token with read_api scope, required
+#   DEBUG          if set, log every scanned project
+#   PACKAGE_CHECKER_BACKEND  force "glab" or "curl"
+# Deps: jq, plus either glab OR curl
+# ==============================================================================
+
+GROUP="${GITLAB_GROUP:-clients}"
+APPFILE=".platform.app.yaml"
+GID="${GROUP//\//%2F}"   # url-encode any subgroup slashes
+
+# --- pick backend -------------------------------------------------------------
+BACKEND="${PACKAGE_CHECKER_BACKEND:-}"
+if [ -z "$BACKEND" ]; then
+  if command -v glab >/dev/null 2>&1; then BACKEND=glab; else BACKEND=curl; fi
+fi
+
+if [ "$BACKEND" = "glab" ]; then
+  command -v glab >/dev/null 2>&1 || { echo "ERROR: glab not installed." >&2; exit 1; }
+  api=(glab api)
+  [ -n "${GITLAB_HOST:-}" ] && api+=(--hostname "$GITLAB_HOST")
+
+  list_projects() {
+    "${api[@]}" --paginate \
+      "groups/$GID/projects?include_subgroups=true&archived=false&per_page=100" \
+      | jq -rs '.[][] | select(.archived != true) | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")"'
+  }
+  get_manifest() { # <id> <branch>
+    "${api[@]}" "projects/$1/repository/files/$APPFILE/raw?ref=$2" 2>/dev/null
+  }
+  preflight() {
+    # glab defaults to gitlab.com when the host can't be inferred from the git
+    # remote, silently returning 0 projects. Treat empty as a config error.
+    local n
+    n=$(list_projects 2>/dev/null | grep -c . || true)
+    if [ "${n:-0}" -eq 0 ]; then
+      echo "ERROR: glab returned 0 projects for group '$GROUP'." >&2
+      echo "  Run from a project on the right GitLab, 'glab auth login'," >&2
+      echo "  or set GITLAB_HOST to your GitLab host." >&2
+      exit 1
+    fi
+  }
+else
+  : "${GITLAB_URL:?curl backend needs GITLAB_URL (your GitLab base URL)}"
+  : "${GITLAB_TOKEN:?curl backend needs GITLAB_TOKEN (read_api scope)}"
+  hdr=(--header "PRIVATE-TOKEN: $GITLAB_TOKEN")
+
+  list_projects() {
+    local page=1 resp
+    while :; do
+      resp=$(curl -sf "${hdr[@]}" \
+        "$GITLAB_URL/api/v4/groups/$GID/projects?include_subgroups=true&archived=false&per_page=100&page=$page")
+      [ "$(jq length <<<"$resp")" -eq 0 ] && break
+      jq -r '.[] | select(.archived != true) | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")"' <<<"$resp"
+      page=$((page+1))
+    done
+  }
+  get_manifest() { # <id> <branch>
+    curl -sf "${hdr[@]}" "$GITLAB_URL/api/v4/projects/$1/repository/files/$APPFILE/raw?ref=$2"
+  }
+  preflight() {
+    local probe
+    probe=$(curl -s -o /dev/null -w '%{http_code}' "${hdr[@]}" "$GITLAB_URL/api/v4/groups/$GID")
+    case "$probe" in
+      200) ;;
+      401) echo "ERROR: 401 unauthorized - bad/expired GITLAB_TOKEN." >&2; exit 1 ;;
+      404) echo "ERROR: 404 - group '$GROUP' not found or token lacks access." >&2; exit 1 ;;
+      *)   echo "ERROR: GitLab returned HTTP $probe for group '$GROUP'." >&2; exit 1 ;;
+    esac
+  }
+fi
+
+echo "Scanning group '$GROUP' (backend: $BACKEND) ..." >&2
+preflight
+
+scanned=0; notupsun=0
+rows=()   # "version<TAB>repo", version is empty when the project is not on Upsun
+while IFS=$'\t' read -r id name branch; do
+  name="${name#"$GROUP"/}"   # drop the group prefix for display
+  scanned=$((scanned+1))
+  [ -n "${DEBUG:-}" ] && echo "  scanning: $name ($branch)" >&2
+
+  if ! raw=$(get_manifest "$id" "$branch"); then
+    notupsun=$((notupsun+1))
+    rows+=("-"$'\t'"$name")
+    continue
+  fi
+
+  # line like:  type: 'php:8.3'  (single, double or no quotes; first match wins)
+  # `|| true` so a non-match does not trip pipefail/set -e.
+  ver=$(grep -E "^[[:space:]]*type:[[:space:]]*[\"']?php:[0-9.]+" <<<"$raw" \
+        | head -1 | sed -E "s/.*php:([0-9.]+).*/\1/" || true)
+  rows+=("${ver:-?}"$'\t'"$name")
+done < <(list_projects | awk -F'\t' '!seen[$1]++')
+
+echo "------------------------------------------------"
+
+# ordered by PHP version, then project name (case-insensitive); failing ones
+# stay last: "version not found", then "not on Upsun"
+if [ "${#rows[@]}" -gt 0 ]; then
+  printf '%s\n' "${rows[@]}" \
+    | sort -t$'\t' -k1,1V -k2,2f \
+    | awk -F'\t' -v G=$'\033[0;32m' -v Y=$'\033[1;33m' -v R=$'\033[0;31m' -v N=$'\033[0m' '
+        $1 == "-" { off = off Y $2 N " Project not on Upsun\n"; next }
+        $1 == "?" { nover = nover R $2 N " PHP version not found in file\n"; next }
+        { printf "%s%s%s PHP %s\n", G, $2, N, $1 }
+        END { printf "%s%s", nover, off }'
+fi
+
+echo "------------------------------------------------"
+echo "Scanned $scanned project(s); $notupsun not on Upsun (no $APPFILE on default branch)." >&2
