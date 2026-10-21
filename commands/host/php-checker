@@ -15,7 +15,9 @@ set -euo pipefail
 # Offline scan of every project under a GitLab group (default: clients) for
 # `.platform.app.yaml`, reporting the PHP version from its `type: 'php:X.Y'`
 # line. No clone. Projects without the file are reported as "Project not on
-# Upsun". Uses the same glab/curl backends as package-checker.
+# Upsun". Each line also says where the project is hosted, from
+# DDEV_UPSTREAM_PROVIDER in .ddev/.env.anner. Uses the same glab/curl backends
+# as package-checker.
 #
 #   ddev php-checker
 #
@@ -31,6 +33,7 @@ set -euo pipefail
 
 GROUP="${GITLAB_GROUP:-clients}"
 APPFILE=".platform.app.yaml"
+ENV_ANNER=".ddev/.env.anner"
 GID="${GROUP//\//%2F}"   # url-encode any subgroup slashes
 
 # --- pick backend -------------------------------------------------------------
@@ -49,8 +52,8 @@ if [ "$BACKEND" = "glab" ]; then
       "groups/$GID/projects?include_subgroups=true&archived=false&per_page=100" \
       | jq -rs '.[][] | select(.archived != true) | "\(.id)\t\(.path_with_namespace)\t\(.default_branch // "main")"'
   }
-  get_manifest() { # <id> <branch>
-    "${api[@]}" "projects/$1/repository/files/$APPFILE/raw?ref=$2" 2>/dev/null
+  get_file() { # <id> <branch> <url-encoded path>
+    "${api[@]}" "projects/$1/repository/files/$3/raw?ref=$2" 2>/dev/null
   }
   preflight() {
     # glab defaults to gitlab.com when the host can't be inferred from the git
@@ -79,8 +82,8 @@ else
       page=$((page+1))
     done
   }
-  get_manifest() { # <id> <branch>
-    curl -sf "${hdr[@]}" "$GITLAB_URL/api/v4/projects/$1/repository/files/$APPFILE/raw?ref=$2"
+  get_file() { # <id> <branch> <url-encoded path>
+    curl -sf "${hdr[@]}" "$GITLAB_URL/api/v4/projects/$1/repository/files/$3/raw?ref=$2"
   }
   preflight() {
     local probe
@@ -98,15 +101,22 @@ echo "Scanning group '$GROUP' (backend: $BACKEND) ..." >&2
 preflight
 
 scanned=0; notupsun=0
-rows=()   # "version<TAB>repo", version is empty when the project is not on Upsun
+rows=()   # "version<TAB>repo<TAB>provider", version is "-" when the project is not on Upsun
 while IFS=$'\t' read -r id name branch; do
   name="${name#"$GROUP"/}"   # drop the group prefix for display
   scanned=$((scanned+1))
   [ -n "${DEBUG:-}" ] && echo "  scanning: $name ($branch)" >&2
 
-  if ! raw=$(get_manifest "$id" "$branch"); then
+  # hosting provider from the repo's .ddev/.env.anner (DDEV_UPSTREAM_PROVIDER="upsun" or =acquia)
+  provider=""
+  if env_raw=$(get_file "$id" "$branch" "${ENV_ANNER//\//%2F}"); then
+    provider=$(grep -E '^DDEV_UPSTREAM_PROVIDER=' <<<"$env_raw" | head -1 | cut -d= -f2 \
+               | tr -d '"' | tr -d "'" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]' || true)
+  fi
+
+  if ! raw=$(get_file "$id" "$branch" "$APPFILE"); then
     notupsun=$((notupsun+1))
-    rows+=("-"$'\t'"$name")
+    rows+=("-"$'\t'"$name"$'\t'"$provider")
     continue
   fi
 
@@ -114,7 +124,7 @@ while IFS=$'\t' read -r id name branch; do
   # `|| true` so a non-match does not trip pipefail/set -e.
   ver=$(grep -E "^[[:space:]]*type:[[:space:]]*[\"']?php:[0-9.]+" <<<"$raw" \
         | head -1 | sed -E "s/.*php:([0-9.]+).*/\1/" || true)
-  rows+=("${ver:-?}"$'\t'"$name")
+  rows+=("${ver:-?}"$'\t'"$name"$'\t'"$provider")
 done < <(list_projects | awk -F'\t' '!seen[$1]++')
 
 echo "------------------------------------------------"
@@ -125,9 +135,10 @@ if [ "${#rows[@]}" -gt 0 ]; then
   printf '%s\n' "${rows[@]}" \
     | sort -t$'\t' -k1,1V -k2,2f \
     | awk -F'\t' -v G=$'\033[0;32m' -v Y=$'\033[1;33m' -v R=$'\033[0;31m' -v N=$'\033[0m' '
-        $1 == "-" { off = off Y $2 N " Project not on Upsun\n"; next }
-        $1 == "?" { nover = nover R $2 N " PHP version not found in file\n"; next }
-        { printf "%s%s%s PHP %s\n", G, $2, N, $1 }
+        { host = ($3 != "") ? ", hosted on " $3 : "" }
+        $1 == "-" { off = off Y $2 N " Project not on Upsun" host "\n"; next }
+        $1 == "?" { nover = nover R $2 N " PHP version not found in file" host "\n"; next }
+        { printf "%s%s%s PHP %s%s\n", G, $2, N, $1, host }
         END { printf "%s%s", nover, off }'
 fi
 
