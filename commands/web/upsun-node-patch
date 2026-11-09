@@ -1,0 +1,377 @@
+#!/usr/bin/env php
+<?php
+#ddev-generated
+#annertech-ddev
+
+## Description: On Upsun PHP below 8.5, install a patched Node.js with n in the build hook
+## Usage: upsun-node-patch [--dry-run] [--node=22|24|26]
+## Example: "ddev upsun-node-patch" or "ddev upsun-node-patch --dry-run" or "ddev upsun-node-patch --node=26"
+## Aliases: nodepatch
+
+/**
+ * @file
+ * Upsun "keep your runtime, install a patched Node.js" fix for PHP < 8.5.
+ *
+ * Reads the PHP version from `type: 'php:X.Y'` in .platform.app.yaml (or
+ * .upsun/config.yaml). Below 8.5 it adds:
+ *
+ *   - .nvmrc with an active Node.js line (default 24) when there is none
+ *   - dependencies: nodejs: n: "*"
+ *   - variables: env: N_PREFIX: /app/.global
+ *   - `n auto` and `hash -r` at the start of the build hook
+ *
+ * Edits are line based, so comments and layout survive, and a re-run skips
+ * what is already there. When the YAML is laid out in a way it does not
+ * recognise it stops before writing anything. Nothing is committed or
+ * pushed, revert with `git checkout -- <file>` and `rm .nvmrc`.
+ *
+ * Runs in the web container on the project's own PHP, so keep it 7.x safe.
+ */
+
+if (getenv('IS_DDEV_PROJECT') !== 'true') {
+  fwrite(STDERR, "Run it through DDEV: ddev upsun-node-patch\n");
+  exit(1);
+}
+
+/**
+ * Prints a yellow warning.
+ */
+function warn($msg) {
+  fwrite(STDERR, "\033[1;33m$msg\033[0m\n");
+}
+
+/**
+ * Stops before anything is written.
+ */
+function bail($msg) {
+  fwrite(STDERR, "\033[0;31mStopped, nothing written: $msg\033[0m\n");
+  fwrite(STDERR, "Add by hand: .nvmrc, dependencies.nodejs.n: \"*\", variables.env.N_PREFIX: /app/.global, and `n auto` + `hash -r` at the start of hooks.build.\n");
+  exit(2);
+}
+
+/**
+ * Number of leading spaces.
+ */
+function lead($line) {
+  return strlen($line) - strlen(ltrim($line, ' '));
+}
+
+/**
+ * Blank or comment-only line.
+ */
+function trivial($line) {
+  $line = trim($line);
+  return $line === '' || $line[0] === '#';
+}
+
+/**
+ * Key line without an inline value, so it opens a nested mapping.
+ */
+function opens_map($line) {
+  return (bool) preg_match('/^ *[\w.-]+:\s*(#.*)?$/', $line);
+}
+
+/**
+ * Spaces.
+ */
+function pad($n) {
+  return str_repeat(' ', $n);
+}
+
+/**
+ * Index of `$key:` indented exactly $level spaces in [$lo, $hi), or NULL.
+ */
+function find_key(array $L, $key, $lo, $hi, $level) {
+  for ($i = $lo; $i < $hi; $i++) {
+    if (preg_match('/^ {' . $level . '}' . preg_quote($key, '/') . ':(\s|$)/', $L[$i])) {
+      return $i;
+    }
+  }
+  return NULL;
+}
+
+/**
+ * Index after the last line belonging to key line $i, trailing comments out.
+ */
+function block_end(array $L, $i) {
+  $j = $i + 1;
+  while ($j < count($L) && (trivial($L[$j]) || lead($L[$j]) > lead($L[$i]))) {
+    $j++;
+  }
+  while ($j > $i + 1 && trivial($L[$j - 1])) {
+    $j--;
+  }
+  return $j;
+}
+
+/**
+ * Indent of the children of key line $i, or one $step deeper when it has none.
+ */
+function child_indent(array $L, $i, $end, $step) {
+  for ($k = $i + 1; $k < $end; $k++) {
+    if (!trivial($L[$k])) {
+      return lead($L[$k]);
+    }
+  }
+  return lead($L[$i]) + $step;
+}
+
+/**
+ * Finds the first PHP app: [type line, indent, block start, block end, version].
+ */
+function locate(array $L) {
+  $t = NULL;
+  foreach ($L as $i => $line) {
+    if (preg_match('/^( *)type:\s*["\']?php:(\d+\.\d+)/', $line, $m)) {
+      $t = $i;
+      break;
+    }
+  }
+  if ($t === NULL) {
+    return NULL;
+  }
+  $base = strlen($m[1]);
+  $lo = 0;
+  $hi = count($L);
+  // In .upsun/config.yaml the app sits under applications.<name>.
+  if ($base > 0) {
+    $lo = $t;
+    while ($lo > 0 && (trivial($L[$lo - 1]) || lead($L[$lo - 1]) >= $base)) {
+      $lo--;
+    }
+    $hi = $t + 1;
+    while ($hi < count($L) && (trivial($L[$hi]) || lead($L[$hi]) >= $base)) {
+      $hi++;
+    }
+  }
+  while ($hi > $lo && trivial($L[$hi - 1])) {
+    $hi--;
+  }
+  return [$t, $base, $lo, $hi, $m[2]];
+}
+
+/**
+ * Indent step the file uses, from the first nested mapping of the app.
+ */
+function indent_step(array $L, array $app) {
+  list(, $base, $lo, $hi) = $app;
+  for ($i = $lo; $i < $hi; $i++) {
+    if (lead($L[$i]) === $base && opens_map($L[$i])) {
+      $c = child_indent($L, $i, block_end($L, $i), 0);
+      if ($c > $base) {
+        return $c - $base;
+      }
+    }
+  }
+  return 2;
+}
+
+/**
+ * Makes sure the nested $keys mapping holds `$leaf: $value`.
+ *
+ * Searches [$lo, $hi) at $level. A missing key is inserted at $at, with
+ * whatever is missing below it.
+ */
+function ensure(array &$L, $lo, $hi, $level, $step, $at, array $keys, $leaf, $value) {
+  if (!$keys) {
+    if (find_key($L, $leaf, $lo, $hi, $level) === NULL) {
+      array_splice($L, $at, 0, [pad($level) . "$leaf: $value"]);
+    }
+    return;
+  }
+  $key = array_shift($keys);
+  $i = find_key($L, $key, $lo, $hi, $level);
+  if ($i === NULL) {
+    $new = [];
+    foreach (array_merge([$key], $keys) as $depth => $k) {
+      $new[] = pad($level + $depth * $step) . "$k:";
+    }
+    $new[] = pad($level + count($new) * $step) . "$leaf: $value";
+    array_splice($L, $at, 0, $new);
+    return;
+  }
+  if (!opens_map($L[$i])) {
+    bail("`$key:` on line " . ($i + 1) . " has an inline value");
+  }
+  $end = block_end($L, $i);
+  ensure($L, $i + 1, $end, child_indent($L, $i, $end, $step), $step, $i + 1, $keys, $leaf, $value);
+}
+
+$dry = FALSE;
+$node = '24';
+foreach (array_slice($argv, 1) as $arg) {
+  if ($arg === '--dry-run' || $arg === '-n') {
+    $dry = TRUE;
+  }
+  elseif (preg_match('/^--node=(22|24|26)$/', $arg, $m)) {
+    $node = $m[1];
+  }
+  else {
+    fwrite(STDERR, "Usage: upsun-node-patch [--dry-run] [--node=22|24|26]\n");
+    exit(1);
+  }
+}
+
+chdir('/var/www/html');
+$file = NULL;
+foreach (['.platform.app.yaml', '.upsun/config.yaml'] as $candidate) {
+  if (is_file($candidate)) {
+    $file = $candidate;
+    break;
+  }
+}
+if ($file === NULL) {
+  echo "No .platform.app.yaml or .upsun/config.yaml, project not on Upsun.\n";
+  exit(0);
+}
+
+$src = file_get_contents($file);
+$L = explode("\n", $src);
+if (end($L) === '') {
+  array_pop($L);
+}
+
+$app = locate($L);
+if ($app === NULL) {
+  echo "No `type: php:X.Y` in $file, nothing to do.\n";
+  exit(0);
+}
+list($t, $base, , , $ver) = $app;
+echo "$file: PHP $ver\n";
+if (version_compare($ver, '8.5', '>=')) {
+  echo "PHP 8.5 or later, nothing to do.\n";
+  exit(0);
+}
+if (version_compare($ver, '8.1', '<=')) {
+  warn("php:8.1 and earlier run on older images where n may not work. Upgrading to PHP 8.5 is the better fix.");
+}
+if (preg_match_all('/^ *type:\s*["\']?php:/m', $src) > 1) {
+  warn("More than one PHP app in $file, only the one on line " . ($t + 1) . " is patched.");
+}
+$step = indent_step($L, $app);
+
+// dependencies.nodejs.n and variables.env.N_PREFIX.
+list(, , $lo, $hi) = locate($L);
+ensure($L, $lo, $hi, $base, $step, $hi, ['dependencies', 'nodejs'], 'n', '"*"');
+list(, , $lo, $hi) = locate($L);
+ensure($L, $lo, $hi, $base, $step, $hi, ['variables', 'env'], 'N_PREFIX', '/app/.global');
+list(, , $lo, $hi) = locate($L);
+for ($i = $lo; $i < $hi; $i++) {
+  if (preg_match('/^ *N_PREFIX:\s*["\']?([^"\'#\s]*)/', $L[$i], $m) && $m[1] !== '/app/.global') {
+    bail("N_PREFIX on line " . ($i + 1) . " is already set to {$m[1]}");
+  }
+}
+
+// `n auto` at the start of hooks.build, after a leading `set -e`.
+$hook = [
+  '# Install the Node.js version from .nvmrc',
+  'n auto',
+  '# Recognize the newly installed version',
+  'hash -r',
+];
+$h = find_key($L, 'hooks', $lo, $hi, $base);
+if ($h === NULL) {
+  $new = [pad($base) . 'hooks:', pad($base + $step) . 'build: |'];
+  foreach (array_merge(['set -e'], $hook) as $line) {
+    $new[] = pad($base + 2 * $step) . $line;
+  }
+  array_splice($L, $hi, 0, $new);
+}
+else {
+  if (!opens_map($L[$h])) {
+    bail("`hooks:` on line " . ($h + 1) . " has an inline value");
+  }
+  $hend = block_end($L, $h);
+  $ci = child_indent($L, $h, $hend, $step);
+  $b = find_key($L, 'build', $h + 1, $hend, $ci);
+  if ($b === NULL) {
+    $new = [pad($ci) . 'build: |'];
+    foreach (array_merge(['set -e'], $hook) as $line) {
+      $new[] = pad($ci + $step) . $line;
+    }
+    array_splice($L, $h + 1, 0, $new);
+  }
+  else {
+    if (!preg_match('/^ *build:\s*\|[-+]?\s*(#.*)?$/', $L[$b])) {
+      bail("hooks.build on line " . ($b + 1) . " is not a `|` block");
+    }
+    $body = array_slice($L, $b + 1, block_end($L, $b) - $b - 1);
+    if (preg_grep('/\bnvm\b/', $body)) {
+      warn("The build hook also uses nvm, check which Node.js ends up on the PATH.");
+    }
+    if (!preg_grep('/^\s*n auto\s*(#.*)?$/', $body)) {
+      $indent = lead($L[$b]) + $step;
+      foreach ($body as $line) {
+        if (trim($line) !== '') {
+          $indent = lead($line);
+          break;
+        }
+      }
+      $at = $b + 1;
+      $new = array_merge(['set -e'], $hook);
+      foreach ($body as $k => $line) {
+        if (trivial($line)) {
+          continue;
+        }
+        if (preg_match('/^set -[a-z]*e/', trim($line))) {
+          $at = $b + 2 + $k;
+          $new = $hook;
+        }
+        break;
+      }
+      foreach ($new as $k => $line) {
+        $new[$k] = pad($indent) . $line;
+      }
+      array_splice($L, $at, 0, $new);
+    }
+  }
+}
+
+// .nvmrc goes in the app root, source.root when set.
+list(, , $lo, $hi) = locate($L);
+$nvmrc = '.nvmrc';
+$s = find_key($L, 'source', $lo, $hi, $base);
+if ($s !== NULL && opens_map($L[$s])) {
+  $send = block_end($L, $s);
+  $r = find_key($L, 'root', $s + 1, $send, child_indent($L, $s, $send, $step));
+  if ($r !== NULL && preg_match('/root:\s*["\']?([^"\'#]*)/', $L[$r], $m) && trim($m[1], " /") !== '') {
+    $nvmrc = trim($m[1], " /") . '/.nvmrc';
+  }
+}
+
+$out = implode("\n", $L) . "\n";
+if ($out === $src) {
+  echo "$file already patched.\n";
+}
+else {
+  $tmp = tempnam(sys_get_temp_dir(), 'nodepatch');
+  file_put_contents($tmp, $out);
+  passthru('diff -u --label ' . escapeshellarg("a/$file") . ' --label ' . escapeshellarg("b/$file") . ' ' . escapeshellarg($file) . ' ' . escapeshellarg($tmp));
+  unlink($tmp);
+  if (!$dry) {
+    file_put_contents($file, $out);
+  }
+}
+
+if (!is_file($nvmrc)) {
+  if (!$dry) {
+    file_put_contents($nvmrc, "$node\n");
+  }
+  echo ($dry ? 'Would create' : 'Created') . " $nvmrc with $node\n";
+}
+else {
+  $current = trim(strtok(file_get_contents($nvmrc), "\n"));
+  if (preg_match('/^v?(\d+)/', $current, $m) && !in_array($m[1], ['22', '24', '26'], TRUE)) {
+    warn("$nvmrc says $current, so `n auto` installs an unpatched Node.js. Set it to 24 or 26 and test the theme build.");
+  }
+  else {
+    echo "$nvmrc exists ($current), left as is.\n";
+  }
+}
+
+if ($dry) {
+  echo "Dry run, nothing written.\n";
+}
+else {
+  echo "Next: commit, push to a preview environment, check `node -v` there, then merge.\n";
+}
