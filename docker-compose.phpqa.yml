@@ -1,0 +1,30 @@
+services:
+  phpqa:
+    container_name: ddev-${DDEV_SITENAME}-phpqa
+    build:
+      context: ./phpqa
+    image: ddev-${DDEV_SITENAME}-phpqa:latest
+    working_dir: /var/www/html
+    volumes:
+      - ".:/mnt/ddev_config"
+      - "../:/var/www/html:cached"
+      - "phpqa:/usr/local/lib/drupalqa"
+      - ddev-global-cache:/mnt/ddev-global-cache
+    environment:
+      - EXTRA_COMPOSER_AUTOLOAD=/usr/local/lib/drupalqa/vendor/autoload.php
+    command: ["sleep", "infinity"]
+    restart: "no"
+    depends_on:
+      - db
+
+  web:
+    volumes:
+      - "phpqa:/usr/local/lib/drupalqa"
+    environment:
+      - EXTRA_COMPOSER_AUTOLOAD=/usr/local/lib/drupalqa/vendor/autoload.php
+    depends_on:
+      - phpqa
+
+volumes:
+  phpqa:
+    name: "${DDEV_SITENAME}-phpqa"
