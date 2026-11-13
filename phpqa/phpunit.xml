@@ -11,6 +11,7 @@
          displayDetailsOnTestsThatTriggerDeprecations="true"
          cacheResult="false"
          failOnWarning="true"
+         defaultTestSuite="custom"
          xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
          cacheDirectory=".phpunit.cache">
   <php>
@@ -25,4 +26,9 @@
       <parameter name="verbose" value="true" />
     </bootstrap>
   </extensions>
+  <testsuites>
+    <testsuite name="custom">
+      <directory suffix="Test.php">../../web/modules/custom/*/tests</directory>
+    </testsuite>
+  </testsuites>
 </phpunit>
