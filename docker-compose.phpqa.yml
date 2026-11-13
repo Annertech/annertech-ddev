@@ -1,9 +1,7 @@
 services:
   phpqa:
     container_name: ddev-${DDEV_SITENAME}-phpqa
-    build:
-      context: ./phpqa
-    image: ddev-${DDEV_SITENAME}-phpqa:latest
+    image: registry.anner.ie/annertech/infra/ci/phpqa:${DDEV_PHP_VERSION}
     working_dir: /var/www/html
     volumes:
       - ".:/mnt/ddev_config"
