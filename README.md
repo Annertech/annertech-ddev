@@ -32,6 +32,7 @@ DDEV workflow.
 - - [`lints`](commands/host/lints): Shows available linters and the way to run them
 - - [`loghound`](commands/host/loghound): Fast offline Apache access log forensics (5xx, botnets, floods, crawlers, spikes)
 - - [`login`](commands/host/login): Opens a browser and logs you in to Drupal (works on local environments only)
+- - [`mail-list` - `mails`](commands/host/mail-list): List, read or delete emails from the project's Mailpit inbox (interactive fzf picker in a terminal)
 - - [`mr`](commands/host/mr): Quickly make a GitLab MR and prefill it
 - - [`open-board` - `tw-board`](commands/host/open-board): Open the Teamwork board for this project in the browser
 - - [`open-issue` - `tw-open`](commands/host/open-issue): Opens Teamwork issue for current branch
