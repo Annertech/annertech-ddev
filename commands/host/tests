@@ -18,10 +18,15 @@ echo
 # ---------------------------------------------------------------------------
 # Backstop
 # ---------------------------------------------------------------------------
-if [ -f "${DDEV_APPROOT}/tests/backstop/backstop.json" ]; then
+if [ -f "${DDEV_APPROOT}/tests/backstop/backstop.json" ] || [ -f "${DDEV_APPROOT}/tests/backstop/backstop.config.js" ]; then
   echo "${bold}Backstop:${normal}"
-  echo "  ddev backstop reference"
-  echo "  ddev backstop test"
+  if [ -f "${DDEV_APPROOT}/tests/backstop/backstop.config.js" ]; then
+    echo "  ddev backstop reference --config=backstop.config.js"
+    echo "  ddev backstop test --config=backstop.config.js"
+  else
+    echo "  ddev backstop reference"
+    echo "  ddev backstop test"
+  fi
   echo "  ddev backstop-results"
   if [ ! -f "${DDEV_APPROOT}/.ddev/addon-metadata/ddev-backstopjs/manifest.yaml" ]; then
     echo "  ⚠️  Add-on not installed. Run: ddev add-on get ddev/ddev-backstopjs"
