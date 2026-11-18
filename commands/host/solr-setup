@@ -1,0 +1,237 @@
+#!/usr/bin/env bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Set up local Solr: ddev-drupal-solr add-on, drupal/search_api_solr, the "solr" Search API server and its core config
+## Usage: solr-setup [-y|--yes]
+## Example: "ddev solr-setup"
+## ProjectTypes: drupal10,drupal11
+
+set -eu -o pipefail
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+echo_red()    { echo -e "${RED}$1${NC}" >&2; }
+echo_green()  { echo -e "${GREEN}$1${NC}"; }
+echo_yellow() { echo -e "${YELLOW}$1${NC}"; }
+
+# Keep in sync with DDEV_SOLR_VERSION in commands/host/sanity-check and scripts/git-hooks/pre-commit.
+DDEV_SOLR_VERSION="v1.2.3"
+# ddev-drupal-solr ships solr:8, we override the image to this version unless
+# .platform/services.yaml already pins a Solr 9+ service. Keep it on a version Upsun supports.
+DEFAULT_SOLR_VERSION="9.9"
+MIN_SOLR_MAJOR=9
+SERVER_ID="solr"
+SERVICES_FILE=".platform/services.yaml"
+APP_FILE=".platform.app.yaml"
+# Upsun service and endpoint names, the app gets the relationship solr: 'solrsearch:solr'.
+PLATFORM_SERVICE="solrsearch"
+PLATFORM_ENDPOINT="solr"
+# Sorts after docker-compose.solr.yaml, so its image wins.
+IMAGE_OVERRIDE_FILE=".ddev/docker-compose.solr_version.yaml"
+
+YES=false
+case "${1:-}" in
+  -y|--yes) YES=true ;;
+  -h|--help)
+    echo "Usage: ddev solr-setup [-y|--yes]"
+    echo "Installs ddev/ddev-drupal-solr ${DDEV_SOLR_VERSION}, requires and enables drupal/search_api_solr,"
+    echo "creates the '${SERVER_ID}' Search API server, writes its Solr config and restarts DDEV."
+    echo "Each step is skipped when already done, so it is safe to re-run."
+    exit 0
+    ;;
+  "") ;;
+  *) echo_red "Unknown option: $1"; exit 1 ;;
+esac
+
+cd "${DDEV_APPROOT}"
+
+SOLR_MANIFEST=".ddev/addon-metadata/solr/manifest.yaml"
+
+has_platform_solr() { [ -f "$SERVICES_FILE" ] && grep -qE '^[[:space:]]*type:[[:space:]]*["'\'']?solr:' "$SERVICES_FILE"; }
+
+# Pick the Solr version: the Upsun one if present, else the default.
+if has_platform_solr; then
+  LOCAL_SOLR_VERSION=$(sed -n 's/^[[:space:]]*type:[[:space:]]*["'\'']\{0,1\}solr:\([0-9.]*\).*/\1/p' "$SERVICES_FILE" | head -n 1)
+  if [ "${LOCAL_SOLR_VERSION%%.*}" -lt "$MIN_SOLR_MAJOR" ]; then
+    echo_red "${SERVICES_FILE} uses solr:${LOCAL_SOLR_VERSION}, at least Solr ${MIN_SOLR_MAJOR} is required."
+    echo_red "Upgrade the Upsun service first (e.g. solr:${DEFAULT_SOLR_VERSION}), then re-run this command."
+    exit 1
+  fi
+  echo "Using Solr ${LOCAL_SOLR_VERSION} from ${SERVICES_FILE}."
+else
+  LOCAL_SOLR_VERSION="$DEFAULT_SOLR_VERSION"
+fi
+
+echo "This will, where not already done:"
+echo "  1. ddev add-on get ddev/ddev-drupal-solr --version ${DDEV_SOLR_VERSION}, with the image set to solr:${LOCAL_SOLR_VERSION}"
+echo "  2. ddev composer require drupal/search_api_solr"
+echo "  3. ddev drush en search_api_solr"
+echo "  4. Create the '${SERVER_ID}' Search API server (host solr, port 8983, core dev)"
+echo "  5. Add a Solr ${LOCAL_SOLR_VERSION} service '${PLATFORM_SERVICE}' to ${SERVICES_FILE} and the relationship solr: '${PLATFORM_SERVICE}:${PLATFORM_ENDPOINT}' to ${APP_FILE}"
+echo "  6. Generate the Solr config into .ddev/solr/conf and .platform/solr-conf"
+echo "  7. ddev restart"
+echo "Only local files and the local database are changed. Undo with git checkout and a database re-import."
+if [ "$YES" != true ]; then
+  read -r -p "Continue? [y/N] " answer
+  case "$answer" in
+    y|Y|yes|YES) ;;
+    *) echo "Aborted."; exit 0 ;;
+  esac
+fi
+
+# 1. DDEV Solr add-on.
+if [ -f "$SOLR_MANIFEST" ]; then
+  INSTALLED_VERSION=$(grep -E '^version:' "$SOLR_MANIFEST" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
+  if [ "$INSTALLED_VERSION" = "$DDEV_SOLR_VERSION" ] && [ -f .ddev/docker-compose.solr.yaml ]; then
+    echo_green "ddev-drupal-solr ${DDEV_SOLR_VERSION} already installed."
+  elif [ "$INSTALLED_VERSION" = "$DDEV_SOLR_VERSION" ]; then
+    # Starterkits ship the add-on disabled (manifest present, compose file renamed to _docker-compose.solr.yaml).
+    echo_yellow "ddev-drupal-solr manifest found but .ddev/docker-compose.solr.yaml is missing, reinstalling."
+    ddev add-on get ddev/ddev-drupal-solr --version "$DDEV_SOLR_VERSION"
+  else
+    echo_yellow "ddev-drupal-solr ${INSTALLED_VERSION} found, switching to ${DDEV_SOLR_VERSION}."
+    ddev add-on get ddev/ddev-drupal-solr --version "$DDEV_SOLR_VERSION"
+  fi
+else
+  ddev add-on get ddev/ddev-drupal-solr --version "$DDEV_SOLR_VERSION"
+fi
+if [ ! -f .ddev/docker-compose.solr.yaml ]; then
+  echo_red ".ddev/docker-compose.solr.yaml still missing after installing ddev-drupal-solr, stopping."
+  exit 1
+fi
+# The disabled starterkit copy is now redundant.
+if [ -f .ddev/_docker-compose.solr.yaml ]; then
+  rm -f .ddev/_docker-compose.solr.yaml
+  echo "Removed the disabled .ddev/_docker-compose.solr.yaml."
+fi
+
+# Override the add-on's solr:8 image. Not #ddev-generated, so the project owns it.
+cat > "$IMAGE_OVERRIDE_FILE" <<EOF
+#annertech-ddev
+# Written by "ddev solr-setup". Runs ddev-drupal-solr on Solr ${LOCAL_SOLR_VERSION} to match Upsun.
+services:
+  solr:
+    image: solr:${LOCAL_SOLR_VERSION}
+    environment:
+      # Solr 9 only loads these modules when asked, the search_api_solr config uses them.
+      - SOLR_MODULES=extraction,langid,ltr,analysis-extras
+EOF
+echo_green "Wrote ${IMAGE_OVERRIDE_FILE} (solr:${LOCAL_SOLR_VERSION})."
+
+# 2. Composer package.
+if grep -q '"drupal/search_api_solr"' composer.json; then
+  echo_green "drupal/search_api_solr already in composer.json."
+else
+  ddev composer require drupal/search_api_solr
+fi
+
+# 3. Enable the module (no-op if already enabled).
+ddev drush pm:enable search_api_solr -y
+
+# 4. Search API server. Connector values match settings.local.devmode.php.
+if ddev drush config:get "search_api.server.${SERVER_ID}" id >/dev/null 2>&1; then
+  echo_green "Search API server '${SERVER_ID}' already exists."
+else
+  # The connector casts timeout/commit keys before merging defaults, so missing keys
+  # would be saved as 0. Start from its defaults (read without running the constructor).
+  ddev drush php:eval '
+    $manager = \Drupal::service("plugin.manager.search_api_solr.connector");
+    $class = $manager->getDefinition("standard")["class"];
+    $defaults = (new \ReflectionClass($class))->newInstanceWithoutConstructor()->defaultConfiguration();
+    $connector = $manager->createInstance("standard", [
+      "scheme" => "http",
+      "host" => "solr",
+      "port" => 8983,
+      "path" => "/",
+      "core" => "dev",
+    ] + $defaults);
+    $backend = \Drupal::service("plugin.manager.search_api.backend")->createInstance("search_api_solr", [
+      "connector" => "standard",
+      "connector_config" => $connector->getConfiguration(),
+    ]);
+    \Drupal\search_api\Entity\Server::create([
+      "id" => "'"$SERVER_ID"'",
+      "name" => "Solr",
+      "status" => TRUE,
+      "backend" => "search_api_solr",
+      "backend_config" => $backend->getConfiguration(),
+    ])->save();
+  '
+  echo_green "Created Search API server '${SERVER_ID}'."
+fi
+
+# 5. Upsun/Platform.sh Solr service.
+if [ ! -d .platform ]; then
+  echo_yellow "No .platform directory, skipping the Upsun Solr service."
+elif has_platform_solr; then
+  echo_green "Solr service already in ${SERVICES_FILE}."
+elif [ -f "$SERVICES_FILE" ] && grep -qE "^${PLATFORM_SERVICE}:" "$SERVICES_FILE"; then
+  echo_red "${SERVICES_FILE} already has a top-level '${PLATFORM_SERVICE}:' key that is not a Solr service. Fix it by hand."
+  exit 1
+else
+  # Ensure the file ends with a newline before appending.
+  [ -s "$SERVICES_FILE" ] && [ -n "$(tail -c1 "$SERVICES_FILE")" ] && echo >> "$SERVICES_FILE"
+  cat >> "$SERVICES_FILE" <<EOF
+
+${PLATFORM_SERVICE}:
+  type: solr:${LOCAL_SOLR_VERSION}
+  disk: 1024
+  configuration:
+    cores:
+      maincore:
+        conf_dir: !archive "solr-conf/${LOCAL_SOLR_VERSION%%.*}.x"
+    endpoints:
+      ${PLATFORM_ENDPOINT}:
+        core: maincore
+EOF
+  echo_green "Added '${PLATFORM_SERVICE}' Solr service to ${SERVICES_FILE}."
+fi
+
+# 5b. Relationship in the Upsun app config.
+RELATIONSHIP="solr: '${PLATFORM_SERVICE}:${PLATFORM_ENDPOINT}'"
+# Starterkits ship it commented out ("# solr: 'solrsearch:solr'"). Drop that line, the real one is inserted below.
+COMMENTED_RELATIONSHIP="^[[:space:]]*#[[:space:]]*solr:[[:space:]]*[\"']?${PLATFORM_SERVICE}:${PLATFORM_ENDPOINT}[\"']?[[:space:]]*$"
+if has_platform_solr && [ -f "$APP_FILE" ] && grep -qE "$COMMENTED_RELATIONSHIP" "$APP_FILE"; then
+  grep -vE "$COMMENTED_RELATIONSHIP" "$APP_FILE" > "${APP_FILE}.tmp"
+  mv "${APP_FILE}.tmp" "$APP_FILE"
+  echo "Removed commented-out relationship from ${APP_FILE}."
+fi
+if ! has_platform_solr; then
+  :
+elif grep -qsE "^[[:space:]]*[^#[:space:]].*${PLATFORM_SERVICE}:${PLATFORM_ENDPOINT}" "$APP_FILE"; then
+  echo_green "Relationship to ${PLATFORM_SERVICE}:${PLATFORM_ENDPOINT} already in ${APP_FILE}."
+elif [ ! -f "$APP_FILE" ]; then
+  echo_yellow "${APP_FILE} not found. Add this to your app's relationships by hand:"
+  echo_yellow "  ${RELATIONSHIP}"
+elif grep -qE '^[[:space:]]*solr:' <(sed -n '/^relationships:/,/^[^[:space:]#]/p' "$APP_FILE"); then
+  echo_red "${APP_FILE} already has a 'solr' relationship pointing elsewhere. Set it to '${PLATFORM_SERVICE}:${PLATFORM_ENDPOINT}' by hand."
+  exit 1
+elif grep -qE '^relationships:' "$APP_FILE"; then
+  # Insert as the first entry, using the indentation of the existing entries (default 2 spaces).
+  INDENT=$(sed -n '/^relationships:/,/^[^[:space:]#]/{/^relationships:/d;s/^\([[:space:]]\{1,\}\)[^[:space:]#].*/\1/p}' "$APP_FILE" | head -n 1)
+  INDENT="${INDENT:-  }"
+  awk -v line="${INDENT}${RELATIONSHIP}" '{ print } /^relationships:/ && !done { print line; done = 1 }' "$APP_FILE" > "${APP_FILE}.tmp"
+  mv "${APP_FILE}.tmp" "$APP_FILE"
+  echo_green "Added relationship ${RELATIONSHIP} to ${APP_FILE}."
+else
+  [ -s "$APP_FILE" ] && [ -n "$(tail -c1 "$APP_FILE")" ] && echo >> "$APP_FILE"
+  printf '\nrelationships:\n  %s\n' "$RELATIONSHIP" >> "$APP_FILE"
+  echo_green "Added relationships block with ${RELATIONSHIP} to ${APP_FILE}."
+fi
+
+# 6. Solr core config.
+if has_platform_solr; then
+  echo "Upsun Solr service found, running solr:update-config."
+  ddev solr:update-config
+else
+  echo "No Upsun Solr service, writing DDEV config only (Solr ${LOCAL_SOLR_VERSION})."
+  ddev drush search-api-solr:get-server-config "$SERVER_ID" /var/www/html/.ddev/solr-config.zip "$LOCAL_SOLR_VERSION"
+  ddev exec 'rm -f .ddev/solr/conf/* && unzip -q -o .ddev/solr-config.zip -d .ddev/solr/conf/ && rm -f .ddev/solr-config.zip'
+fi
+
+# 7. Restart so the Solr container starts and solr-configupdate.sh loads the new config.
+ddev restart
+
+echo_green "Solr is set up. Check it with: ddev drush search-api:server-status"
+echo_yellow "Export and commit the new config: ddev cex, then git add the config, .ddev/solr, .platform and composer files."
+echo_yellow "A new Upsun service uses plan resources once deployed, check before you push."

@@ -41,6 +41,7 @@ DDEV workflow.
 - - [`protect [on|off|reset]`](commands/host/protect): Enable or disable basic auth on a nixsal hosted dev project - [see file](commands/host/protect)
 - - [`remote-db`](commands/host/remote-db): Get latest DB from live site
 - - [`sanity-check`](commands/host/sanity-check): Sanity-check project settings, configs etc
+- - [`solr-setup`](commands/host/solr-setup): Set up local Solr 9 (add-on, search_api_solr, `solr` server, Upsun service)
 - - [`tests`](commands/host/tests): Informs about available tests for current project
 - - [`timew`](commands/host/timew): Tags current timewarrior tracking with Teamwork ID and project name
 - - [`timewarrior-timelog` - `twl`](commands/host/timewarrior-timelog): Log timewarrior summary to a Teamwork task
