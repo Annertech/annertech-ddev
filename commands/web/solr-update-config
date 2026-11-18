@@ -13,17 +13,35 @@ if ./vendor/bin/robo | grep -q 'solr:update-conf'; then
 else
   echo "Running via DDEV addon (no configuration found in project level)."
 
-  drush search-api-solr:get-server-config solr ../config.zip # Hardcode SOLR version? (8.11)
+  # Read Solr version and conf dir from the Platform.sh services file.
+  SERVICES_FILE=".platform/services.yaml"
+  if [ ! -f "$SERVICES_FILE" ]; then
+    echo "${SERVICES_FILE} not found." >&2
+    exit 1
+  fi
+  SOLR_VERSION=$(sed -n 's/^[[:space:]]*type:[[:space:]]*["'\'']\{0,1\}solr:\([0-9.]*\).*/\1/p' "$SERVICES_FILE" | head -n 1)
+  SOLR_CONF_DIR=$(sed -n 's/^[[:space:]]*conf_dir:.*["'\'']\(solr-conf\/[^"'\'']*\)["'\''].*/\1/p' "$SERVICES_FILE" | head -n 1)
+
+  if [ -z "$SOLR_VERSION" ]; then
+    echo "Could not find a solr:X.Y service type in ${SERVICES_FILE}." >&2
+    exit 1
+  fi
+  [ -z "$SOLR_CONF_DIR" ] && SOLR_CONF_DIR="solr-conf/${SOLR_VERSION%%.*}.x"
+  PSH_CONF_DIR=".platform/${SOLR_CONF_DIR}"
+  echo "Solr version: ${SOLR_VERSION}, Platform conf dir: ${PSH_CONF_DIR}"
+
+  drush search-api-solr:get-server-config solr ../config.zip "$SOLR_VERSION" || exit 1
 
   # DDEV
-  rm .ddev/solr/conf/*
+  rm -f .ddev/solr/conf/*
   unzip config.zip -d .ddev/solr/conf/
   # @note: This was needed at some point, keep for reference:
   # sed -i "/solr\.install\.dir/d" .ddev/solr/conf/*
 
   # PSH
-  rm .platform/solr-conf/8.x/*
-  unzip config.zip -d .platform/solr-conf/8.x/
+  mkdir -p "$PSH_CONF_DIR"
+  rm -f "$PSH_CONF_DIR"/*
+  unzip config.zip -d "$PSH_CONF_DIR"/
 
   rm config.zip
 fi
