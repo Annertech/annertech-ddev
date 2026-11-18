@@ -82,14 +82,27 @@ fi
 # 1. DDEV Solr add-on.
 if [ -f "$SOLR_MANIFEST" ]; then
   INSTALLED_VERSION=$(grep -E '^version:' "$SOLR_MANIFEST" | awk -F': ' '{print $2}' | tr -d '"' | xargs)
-  if [ "$INSTALLED_VERSION" = "$DDEV_SOLR_VERSION" ]; then
+  if [ "$INSTALLED_VERSION" = "$DDEV_SOLR_VERSION" ] && [ -f .ddev/docker-compose.solr.yaml ]; then
     echo_green "ddev-drupal-solr ${DDEV_SOLR_VERSION} already installed."
+  elif [ "$INSTALLED_VERSION" = "$DDEV_SOLR_VERSION" ]; then
+    # Starterkits ship the add-on disabled (manifest present, compose file renamed to _docker-compose.solr.yaml).
+    echo_yellow "ddev-drupal-solr manifest found but .ddev/docker-compose.solr.yaml is missing, reinstalling."
+    ddev add-on get ddev/ddev-drupal-solr --version "$DDEV_SOLR_VERSION"
   else
     echo_yellow "ddev-drupal-solr ${INSTALLED_VERSION} found, switching to ${DDEV_SOLR_VERSION}."
     ddev add-on get ddev/ddev-drupal-solr --version "$DDEV_SOLR_VERSION"
   fi
 else
   ddev add-on get ddev/ddev-drupal-solr --version "$DDEV_SOLR_VERSION"
+fi
+if [ ! -f .ddev/docker-compose.solr.yaml ]; then
+  echo_red ".ddev/docker-compose.solr.yaml still missing after installing ddev-drupal-solr, stopping."
+  exit 1
+fi
+# The disabled starterkit copy is now redundant.
+if [ -f .ddev/_docker-compose.solr.yaml ]; then
+  rm -f .ddev/_docker-compose.solr.yaml
+  echo "Removed the disabled .ddev/_docker-compose.solr.yaml."
 fi
 
 # Override the add-on's solr:8 image. Not #ddev-generated, so the project owns it.
@@ -119,14 +132,19 @@ ddev drush pm:enable search_api_solr -y
 if ddev drush config:get "search_api.server.${SERVER_ID}" id >/dev/null 2>&1; then
   echo_green "Search API server '${SERVER_ID}' already exists."
 else
+  # The connector casts timeout/commit keys before merging defaults, so missing keys
+  # would be saved as 0. Start from its defaults (read without running the constructor).
   ddev drush php:eval '
-    $connector = \Drupal::service("plugin.manager.search_api_solr.connector")->createInstance("standard", [
+    $manager = \Drupal::service("plugin.manager.search_api_solr.connector");
+    $class = $manager->getDefinition("standard")["class"];
+    $defaults = (new \ReflectionClass($class))->newInstanceWithoutConstructor()->defaultConfiguration();
+    $connector = $manager->createInstance("standard", [
       "scheme" => "http",
       "host" => "solr",
       "port" => 8983,
       "path" => "/",
       "core" => "dev",
-    ]);
+    ] + $defaults);
     $backend = \Drupal::service("plugin.manager.search_api.backend")->createInstance("search_api_solr", [
       "connector" => "standard",
       "connector_config" => $connector->getConfiguration(),
