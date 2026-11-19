@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         bootstrap="../../web/core/tests/bootstrap.php"
+         colors="true"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+         beStrictAboutOutputDuringTests="true"
+         beStrictAboutChangesToGlobalState="true"
+         displayDetailsOnTestsThatTriggerErrors="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         cacheResult="false"
+         failOnWarning="true"
+         defaultTestSuite="custom"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
+         cacheDirectory=".phpunit.cache">
+  <php>
+    <ini name="error_reporting" value="32767" />
+    <ini name="memory_limit" value="-1" />
+    <env name="SIMPLETEST_BASE_URL" value="http://web" />
+    <env name="SIMPLETEST_DB" value="mysql://db:db@db/test" />
+  </php>
+  <extensions>
+    <bootstrap class="Drupal\TestTools\Extension\HtmlLogging\HtmlOutputLogger">
+      <parameter name="outputDirectory" value="/var/www/html/web/sites/simpletest/browser_output" />
+      <parameter name="verbose" value="true" />
+    </bootstrap>
+  </extensions>
+  <testsuites>
+    <testsuite name="custom">
+      <directory suffix="Test.php">../../web/modules/custom/*/tests</directory>
+    </testsuite>
+  </testsuites>
+</phpunit>

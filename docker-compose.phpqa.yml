@@ -1,0 +1,13 @@
+services:
+  phpqa:
+    container_name: ddev-${DDEV_SITENAME}-phpqa
+    image: registry.anner.ie/annertech/infra/ci/phpqa:${DDEV_PHP_VERSION}
+    working_dir: /var/www/html
+    volumes:
+      - ".:/mnt/ddev_config"
+      - "../:/var/www/html:cached"
+      - ddev-global-cache:/mnt/ddev-global-cache
+    command: ["sleep", "infinity"]
+    restart: "no"
+    depends_on:
+      - db

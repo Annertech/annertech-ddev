@@ -1,0 +1,11 @@
+#!/bin/bash
+#ddev-generated
+#annertech-ddev
+
+## Description: Run phpunit inside the web container
+## Usage: phpunit
+## Example: "ddev phpunit"
+
+export SIMPLETEST_BASE_URL="$(ddev exec printenv DDEV_PRIMARY_URL)"
+
+ddev exec -s phpqa phpunit -c .ddev/phpqa/phpunit.xml "$@"
