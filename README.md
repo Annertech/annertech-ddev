@@ -56,6 +56,7 @@ DDEV workflow.
 - - [`upsun-dashboard`](commands/host/upsun-dashboard): Open Upsun project dashboard in browser
 - Provides **web container** commands:
 - - [`behat`](commands/web/behat): Runs behat
+- - [`dr`](commands/web/dr): Runs Drupal core's `dr` CLI (Drupal 11.4+)
 - - [`install-bruno`](commands/web/install-bruno): Prepare bruno configuration
 - - [`install-varnish`](commands/web/install-varnish): Installs and configures Varnish on Upsun project. See [Varnish command README](scripts/varnish/README.md)
 - - [`phpunit`](commands/web/phpunit): Runs phpunit tests

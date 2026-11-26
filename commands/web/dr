@@ -1,0 +1,27 @@
+#!/bin/sh
+#ddev-generated
+#annertech-ddev
+
+## Description: Run Drupal core's dr CLI (Drupal 11.4+) inside the web container
+## Usage: dr [command] [flags] [args]
+## Example: "ddev dr list"\n"ddev dr cache:rebuild"
+## ProjectTypes: drupal11,drupal12
+## ExecRaw: true
+## HostWorkingDir: true
+
+# Guard: this script may end up on non-DDEV environments (e.g. production) where
+# it must never run. DDEV sets IS_DDEV_PROJECT=true inside the web container.
+if [ "$IS_DDEV_PROJECT" != "true" ]; then
+    echo "Error: dr can only run inside a DDEV web container." >&2
+    exit 1
+fi
+
+DR="${DDEV_COMPOSER_ROOT:-/var/www/html}/vendor/bin/dr"
+
+if [ ! -x "$DR" ]; then
+    echo "Error: $DR not found." >&2
+    echo "The dr CLI ships with Drupal core 11.4 or newer. Run 'ddev composer install' or update drupal/core." >&2
+    exit 1
+fi
+
+exec "$DR" "$@"

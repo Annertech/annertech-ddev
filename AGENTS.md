@@ -80,6 +80,7 @@ tests/                     # BATS test suite
 
 ### Web Container Commands
 - `upsun` - Run Upsun/Platform.sh CLI inside container
+- `dr` - Run Drupal core's native `dr` CLI (Drupal 11.4+)
 - `phpunit` / `behat` / `rector` / `robo` - Testing and code quality tools
 - `solr-update-config` - Update Solr search configuration
 - `check-annertech-ddev` - Verify addon version is current
