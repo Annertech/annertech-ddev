@@ -16,4 +16,7 @@ if [[ -n "$APP_YAML" && -f "$APP_YAML" ]] && strip_yaml "$APP_YAML" | awk '
   pass "/core/install.php access is denied in .platform.app.yaml"
 fi
 
-$INSTALL_PHP_PROTECTED || critical_fail "core/install.php is not protected — add \"rm -f web/core/install.php\" to composer post-install-cmd/post-update-cmd, or set '/core/install.php': allow: false under web.locations in .platform.app.yaml"
+$INSTALL_PHP_PROTECTED || critical_fail "core/install.php is not protected, run:
+      composer config scripts.post-install-cmd \"rm -f web/core/install.php\"
+      composer config scripts.post-update-cmd \"rm -f web/core/install.php\"
+    or set '/core/install.php': allow: false under web.locations in .platform.app.yaml"
